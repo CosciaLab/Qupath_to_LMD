@@ -6,10 +6,8 @@ import tifffile
 import shapely
 import streamlit as st
 from python_functions import dataframe_to_xml_v2
-#from lmd.lib import Collection, Shape
-from lmd import tools
+#
 from PIL import Image
-from lmd.lib import SegmentationLoader
 from pathlib import Path
 
 import subprocess
@@ -27,6 +25,9 @@ except ModuleNotFoundError as e:
   # wait for subprocess to install package before running your actual code below
   time.sleep(90)
 
+from lmd.lib import SegmentationLoader
+from lmd.lib import Collection, Shape
+from lmd import tools
 """
 # Welcome to Streamlit!
 
