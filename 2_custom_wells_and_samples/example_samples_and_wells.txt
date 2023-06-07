@@ -1,4 +1,4 @@
-samples_and_wells = { 
+{ 
  '187_HBC_mid_3': 'C3',
  '187_HBC_nVEC_1': 'C4',
  '187_HBC_nVEC_2': 'C5',
