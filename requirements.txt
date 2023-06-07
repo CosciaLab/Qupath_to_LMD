@@ -1,3 +1,4 @@
+git+https://github.com/MannLabs/py-lmd
 scipy
 numba
 scikit-image
