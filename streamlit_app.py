@@ -29,7 +29,8 @@ samples_and_wells_input = st.text_area("Enter the desired samples and wells sche
 
 if st.button("Process file"):
    #load samples and wells
-   samples_and_wells = ast.literal_eval(samples_and_wells_input)
+   samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
+   samples_and_wells = ast.literal_eval(samples_and_wells_processed)
    #load calibration points
    calibration_points = [calibration_point_1, calibration_point_2, calibration_point_3]
    st.write("these are your calibration points: ")
