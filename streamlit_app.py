@@ -6,11 +6,26 @@ import tifffile
 import shapely
 import streamlit as st
 from python_functions import dataframe_to_xml_v2
-from lmd.lib import Collection, Shape
+#from lmd.lib import Collection, Shape
 from lmd import tools
 from PIL import Image
 from lmd.lib import SegmentationLoader
 from pathlib import Path
+
+import subprocess
+import sys
+import time
+
+
+try:
+  # replace "yourpackage" with the package you want to import
+   from lmd.lib import Collection, Shape
+
+# This block executes only on the first run when your package isn't installed
+except ModuleNotFoundError as e:
+  subprocess.Popen([f'{sys.executable} -m pip install git+https://github.com/MannLabs/py-lmd.git'], shell=True)
+  # wait for subprocess to install package before running your actual code below
+  time.sleep(90)
 
 """
 # Welcome to Streamlit!
