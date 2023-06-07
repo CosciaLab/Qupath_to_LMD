@@ -11,6 +11,7 @@ from lmd.lib import Collection, Shape
 from lmd import tools
 from PIL import Image
 from pathlib import Path
+import ast
 
 st.title("Convert a GeoJSON polygons to xml")
 st.subheader("From Jose Nimo, at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
@@ -25,13 +26,15 @@ calibration_point_3 = st.text_input("Enter the name of the third calibration poi
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
-import ast
-samples_and_wells = ast.literal_eval(samples_and_wells_input)
 
 if st.button("Process file"):
+   #load samples and wells
+   samples_and_wells = ast.literal_eval(samples_and_wells_input)
+   #load calibration points
    calibration_points = [calibration_point_1, calibration_point_2, calibration_point_3]
    st.write("these are your calibration points: ")
    st.write(calibration_points)
+
    # Check if both file and text inputs are provided
    if uploaded_file is not None and calibration_points is not None:
       # Run your script or process the inputs

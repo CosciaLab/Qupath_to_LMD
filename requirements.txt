@@ -1,4 +1,3 @@
-git+https://github.com/MannLabs/py-lmd
 scipy
 numba
 scikit-image
@@ -10,3 +9,4 @@ datetime
 tifffile
 shapely
 streamlit
+git+https://github.com/MannLabs/py-lmd
