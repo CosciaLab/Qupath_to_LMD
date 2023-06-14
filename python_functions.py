@@ -17,7 +17,7 @@ import string
 
 from shapely.geometry import Point, LineString
 
-def dataframe_to_xml_v2(input_file, calibration_points_list, samples_and_wells_dict):
+def dataframe_to_xml_v2(input_file, calibration_points, samples_and_wells):
     
     df = geopandas.read_file(input_file)
     #calibration_points = ["calib12","calib13","calib20"]
@@ -38,25 +38,26 @@ def dataframe_to_xml_v2(input_file, calibration_points_list, samples_and_wells_d
     #classes represent all the different wells, each class goes into one well.
     all_classes = clean_df.Name.unique()
     
-    #create list of acceptable wells, default is using a space in between columns
-    list_of_acceptable_wells =[]
-    for row in list(string.ascii_uppercase[2:14]):
-        for column in range(2,22):
-            list_of_acceptable_wells.append(str(row) + str(column))
+    # #create list of acceptable wells, default is using a space in between columns
+    # list_of_acceptable_wells =[]
+    # for row in list(string.ascii_uppercase[2:14]):
+    #     for column in range(2,22):
+    #         list_of_acceptable_wells.append(str(row) + str(column))
             
-    #samples_and_wells will be dictionary,key is the sample class, value is the well string
-    #loads global variable with that name
-    samples_and_wells = samples_and_wells_dict
-    global samples_and_wells 
-    #this did not worked with streamlit, have to load directly from the function
-    try:
-        samples_and_wells
-        print("samples_and_wells was preloaded, using it for assigning wells")
-    except NameError:
-        print("samples_and_wells not detected, assigning wells at random")
-        samples_and_wells = {}
-        for sample_class, well in zip(all_classes, list_of_acceptable_wells):
-            samples_and_wells[sample_class] = well
+    # #samples_and_wells will be dictionary,key is the sample class, value is the well string
+    # #loads global variable with that name
+    # if samples_and_wells_dict not None:
+    #     samples_and_wells = samples_and_wells_dict
+    # global samples_and_wells 
+    # #this did not worked with streamlit, have to load directly from the function
+    # try:
+    #     samples_and_wells
+    #     print("samples_and_wells was preloaded, using it for assigning wells")
+    # except NameError:
+    #     print("samples_and_wells not detected, assigning wells at random")
+    #     samples_and_wells = {}
+    #     for sample_class, well in zip(all_classes, list_of_acceptable_wells):
+    #         samples_and_wells[sample_class] = well
         
     #create the collection of py-lmd-env package
     #uses caliblist passed on the function, order matters
