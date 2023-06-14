@@ -40,7 +40,7 @@ if st.button("Run the script"):
    # Run your script or process the inputs
    st.write("Running the script...")
    # Add your script logic here
-   dataframe_to_xml_v2(uploaded_file, calibration_points)
+   dataframe_to_xml_v2(uploaded_file, calibration_points, samples_and_wells)
    #Running is done
    st.write("Please download the file now")
    #output = dataframe_to_xml_v2(uploaded_file, calibration_points)

@@ -17,7 +17,7 @@ import string
 
 from shapely.geometry import Point, LineString
 
-def dataframe_to_xml_v2(input_file, calibration_points):
+def dataframe_to_xml_v2(input_file, calibration_points_list, samples_and_wells_dict):
     
     df = geopandas.read_file(input_file)
     #calibration_points = ["calib12","calib13","calib20"]
@@ -46,7 +46,9 @@ def dataframe_to_xml_v2(input_file, calibration_points):
             
     #samples_and_wells will be dictionary,key is the sample class, value is the well string
     #loads global variable with that name
+    samples_and_wells = samples_and_wells_dict
     global samples_and_wells 
+    #this did not worked with streamlit, have to load directly from the function
     try:
         samples_and_wells
         print("samples_and_wells was preloaded, using it for assigning wells")
