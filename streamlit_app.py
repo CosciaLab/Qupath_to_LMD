@@ -39,14 +39,16 @@ if st.button("Process file"):
    st.write(calibration_points)
 
    # Check if both file and text inputs are provided
-   if uploaded_file is not None and calibration_points is not None:
-      # Run your script or process the inputs
-      st.write("Running the script...")
-      # Add your script logic here
-      dataframe_to_xml_v2(uploaded_file, calibration_points)
-      #output = dataframe_to_xml_v2(uploaded_file, calibration_points)
-      st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
+   #if uploaded_file is not None and calibration_points is not None:
+   
+   # Run your script or process the inputs
+   st.write("Running the script...")
+   # Add your script logic here
+   dataframe_to_xml_v2(uploaded_file, calibration_points)
+   #output = dataframe_to_xml_v2(uploaded_file, calibration_points)
+   st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
 
-   else:
-      st.warning("Please provide a file and text input")
+
+   #else:
+   #  st.warning("Please provide a file and text input")
    
