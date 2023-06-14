@@ -28,7 +28,7 @@ calibration_point_3 = st.text_input("Enter the name of the third calibration poi
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
 
-if st.button("Process file"):
+if st.button("Load input into app"):
    #load samples and wells
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
@@ -37,10 +37,9 @@ if st.button("Process file"):
    calibration_points = [calibration_point_1, calibration_point_2, calibration_point_3]
    st.write("these are your calibration points: ")
    st.write(calibration_points)
+   st.write("Done loading input into app, now you can run the script")
 
-   # Check if both file and text inputs are provided
-   #if uploaded_file is not None and calibration_points is not None:
-   
+if st.button("Run the script"):
    # Run your script or process the inputs
    st.write("Running the script...")
    # Add your script logic here
@@ -49,8 +48,3 @@ if st.button("Process file"):
    st.write("Please download the file now")
    #output = dataframe_to_xml_v2(uploaded_file, calibration_points)
    st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
-
-
-   #else:
-   #  st.warning("Please provide a file and text input")
-   
