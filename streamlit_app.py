@@ -44,5 +44,6 @@ if st.button("Run the script"):
    #Running is done
    st.write("Please download the file now")
    #output = dataframe_to_xml_v2(uploaded_file, calibration_points)
-   st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
+
+st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
 
