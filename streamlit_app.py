@@ -13,6 +13,8 @@ from PIL import Image
 from pathlib import Path
 import ast
 
+
+
 st.title("Convert a GeoJSON polygons to xml")
 st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
 st.subheader("Thanks to Florian Wuenemman for inspiration, and Sophia Madler for the lmd-py package")
@@ -27,6 +29,10 @@ calibration_point_3 = st.text_input("Enter the name of the third calibration poi
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
+@st.cache(allow_output_mutation=True)
+def run_script(uploaded_file, calibration_points, samples_and_wells):
+   # Add your script logic here
+   dataframe_to_xml_v2(uploaded_file, calibration_points, samples_and_wells)
 
 if st.button("Run the script"):
    #load samples and wells
@@ -40,10 +46,9 @@ if st.button("Run the script"):
    # Run your script or process the inputs
    st.write("Running the script...")
    # Add your script logic here
-   dataframe_to_xml_v2(uploaded_file, calibration_points, samples_and_wells)
+   run_script(uploaded_file, calibration_points, samples_and_wells)
    #Running is done
    st.write("Please download the file now")
-   #output = dataframe_to_xml_v2(uploaded_file, calibration_points)
 
 st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
 
