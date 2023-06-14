@@ -38,13 +38,14 @@ if st.button("Load input into app"):
    st.write("these are your calibration points: ")
    st.write(calibration_points)
    st.write("Done loading input into app, now you can run the script")
+   
+   if st.button("Run the script"):
+      # Run your script or process the inputs
+      st.write("Running the script...")
+      # Add your script logic here
+      dataframe_to_xml_v2(uploaded_file, calibration_points)
+      #Running is done
+      st.write("Please download the file now")
+      #output = dataframe_to_xml_v2(uploaded_file, calibration_points)
+      st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
 
-if st.button("Run the script"):
-   # Run your script or process the inputs
-   st.write("Running the script...")
-   # Add your script logic here
-   dataframe_to_xml_v2(uploaded_file, calibration_points)
-   #Running is done
-   st.write("Please download the file now")
-   #output = dataframe_to_xml_v2(uploaded_file, calibration_points)
-   st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
