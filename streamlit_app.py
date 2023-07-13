@@ -27,7 +27,7 @@ calibration_point_1 = st.text_input("Enter the name of the first calibration poi
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
 calibration_point_3 = st.text_input("Enter the name of the third calibration point: ",  placeholder ="calib3")
 
-samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
+samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme, this is required!")
 
 @st.cache(allow_output_mutation=True)
 def run_script(uploaded_file, calibration_points, samples_and_wells):
