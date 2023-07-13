@@ -49,6 +49,4 @@ if st.button("Run the script"):
    run_script(uploaded_file, calibration_points, samples_and_wells)
    #Running is done
    st.write("Please download the file now")
-
-st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
-
+   st.download_button("Download file", Path("./out.xml").read_text(), "out.xml")
