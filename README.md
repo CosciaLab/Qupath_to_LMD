@@ -8,9 +8,9 @@ You can go through the Jupyter notebook locally in your own machine, or you can 
 
 ## Jupyter notebook
 
-To run the Jupyter notebook you have to create a local environment with the right packages.   
-Please follow the instructions at https://github.com/MannLabs/py-lmd. (thanks to them this is possible)
-Then please install these extra packages with the following command:
+To run the Jupyter notebook you have to create a local environment with the right packages.  
+Please follow the instructions at https://github.com/MannLabs/py-lmd. (thanks to them this is possible)  
+Then please install these extra packages with the following command:  
 `conda install geojson geopandas shapely ipykernel`
 
 There are three inputs for the jupyter notebook.
@@ -21,7 +21,7 @@ There are three inputs for the jupyter notebook.
 
 ## Streamlit webapp
 
-Go to [https://qupathtolmd-hpqovu7trk3fob2xz5uefy.streamlit.app/](Streamlit app)
+Go to (https://qupathtolmd-hpqovu7trk3fob2xz5uefy.streamlit.app/)[Streamlit app]
 Upload your geojson file.
 Write down your calibration points
 Paste in your samples_and_wells dictionary,you do not have to paste the "samples_and_wells = " part, just paste the curly bracket part to it.
