@@ -1,5 +1,3 @@
-
-
 # Introduction
 
 This repository includes all the code necesary to easily transforms a Qupath geojson file to LMD-compatible .xml file.
@@ -42,6 +40,11 @@ It is a python dictionary that follows the following structure:
 
 Each "Class_name_" is the exact name of the class of annotation found in Qupath.  
 And the following string is the target well. works for both 384-well plates and 96-well plates
+
+
+# Youtube Tutorial 
+
+https://www.youtube.com/watch?v=tyvHjttjSBE
 
 
 # FAQ
