@@ -21,10 +21,10 @@ There are three inputs for the jupyter notebook.
 
 ## Streamlit webapp
 
-Go to (https://qupathtolmd-hpqovu7trk3fob2xz5uefy.streamlit.app/)[Streamlit app]
-Upload your geojson file.
-Write down your calibration points
-Paste in your samples_and_wells dictionary,you do not have to paste the "samples_and_wells = " part, just paste the curly bracket part to it.
+Go to (https://qupathtolmd-hpqovu7trk3fob2xz5uefy.streamlit.app/)  
+Upload your geojson file.  
+Write down your calibration points  
+Paste in your samples_and_wells dictionary, you do not have to paste the "samples_and_wells = " part, just paste the curly bracket part to it.  
 
 Click Run the script, and download your output file.
 
@@ -34,13 +34,14 @@ Click Run the script, and download your output file.
 Is the object that allows us to inform the LMD to which wells do we want which contours.
 It is a python dictionary that follows the following structure:
 
-{ 
-"Class_name_1" : "C3",
-"Class_name_2" : "C5",
-"Class_name_3" : "C7",
-}
+{   
+"Class_name_1" : "C3",  
+"Class_name_2" : "C5",  
+"Class_name_3" : "C7",  
+}  
 
-Each "Class_name_" is the exact name of the class of annotation found in Qupath.
+Each "Class_name_" is the exact name of the class of annotation found in Qupath.  
+And the following string is the target well. works for both 384-well plates and 96-well plates
 
 
 # FAQ
