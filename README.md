@@ -1,8 +1,17 @@
 # Introduction
 
 This repository includes all the code necesary to easily transforms a Qupath geojson file to LMD-compatible .xml file.
-
 You can go through the Jupyter notebook locally in your own machine, or you can go to a webapp version that simply requires a file upload.
+
+## Qupath Annotations
+
+0. Create a Qupath Project (optional)
+1. Load images of interest
+2. Draw annotations
+3. Classify annotations using QuPath classes
+4. Add at least 3 calibration points using point tool
+5. Export annotations as .geojson format
+6. Load into webapp or jupyter notebook (see below)
 
 ## Jupyter notebook
 
