@@ -29,11 +29,10 @@ There are three inputs for the jupyter notebook.
 ## Streamlit webapp
 
 Go to (https://qupathtolmd-hpqovu7trk3fob2xz5uefy.streamlit.app/)  
-Upload your geojson file.  
-Write down your calibration points  
-Paste in your samples_and_wells dictionary, you do not have to paste the "samples_and_wells = " part, just paste the curly bracket part to it.  
-
-Click Run the script, and download your output file.
+1. Upload your geojson file.  
+2. Write down your calibration points  
+3. Paste in your samples_and_wells dictionary (see below)
+4. Click Run the script, and download your output file.
 
 
 ## What is the "samples_and_wells" scheme
