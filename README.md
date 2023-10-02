@@ -36,19 +36,21 @@ Paste in your samples_and_wells dictionary, you do not have to paste the "sample
 Click Run the script, and download your output file.
 
 
-## The samples and wells dictionary
+## What is the "samples_and_wells" scheme
 
-Is the object that allows us to inform the LMD to which wells do we want which contours.
-It is a python dictionary that follows the following structure:
+It is the text, written in the format of a python dictionary, that allows the code to understand to which well will the countours be cut into. 
 
+This is an example:
+```
 {   
 "Class_name_1" : "C3",  
 "Class_name_2" : "C5",  
 "Class_name_3" : "C7",  
 }  
-
-Each "Class_name_" is the exact name of the class of annotation found in Qupath.  
-And the following string is the target well. works for both 384-well plates and 96-well plates
+```
+Each "Class_name_" is the exact name of the class of annotation found in Qupath.
+The "C3", "C5", "C7" strings determine into which well are the contours going to be collected.
+Works for both 384-well plates and 96-well plates
 
 
 # Youtube Tutorial 
