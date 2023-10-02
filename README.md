@@ -67,3 +67,7 @@ Create a gihtub issue explaning what are you doing and pasting the Traceback (th
 
 KeyError is usually because your samples_and_wells does not match your geojson file.
 Check them, they have to be exactly the same.
+
+(3) Not sure if your .geojson file is the correct format? 
+
+Check the example_input folder in the repository to see how they should look like. 
