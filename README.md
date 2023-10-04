@@ -56,6 +56,10 @@ Works for both 384-well plates and 96-well plates
 
 https://www.youtube.com/watch?v=tyvHjttjSBE
 
+# Citation
+Please use the APA format for Github repositories:
+
+Nimo, J. (2023). Qupath_to_LMD: A tool to transform QuPath annotations to LMD coordenates. GitHub. [https://github.com/CosciaLab/Qupath_to_LMD](https://github.com/CosciaLab/Qupath_to_LMD/)
 
 # FAQ
 
