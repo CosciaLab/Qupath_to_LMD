@@ -10,7 +10,7 @@ You can go through the Jupyter notebook locally in your own machine, or you can 
 2. Draw annotations
 3. Classify annotations using QuPath classes
 4. Add at least 3 calibration points using point tool
-5. Export annotations as .geojson format
+5. Export annotations as a **FeatureCollection** in the **.geojson** format
 6. Load into webapp or jupyter notebook (see below)
 
 ## Jupyter notebook
@@ -63,15 +63,16 @@ Nimo, J. (2023). Qupath_to_LMD: A tool to transform QuPath annotations to LMD co
 
 # FAQ
 
-(1) I have an error what do I do? 
 
-Create a gihtub issue explaning what are you doing and pasting the Traceback (the code that is trying to tell you what went wrong)
-
-(2) I have a KeyError type of error, what do I do? 
+(1) I have a KeyError type of error, what do I do? 
 
 KeyError is usually because your samples_and_wells does not match your geojson file.
 Check them, they have to be exactly the same.
 
-(3) Not sure if your .geojson file is the correct format? 
+(2) Not sure if your .geojson file is the correct format? 
 
 Check the example_input folder in the repository to see how they should look like. 
+
+(3) I have an error what do I do? 
+
+Create a gihtub issue explaning what are you doing and pasting the Traceback (the code that is trying to tell you what went wrong)
