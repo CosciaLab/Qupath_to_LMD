@@ -1,7 +1,7 @@
 # Introduction
 
-This repository includes all the code necesary to easily transforms a Qupath geojson file to LMD-compatible .xml file.
-You can go through the Jupyter notebook locally in your own machine, or you can go to a webapp version that simply requires a file upload.
+This repository includes all the code necesary to easily transform a Qupath geojson file to the Leica LMD7 compatible .xml file.
+You can go through the Jupyter notebook locally on your own machine, or use the webapp version that simply requires a file upload.
 
 ## Qupath Annotations
 
