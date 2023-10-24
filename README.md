@@ -50,7 +50,7 @@ This is an example:
 Each "Class_name_" is the exact name of the class of annotation found in Qupath.
 The "C3", "C5", "C7" strings determine into which well are the contours going to be collected.
 Works for both 384-well plates and 96-well plates
-
+Note: For 384 well plate users, in the LMD7 system, do not use rows A or B, nor columns 1 or 2. The system struggles to collect to these wells.
 
 # Youtube Tutorial 
 
