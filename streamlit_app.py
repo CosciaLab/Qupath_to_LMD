@@ -15,13 +15,18 @@ import ast
 
 
 
-st.title("Convert a GeoJSON polygons to xml")
+st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
 st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
-st.subheader("Thanks to Florian Wuenemman for inspiration, and Sophia Madler for the lmd-py package")
-st.subheader("Contact jose.nimo@mdc-berlin.de for questions and suggestions")
 st.divider()
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
+
+#button to print information about the file, from a function
+if st.button("Print information about the file"):
+   if uploaded_file is not None:
+      
+
+
 
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
