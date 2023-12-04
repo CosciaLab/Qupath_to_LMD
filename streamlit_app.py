@@ -88,7 +88,7 @@ calibration_point_3 = st.text_input("Enter the name of the third calibration poi
 list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibration_point_3]
 
 if st.button("Load and check the geojson file"):
-    df, calib_np_array = load_and_QC_geojson_file(uploaded_file, list_of_calibpoint_names)
+    df, calib_np_array = load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme, this is required!")
 
