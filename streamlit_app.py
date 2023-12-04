@@ -140,7 +140,7 @@ if st.button("Check the samples and wells"):
 
 def create_collection(df_csv, calib_np_array_csv, samples_and_wells_input ):
    df = pandas.read_csv(df_csv)
-   calib_np_array = numpy.loadtxt(calib_np_array, delimiter=",")
+   calib_np_array = numpy.loadtxt(calib_np_array_csv, delimiter=",")
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
