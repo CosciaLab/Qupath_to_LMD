@@ -21,7 +21,7 @@ st.divider()
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data(allow_output_mutation=True)
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
 
     #load geojson file
@@ -92,7 +92,7 @@ if st.button("Load and check the geojson file"):
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme, this is required!")
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data(allow_output_mutation=True)
 def load_and_QC_SamplesandWells(samples_and_wells_input, df):
 
     # parse common human copy paste formats
@@ -131,7 +131,7 @@ if st.button("Check the samples and wells"):
 
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data(allow_output_mutation=True)
 def create_collection(df, calib_np_array, samples_and_wells ):
     #create the collection of py-lmd-env package
     #uses caliblist passed on the function, order matters
