@@ -80,7 +80,10 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
 
    st.write('The file loading is complete')
 
-   return df, calib_np_array
+   #save dataframe as csv
+   df.to_csv(f"./{datetime}_QCed_geojson.csv", index=False)
+   #save numpy array as csv
+   numpy.savetxt(f"./{datetime}_calib_points.csv", calib_np_array, delimiter=",")
 
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
@@ -89,47 +92,49 @@ list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibratio
 
 if st.button("Load and check the geojson file"):
    if uploaded_file is not None:
-      df, calib_np_array = load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
+      load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
    else:
       st.warning("Please upload a file first.")
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
-def load_and_QC_SamplesandWells(samples_and_wells_input, df):
+def load_and_QC_SamplesandWells(samples_and_wells_input, df_csv):
 
-    # parse common human copy paste formats
-    # remove newlines
-    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
-    # remove spaces
-    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-    #parse into python dictionary
-    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
+   df = pandas.read_csv(df_csv)
 
-    #create list of acceptable wells, default is using a space in between columns
-    list_of_acceptable_wells =[]
-    for row in list(string.ascii_uppercase[2:14]):
-        for column in range(2,22):
-            list_of_acceptable_wells.append(str(row) + str(column))
+   # parse common human copy paste formats
+   # remove newlines
+   samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
+   # remove spaces
+   samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
+   #parse into python dictionary
+   samples_and_wells = ast.literal_eval(samples_and_wells_processed)
 
-    #check for improper wells
-    for well in samples_and_wells.values():
-        if well not in list_of_acceptable_wells:
+   #create list of acceptable wells, default is using a space in between columns
+   list_of_acceptable_wells =[]
+   for row in list(string.ascii_uppercase[2:14]):
+      for column in range(2,22):
+         list_of_acceptable_wells.append(str(row) + str(column))
+
+   #check for improper wells
+   for well in samples_and_wells.values():
+      if well not in list_of_acceptable_wells:
             st.write(f'Your well {well} is not in the list of acceptable wells, please correct it',
             'the LMD is not able to collect into this well, the script will stop here')
             st.stop()
 
-    #check that names in df are all present in the samples and wells
-    for name in df.Name.unique():
-        if name not in samples_and_wells.keys():
+   #check that names in df are all present in the samples and wells
+   for name in df.Name.unique():
+      if name not in samples_and_wells.keys():
             st.write(f'Your name {name} is not in the list of samples_and_wells, please correct either',
             'please change the class name in Qupath or add it to the samples_and_wells dictionary',
             'and then rerun the web app')
             st.stop()
-    
-    return samples_and_wells
+   
+   return samples_and_wells
 
 if st.button("Check the samples and wells"):
-   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df=df)
+   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df_csv=f"./{datetime}_QCed_geojson.csv")
 
 
 def create_collection(df, calib_np_array, samples_and_wells ):
