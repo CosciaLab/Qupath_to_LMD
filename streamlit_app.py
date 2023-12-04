@@ -2,7 +2,7 @@ import geopandas
 import pandas
 import numpy
 import datetime
-datetime = datetime.datetime.today().strftime("%Y%m%d_%H%M%S")
+datetime = datetime.datetime.today().strftime("%Y%m%d")
 import tifffile
 import shapely
 import streamlit as st
