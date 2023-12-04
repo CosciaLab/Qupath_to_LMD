@@ -1,7 +1,7 @@
 import geopandas
 import pandas
 import numpy
-import datetime
+import datetime as dt
 datetime = dt.datetime.today().strftime("%Y%m%d_%H%M%S")
 import tifffile
 import shapely
