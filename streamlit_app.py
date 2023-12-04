@@ -131,40 +131,49 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, df_csv):
             'please change the class name in Qupath or add it to the samples_and_wells dictionary',
             'and then rerun the web app')
             st.stop()
-   
-   return samples_and_wells
+
+   st.write('The samples and wells scheme QC is done!')
 
 if st.button("Check the samples and wells"):
    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df_csv=f"./{datetime}_QCed_geojson.csv")
 
 
-def create_collection(df, calib_np_array, samples_and_wells ):
-    #create the collection of py-lmd-env package
-    #uses caliblist passed on the function, order matters
-    #orientation vector is for QuPath coordenate system
-    the_collection = Collection(calibration_points = calib_np_array)
-    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
-    for i in df.index:
-        the_collection.new_shape(df.at[i,'coords'], well = samples_and_wells[df.at[i, "Name"]])
+def create_collection(df, calib_np_array, samples_and_wells_input ):
+   df = pandas.read_csv(df)
+   calib_np_array = numpy.loadtxt(calib_np_array, delimiter=",")
 
-    the_collection.plot(save_name= "./TheCollection.png")
-    st.image("./TheCollection.png", caption='Your Contours', use_column_width=True)
-    st.write(the_collection.stats())
-    the_collection.save(f"./{datetime}_LMD_ready_contours.xml")
-    
+   samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
+   samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
+   samples_and_wells = ast.literal_eval(samples_and_wells_processed)
 
-    #create and export dataframe with sample placement in 384 well plate
-    rows_A_P= [i for i in string.ascii_uppercase[:16]]
-    columns_1_24 = [str(i) for i in range(1,25)]
-    df_wp384 = pd.DataFrame('',columns=columns_1_24, index=rows_A_P)
-    #fill in the dataframe with samples and wells
-    for i in samples_and_wells:
-        location = samples_and_wells[i]
-        df_wp384.at[location[0],location[1:]] = i
-    #save dataframe as csv
-    df_wp384.to_csv(f"./{datetime}_384_wellplate.csv", index=True)
+   #create the collection of py-lmd-env package
+   #uses caliblist passed on the function, order matters
+   #orientation vector is for QuPath coordenate system
+   the_collection = Collection(calibration_points = calib_np_array)
+   the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
+   for i in df.index:
+      the_collection.new_shape(df.at[i,'coords'], well = samples_and_wells[df.at[i, "Name"]])
+
+   the_collection.plot(save_name= "./TheCollection.png")
+   st.image("./TheCollection.png", caption='Your Contours', use_column_width=True)
+   st.write(the_collection.stats())
+   the_collection.save(f"./{datetime}_LMD_ready_contours.xml")
+   
+
+   #create and export dataframe with sample placement in 384 well plate
+   rows_A_P= [i for i in string.ascii_uppercase[:16]]
+   columns_1_24 = [str(i) for i in range(1,25)]
+   df_wp384 = pd.DataFrame('',columns=columns_1_24, index=rows_A_P)
+   #fill in the dataframe with samples and wells
+   for i in samples_and_wells:
+      location = samples_and_wells[i]
+      df_wp384.at[location[0],location[1:]] = i
+   #save dataframe as csv
+   df_wp384.to_csv(f"./{datetime}_384_wellplate.csv", index=True)
 
 if st.button("Process geojson and create the contours"):
-   create_collection(df=df, calib_np_array=calib_np_array, samples_and_wells=samples_and_wells)
+   create_collection(df_csv=f"./{datetime}_QCed_geojson.csv", 
+                     calib_np_array_csv=f"./{datetime}_calib_points.csv",
+                     samples_and_wells_input=samples_and_wells_input)
    st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
    st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
