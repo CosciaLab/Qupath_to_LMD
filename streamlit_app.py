@@ -127,7 +127,7 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, df):
     return samples_and_wells
 
 if st.button("Check the samples and wells"):
-    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input, df)
+    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df=df)
 
 
 
