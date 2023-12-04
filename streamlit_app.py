@@ -67,11 +67,12 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    df['coords'] = df['coords'].astype('object')
    # simplify to reduce number of points
    df['simple'] = df.geometry.simplify(1)
-   for i in df.index:
-      geom=df.at[i, 'simple']
-      tmp = list(geom.exterior.coords)
-      tmp_lol = [list(i) for i in tmp]
-      df.at[i,'coords'] = tmp_lol
+   df['coords'] = df['simple'].apply(lambda geom: np.array(list(geom.exterior.coords)))
+   # for i in df.index:
+   #    geom=df.at[i, 'simple']
+   #    tmp = list(geom.exterior.coords)
+   #    tmp_lol = [list(i) for i in tmp]
+   #    df.at[i,'coords'] = tmp_lol
 
    #extract classification name into a new column
    df['Name'] = numpy.nan
