@@ -38,7 +38,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
             f"These are the calib points found in the geojson you gave me: {df['name'].unique()}")
     #create coordenate list
     listarray = []
-    for point in pointlist:
+    for point in caliblist:
         listarray.append([point.x, point.y])
     calib_np_array = np.array(listarray)
 
