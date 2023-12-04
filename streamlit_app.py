@@ -80,7 +80,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
 
     st.write('The file loading is complete')
 
-    return(df,calib_np_array)
+    return df, calib_np_array
 
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
@@ -88,9 +88,12 @@ calibration_point_3 = st.text_input("Enter the name of the third calibration poi
 list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibration_point_3]
 
 if st.button("Load and check the geojson file"):
-    df, calib_np_array = load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
+   if uploaded_file is not None:
+      df, calib_np_array = load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
+   else:
+      st.warning("Please upload a file first.")
 
-samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme, this is required!")
+samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
 @st.cache_data()
 def load_and_QC_SamplesandWells(samples_and_wells_input, df):
