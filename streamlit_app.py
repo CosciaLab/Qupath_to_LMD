@@ -138,7 +138,7 @@ if st.button("Check the samples and wells"):
    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df_csv=f"./{datetime}_QCed_geojson.csv")
 
 
-def create_collection(df, calib_np_array, samples_and_wells_input ):
+def create_collection(df_csv, calib_np_array_csv, samples_and_wells_input ):
    df = pandas.read_csv(df)
    calib_np_array = numpy.loadtxt(calib_np_array, delimiter=",")
 
