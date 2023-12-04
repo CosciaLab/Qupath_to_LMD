@@ -1,8 +1,8 @@
 import geopandas
 import pandas
 import numpy
-import datetime as dt
-datetime = dt.datetime.today().strftime("%Y%m%d_%H%M%S")
+import datetime
+datetime = datetime.datetime.today().strftime("%Y%m%d_%H%M%S")
 import tifffile
 import shapely
 import streamlit as st
@@ -40,7 +40,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
     listarray = []
     for point in caliblist:
         listarray.append([point.x, point.y])
-    calib_np_array = np.array(listarray)
+    calib_np_array = numpy.array(listarray)
 
     #now that calibration points are saved, remove them from the dataframe
     df = df[df['name'].isin(list_of_calibpoint_names) == False]
@@ -62,7 +62,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
         df = df[df.geometry.geom_type != 'MultiPolygon']
 
     # reformat shape coordenate list
-    df['coords'] = np.nan
+    df['coords'] = numpy.nan
     df['coords'] = df['coords'].astype('object')
     # simplify to reduce number of points
     df['simple'] = df.geometry.simplify(1)
@@ -73,7 +73,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
         df.at[i,'coords'] = tmp_lol
 
     #extract classification name into a new column
-    df['Name'] = np.nan
+    df['Name'] = numpy.nan
     for i in df.index:
         tmp = df.classification[i].get('name')
         df.at[i,'Name'] = tmp
@@ -137,7 +137,7 @@ def create_collection(df, calib_np_array, samples_and_wells ):
     #uses caliblist passed on the function, order matters
     #orientation vector is for QuPath coordenate system
     the_collection = Collection(calibration_points = calib_np_array)
-    the_collection.orientation_transform = np.array([[1,0 ], [0,-1]])
+    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
     for i in df.index:
         the_collection.new_shape(df.at[i,'coords'], well = samples_and_wells[df.at[i, "Name"]])
 
