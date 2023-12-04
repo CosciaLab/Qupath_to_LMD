@@ -13,6 +13,7 @@ from lmd import tools
 from PIL import Image
 from pathlib import Path
 import ast
+import string
 
 
 st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
