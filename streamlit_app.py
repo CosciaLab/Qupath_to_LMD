@@ -25,7 +25,7 @@ uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
 
     #load geojson file
-    df = geopandas.read_file(path_to_file)
+    df = geopandas.read_file(geojson_path)
 
     #save calib points in a list
     caliblist = []
