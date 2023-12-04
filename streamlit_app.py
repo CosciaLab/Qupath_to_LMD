@@ -132,7 +132,7 @@ if st.button("Check the samples and wells"):
 
 
 @st.cache(allow_output_mutation=True)
-def create_collection(df = df, calib_np_array = calib_np_array, samples_and_wells = samples_and_wells ):
+def create_collection(df, calib_np_array, samples_and_wells ):
     #create the collection of py-lmd-env package
     #uses caliblist passed on the function, order matters
     #orientation vector is for QuPath coordenate system
@@ -159,6 +159,6 @@ def create_collection(df = df, calib_np_array = calib_np_array, samples_and_well
     df_wp384.to_csv(f"./{datetime}_384_wellplate.csv", index=True)
 
 if st.button("Process geojson and create the contours"):
-    create_collection(df, calib_np_array, samples_and_wells)
+    create_collection(df=df, calib_np_array=calib_np_array, samples_and_wells=samples_and_wells)
     st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
     st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
