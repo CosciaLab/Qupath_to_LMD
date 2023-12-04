@@ -24,63 +24,63 @@ uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
 
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
 
-    #load geojson file
-    df = geopandas.read_file(geojson_path)
+   #load geojson file
+   df = geopandas.read_file(geojson_path)
 
-    #save calib points in a list
-    caliblist = []
-    for point_name in list_of_calibpoint_names:
-        if point_name in df['name'].unique():
+   #save calib points in a list
+   caliblist = []
+   for point_name in list_of_calibpoint_names:
+      if point_name in df['name'].unique():
             caliblist.append(df.loc[df['name'] == point_name, 'geometry'].values[0])
-        else:
+      else:
             st.write('Your given name is not present in the file', 
             f'These are the calib points you passed: {list_of_calibpoint_names}',
             f"These are the calib points found in the geojson you gave me: {df['name'].unique()}")
-    #create coordenate list
-    listarray = []
-    for point in caliblist:
-        listarray.append([point.x, point.y])
-    calib_np_array = numpy.array(listarray)
+   #create coordenate list
+   listarray = []
+   for point in caliblist:
+      listarray.append([point.x, point.y])
+   calib_np_array = numpy.array(listarray)
 
-    #now that calibration points are saved, remove them from the dataframe
-    df = df[df['name'].isin(list_of_calibpoint_names) == False]
+   #now that calibration points are saved, remove them from the dataframe
+   df = df[df['name'].isin(list_of_calibpoint_names) == False]
 
-    #check and remove empty classifications 
-    if df['classification'].isna().sum() !=0 :
-        st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
-                "these are unclassified objects from Qupath, they will be ignored") 
-        df = df[df['classification'].notna()]
+   #check and remove empty classifications 
+   if df['classification'].isna().sum() !=0 :
+      st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
+            "these are unclassified objects from Qupath, they will be ignored") 
+      df = df[df['classification'].notna()]
 
-    #check for MultiPolygon objects
-    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
-        st.write('MultiPolygon objects present:',
-        #print out the classification name of the MultiPolygon objects
-        f"{df[df.geometry.geom_type == 'MultiPolygon']['classification']}", 
-        'these are not supported, please convert them to polygons in Qupath',
-        'the script will continue but these objects will be ignored')
-        #remove MultiPolygon objects
-        df = df[df.geometry.geom_type != 'MultiPolygon']
+   #check for MultiPolygon objects
+   if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
+      st.write('MultiPolygon objects present:',
+      #print out the classification name of the MultiPolygon objects
+      f"{df[df.geometry.geom_type == 'MultiPolygon']['classification']}", 
+      'these are not supported, please convert them to polygons in Qupath',
+      'the script will continue but these objects will be ignored')
+      #remove MultiPolygon objects
+      df = df[df.geometry.geom_type != 'MultiPolygon']
 
-    # reformat shape coordenate list
-    df['coords'] = numpy.nan
-    df['coords'] = df['coords'].astype('object')
-    # simplify to reduce number of points
-    df['simple'] = df.geometry.simplify(1)
-    for i in df.index:
-        geom=df.at[i, 'simple']
-        tmp = list(geom.exterior.coords)
-        tmp_lol = [list(i) for i in tmp]
-        df.at[i,'coords'] = tmp_lol
+   # reformat shape coordenate list
+   df['coords'] = numpy.nan
+   df['coords'] = df['coords'].astype('object')
+   # simplify to reduce number of points
+   df['simple'] = df.geometry.simplify(1)
+   for i in df.index:
+      geom=df.at[i, 'simple']
+      tmp = list(geom.exterior.coords)
+      tmp_lol = [list(i) for i in tmp]
+      df.at[i,'coords'] = tmp_lol
 
-    #extract classification name into a new column
-    df['Name'] = numpy.nan
-    for i in df.index:
-        tmp = df.classification[i].get('name')
-        df.at[i,'Name'] = tmp
+   #extract classification name into a new column
+   df['Name'] = numpy.nan
+   for i in df.index:
+      tmp = df.classification[i].get('name')
+      df.at[i,'Name'] = tmp
 
-    st.write('The file loading is complete')
+   st.write('The file loading is complete')
 
-    return df, calib_np_array
+   return df, calib_np_array
 
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
@@ -129,7 +129,7 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, df):
     return samples_and_wells
 
 if st.button("Check the samples and wells"):
-    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df=df)
+   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df=df)
 
 
 def create_collection(df, calib_np_array, samples_and_wells ):
@@ -159,6 +159,6 @@ def create_collection(df, calib_np_array, samples_and_wells ):
     df_wp384.to_csv(f"./{datetime}_384_wellplate.csv", index=True)
 
 if st.button("Process geojson and create the contours"):
-    create_collection(df=df, calib_np_array=calib_np_array, samples_and_wells=samples_and_wells)
-    st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
-    st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
+   create_collection(df=df, calib_np_array=calib_np_array, samples_and_wells=samples_and_wells)
+   st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
+   st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
