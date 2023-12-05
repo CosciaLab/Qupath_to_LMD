@@ -1,8 +1,6 @@
 import geopandas
 import pandas
 import numpy
-import datetime
-datetime = datetime.datetime.today().strftime("%Y%m%d")
 import tifffile
 import shapely
 import streamlit as st
@@ -192,7 +190,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    the_collection.plot(save_name= "./TheCollection.png")
    st.image("./TheCollection.png", caption='Your Contours', use_column_width=True)
    st.write(the_collection.stats())
-   the_collection.save(f"./{datetime}_LMD_ready_contours.xml")
+   the_collection.save(f"./LMD_ready_contours.xml")
    
    #create and export dataframe with sample placement in 384 well plate
    rows_A_P= [i for i in string.ascii_uppercase[:16]]
@@ -203,7 +201,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
       location = samples_and_wells[i]
       df_wp384.at[location[0],location[1:]] = i
    #save dataframe as csv
-   df_wp384.to_csv(f"./{datetime}_384_wellplate.csv", index=True)
+   df_wp384.to_csv(f"./384_wellplate.csv", index=True)
 
 if st.button("Process geojson and create the contours"):
    create_collection(geojson_path=uploaded_file,
@@ -211,5 +209,5 @@ if st.button("Process geojson and create the contours"):
                      samples_and_wells_input=samples_and_wells_input)
    st.success("Contours created successfully!")
 
-st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
-st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
+st.download_button("Download contours file", Path(f"./LMD_ready_contours.xml").read_text(), f"./_LMD_ready_contours.xml")
+st.download_button("Download 384 plate scheme", Path(f"./384_wellplate.csv").read_text(), f"./_384_wellplate.csv")
