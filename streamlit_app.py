@@ -6,7 +6,6 @@ datetime = datetime.datetime.today().strftime("%Y%m%d")
 import tifffile
 import shapely
 import streamlit as st
-from python_functions import dataframe_to_xml_v2
 from lmd.lib import SegmentationLoader
 from lmd.lib import Collection, Shape
 from lmd import tools
