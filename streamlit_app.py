@@ -44,7 +44,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       else:
             st.write('Your given annotation_name is not present in the file  \n', 
             f'These are the calib points you passed: {list_of_calibpoint_names}  \n',
-            f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['annotation_name']}")
+            f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['annotation_name'].tolist()}")
 
    #create coordenate list
    listarray = []
@@ -59,8 +59,8 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
       st.write('MultiPolygon objects present:',
       #print out the classification name of the MultiPolygon objects
-      f"{df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']]}", 
-      'these are not supported, please convert them to polygons in Qupath',
+      f"{df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']]}  \n", 
+      'these are not supported, please convert them to polygons in Qupath  \n',
       'the script will continue but these objects will be ignored')
       #remove MultiPolygon objects
       df = df[df.geometry.geom_type != 'MultiPolygon']
