@@ -131,7 +131,7 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path):
    st.write('The samples and wells scheme QC is done!')
 
 if st.button("Check the samples and wells"):
-   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df_csv=f"./{datetime}_QCed_geojson.csv")
+   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, geojson_path=uploaded_file)
 
 
 def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input ):
