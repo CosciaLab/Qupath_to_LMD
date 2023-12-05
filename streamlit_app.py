@@ -26,14 +26,6 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
 
    #load geojson file
    df = geopandas.read_file(geojson_path)
-
-   #check and remove empty classifications 
-   if df['classification'].isna().sum() !=0 :
-      st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
-            "these are unclassified objects from Qupath, they will be ignored") 
-      df = df[df['classification'].notna()]
-
-   df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
    df['annotation_name'] = df['name']
 
    #save calib points in a list
@@ -44,7 +36,17 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       else:
             st.write('Your given annotation_name is not present in the file  \n', 
             f'These are the calib points you passed: {list_of_calibpoint_names}  \n',
-            f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['annotation_name'].tolist()}")
+            f"These are the calib points found in the geojson you gave me: ")
+            st.table(df[df['geometry'].geom_type == 'Point']['annotation_name'])
+            
+   #check and remove empty classifications 
+   if df['classification'].isna().sum() !=0 :
+      st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
+            "these are unclassified objects from Qupath, they will be ignored") 
+      df = df[df['classification'].notna()]
+   
+   #rename classification
+   df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
 
    #create coordenate list
    listarray = []
