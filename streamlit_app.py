@@ -214,12 +214,5 @@ if st.button("Process geojson and create the contours"):
                      samples_and_wells_input=samples_and_wells_input)
    st.success("Contours created successfully!")
 
-# Check if the "Download contours file" button is clicked
-if st.button("Download contours file"):
-   # Download the contours file
-   st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
-
-# Check if the "Download 384 plate scheme" button is clicked
-if st.button("Download 384 plate scheme"):
-   # Download the 384 plate scheme file
-   st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
+st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
+st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
