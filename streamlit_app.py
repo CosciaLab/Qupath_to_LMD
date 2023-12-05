@@ -208,6 +208,5 @@ if st.button("Process geojson and create the contours"):
                      list_of_calibpoint_names=list_of_calibpoint_names,
                      samples_and_wells_input=samples_and_wells_input)
    st.success("Contours created successfully!")
-
-st.download_button("Download contours file", Path(f"./LMD_ready_contours.xml").read_text(), f"./_LMD_ready_contours.xml")
-st.download_button("Download 384 plate scheme", Path(f"./384_wellplate.csv").read_text(), f"./_384_wellplate.csv")
+   st.download_button("Download contours file", Path(f"./LMD_ready_contours.xml").read_text(), f"./_LMD_ready_contours.xml")
+   st.download_button("Download 384 plate scheme", Path(f"./384_wellplate.csv").read_text(), f"./_384_wellplate.csv")
