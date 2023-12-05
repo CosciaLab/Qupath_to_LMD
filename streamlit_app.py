@@ -27,15 +27,24 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    #load geojson file
    df = geopandas.read_file(geojson_path)
 
+   #check and remove empty classifications 
+   if df['classification'].isna().sum() !=0 :
+      st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
+            "these are unclassified objects from Qupath, they will be ignored") 
+      df = df[df['classification'].notna()]
+
+   df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
+   df['annotation_name'] = df['name']
+
    #save calib points in a list
    caliblist = []
    for point_name in list_of_calibpoint_names:
-      if point_name in df['name'].unique():
-            caliblist.append(df.loc[df['name'] == point_name, 'geometry'].values[0])
+      if point_name in df['annotation_name'].unique():
+            caliblist.append(df.loc[df['annotation_name'] == point_name, 'geometry'].values[0])
       else:
-            st.write('Your given name is not present in the file \n', 
+            st.write('Your given annotation_name is not present in the file \n', 
             f'These are the calib points you passed: {list_of_calibpoint_names} \n',
-            f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['name'].tolist()}")
+            f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['annotation_name']}")
 
    #create coordenate list
    listarray = []
@@ -44,25 +53,13 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    calib_np_array = numpy.array(listarray)
 
    #now that calibration points are saved, remove them from the dataframe
-   df = df[df['name'].isin(list_of_calibpoint_names) == False]
-
-   #check and remove empty classifications 
-   if df['classification'].isna().sum() !=0 :
-      st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
-            "these are unclassified objects from Qupath, they will be ignored") 
-      df = df[df['classification'].notna()]
-
-   #extract classification name into a new column
-   df['Name'] = numpy.nan
-   for i in df.index:
-      tmp = df.classification[i].get('name')
-      df.at[i,'Name'] = tmp
-
+   df = df[df['annotation_name'].isin(list_of_calibpoint_names) == False]
+   
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
       st.write('MultiPolygon objects present:',
       #print out the classification name of the MultiPolygon objects
-      f"{df[df.geometry.geom_type == 'MultiPolygon']['Name']}", 
+      f"{df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']]}", 
       'these are not supported, please convert them to polygons in Qupath',
       'the script will continue but these objects will be ignored')
       #remove MultiPolygon objects
