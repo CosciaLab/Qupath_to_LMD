@@ -68,11 +68,6 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    # simplify to reduce number of points
    df['simple'] = df.geometry.simplify(1)
    df['coords'] = df['simple'].apply(lambda geom: numpy.array(list(geom.exterior.coords)))
-   # for i in df.index:
-   #    geom=df.at[i, 'simple']
-   #    tmp = list(geom.exterior.coords)
-   #    tmp_lol = [list(i) for i in tmp]
-   #    df.at[i,'coords'] = tmp_lol
 
    #extract classification name into a new column
    df['Name'] = numpy.nan
@@ -81,11 +76,6 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       df.at[i,'Name'] = tmp
 
    st.write('The file loading is complete')
-
-   #save dataframe as csv
-   df.to_csv(f"./{datetime}_QCed_geojson.csv", index=False)
-   #save numpy array as csv
-   numpy.savetxt(f"./{datetime}_calib_points.csv", calib_np_array, delimiter=",")
 
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
@@ -100,9 +90,9 @@ if st.button("Load and check the geojson file"):
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
-def load_and_QC_SamplesandWells(samples_and_wells_input, df_csv):
+def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path):
 
-   df = pandas.read_csv(df_csv)
+   df = geopandas.read_file(geojson_path)
 
    # parse common human copy paste formats
    # remove newlines
@@ -125,6 +115,11 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, df_csv):
             'the LMD is not able to collect into this well, the script will stop here')
             st.stop()
 
+   df['Name'] = numpy.nan
+   for i in df.index:
+      tmp = df.classification[i].get('name')
+      df.at[i,'Name'] = tmp
+
    #check that names in df are all present in the samples and wells
    for name in df.Name.unique():
       if name not in samples_and_wells.keys():
@@ -139,9 +134,34 @@ if st.button("Check the samples and wells"):
    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, df_csv=f"./{datetime}_QCed_geojson.csv")
 
 
-def create_collection(df_csv, calib_np_array_csv, samples_and_wells_input ):
-   df = pandas.read_csv(df_csv)
-   calib_np_array = numpy.loadtxt(calib_np_array_csv, delimiter=",")
+def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input ):
+
+   df = geopandas.read_file(geojson_path)
+
+   caliblist = []
+   for point_name in list_of_calibpoint_names:
+      if point_name in df['name'].unique():
+            caliblist.append(df.loc[df['name'] == point_name, 'geometry'].values[0])
+      else:
+            st.stop('Your given name is not present in the file')
+   
+   listarray = []
+   for point in caliblist:
+      listarray.append([point.x, point.y])
+   calib_np_array = numpy.array(listarray)
+
+   df = df[df['name'].isin(list_of_calibpoint_names) == False]
+   df = df[df['classification'].notna()]
+   df = df[df.geometry.geom_type != 'MultiPolygon']
+   df['simple'] = df.geometry.simplify(1)
+   df['coords'] = numpy.nan
+   df['coords'] = df['coords'].astype('object')
+   df['coords'] = df['simple'].apply(lambda geom: numpy.array(list(geom.exterior.coords)))
+
+   df['Name'] = numpy.nan
+   for i in df.index:
+      tmp = df.classification[i].get('name')
+      df.at[i,'Name'] = tmp
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
@@ -160,7 +180,6 @@ def create_collection(df_csv, calib_np_array_csv, samples_and_wells_input ):
    st.write(the_collection.stats())
    the_collection.save(f"./{datetime}_LMD_ready_contours.xml")
    
-
    #create and export dataframe with sample placement in 384 well plate
    rows_A_P= [i for i in string.ascii_uppercase[:16]]
    columns_1_24 = [str(i) for i in range(1,25)]
@@ -173,8 +192,8 @@ def create_collection(df_csv, calib_np_array_csv, samples_and_wells_input ):
    df_wp384.to_csv(f"./{datetime}_384_wellplate.csv", index=True)
 
 if st.button("Process geojson and create the contours"):
-   create_collection(df_csv=f"./{datetime}_QCed_geojson.csv", 
-                     calib_np_array_csv=f"./{datetime}_calib_points.csv",
+   create_collection(geojson_path=uploaded_file,
+                     list_of_calibpoint_names= list_of_calibpoint_names,
                      samples_and_wells_input=samples_and_wells_input)
    st.download_button("Download contours file", Path(f"./{datetime}_LMD_ready_contours.xml").read_text(), f"./{datetime}_LMD_ready_contours.xml")
    st.download_button("Download 384 plate scheme", Path(f"./{datetime}_384_wellplate.csv").read_text(), f"./{datetime}_384_wellplate.csv")
