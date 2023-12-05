@@ -188,7 +188,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    #create and export dataframe with sample placement in 384 well plate
    rows_A_P= [i for i in string.ascii_uppercase[:16]]
    columns_1_24 = [str(i) for i in range(1,25)]
-   df_wp384 = pd.DataFrame('',columns=columns_1_24, index=rows_A_P)
+   df_wp384 = pandas.DataFrame('',columns=columns_1_24, index=rows_A_P)
    #fill in the dataframe with samples and wells
    for i in samples_and_wells:
       location = samples_and_wells[i]
