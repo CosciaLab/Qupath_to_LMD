@@ -136,6 +136,8 @@ if st.button("Check the samples and wells"):
 
 def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input ):
 
+   ###### dataframe processing ######
+
    df = geopandas.read_file(geojson_path)
 
    caliblist = []
@@ -163,13 +165,16 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
       tmp = df.classification[i].get('name')
       df.at[i,'Name'] = tmp
 
+
+   ###### samples and wells processing ######
+
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
 
-   #create the collection of py-lmd-env package
-   #uses caliblist passed on the function, order matters
-   #orientation vector is for QuPath coordenate system
+
+   ###### create the collection ######
+
    the_collection = Collection(calibration_points = calib_np_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
    for i in df.index:
