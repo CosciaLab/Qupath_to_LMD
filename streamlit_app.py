@@ -33,9 +33,10 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       if point_name in df['name'].unique():
             caliblist.append(df.loc[df['name'] == point_name, 'geometry'].values[0])
       else:
-            st.write('Your given name is not present in the file', 
-            f'These are the calib points you passed: {list_of_calibpoint_names}',
-            f"These are the calib points found in the geojson you gave me: {df['name'].unique()}")
+            st.write('Your given name is not present in the file \n', 
+            f'These are the calib points you passed: {list_of_calibpoint_names} \n',
+            f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['name'].tolist()}")
+
    #create coordenate list
    listarray = []
    for point in caliblist:
