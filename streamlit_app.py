@@ -90,9 +90,19 @@ if st.button("Load and check the geojson file"):
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
-def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path):
+def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path, list_of_calibpoint_names):
 
    df = geopandas.read_file(geojson_path)
+   df = df[df['name'].isin(list_of_calibpoint_names) == False]
+   df = df[df['classification'].notna()]
+   df = df[df.geometry.geom_type != 'MultiPolygon']
+
+   df['Name'] = numpy.nan
+   for i in df.index:
+      tmp = df.classification[i].get('name')
+      df.at[i,'Name'] = tmp
+
+
 
    # parse common human copy paste formats
    # remove newlines
@@ -131,7 +141,9 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path):
    st.write('The samples and wells scheme QC is done!')
 
 if st.button("Check the samples and wells"):
-   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, geojson_path=uploaded_file)
+   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, 
+                                                   geojson_path=uploaded_file, 
+                                                   list_of_calibpoint_names=list_of_calibpoint_names)
 
 
 def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input ):
