@@ -33,7 +33,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       if point_name in df['name'].unique():
             caliblist.append(df.loc[df['name'] == point_name, 'geometry'].values[0])
       else:
-            st.error('Your given name is not present in the file \n', 
+            st.write('Your given name is not present in the file \n', 
             f'These are the calib points you passed: {list_of_calibpoint_names} \n',
             f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['name'].tolist()}")
 
@@ -60,7 +60,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
 
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
-      st.error('MultiPolygon objects present:',
+      st.write('MultiPolygon objects present:',
       #print out the classification name of the MultiPolygon objects
       f"{df[df.geometry.geom_type == 'MultiPolygon']['Name']}", 
       'these are not supported, please convert them to polygons in Qupath',
