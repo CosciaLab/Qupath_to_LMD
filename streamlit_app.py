@@ -33,7 +33,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       if point_name in df['name'].unique():
             caliblist.append(df.loc[df['name'] == point_name, 'geometry'].values[0])
       else:
-            st.write('Your given name is not present in the file \n', 
+            st.error('Your given name is not present in the file \n', 
             f'These are the calib points you passed: {list_of_calibpoint_names} \n',
             f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['name'].tolist()}")
 
@@ -52,11 +52,17 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
             "these are unclassified objects from Qupath, they will be ignored") 
       df = df[df['classification'].notna()]
 
+   #extract classification name into a new column
+   df['Name'] = numpy.nan
+   for i in df.index:
+      tmp = df.classification[i].get('name')
+      df.at[i,'Name'] = tmp
+
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
-      st.write('MultiPolygon objects present:',
+      st.error('MultiPolygon objects present:',
       #print out the classification name of the MultiPolygon objects
-      f"{df[df.geometry.geom_type == 'MultiPolygon']['classification']}", 
+      f"{df[df.geometry.geom_type == 'MultiPolygon']['Name']}", 
       'these are not supported, please convert them to polygons in Qupath',
       'the script will continue but these objects will be ignored')
       #remove MultiPolygon objects
@@ -68,12 +74,6 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    # simplify to reduce number of points
    df['simple'] = df.geometry.simplify(1)
    df['coords'] = df['simple'].apply(lambda geom: numpy.array(list(geom.exterior.coords)))
-
-   #extract classification name into a new column
-   df['Name'] = numpy.nan
-   for i in df.index:
-      tmp = df.classification[i].get('name')
-      df.at[i,'Name'] = tmp
 
    st.success('The file QC is complete')
 
