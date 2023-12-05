@@ -57,10 +57,10 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
-      st.write('MultiPolygon objects present:',
+      st.write('MultiPolygon objects present:  \n')
       #print out the classification name of the MultiPolygon objects
-      f"{df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']]}  \n", 
-      'these are not supported, please convert them to polygons in Qupath  \n',
+      st.table(df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']])
+      st.write('these are not supported, please convert them to polygons in Qupath  \n',
       'the script will continue but these objects will be ignored')
       #remove MultiPolygon objects
       df = df[df.geometry.geom_type != 'MultiPolygon']
