@@ -74,7 +74,7 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       tmp = df.classification[i].get('name')
       df.at[i,'Name'] = tmp
 
-   st.write('The file loading is complete')
+   st.success('The file QC is complete')
 
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
@@ -100,8 +100,6 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path, list_of_c
    for i in df.index:
       tmp = df.classification[i].get('name')
       df.at[i,'Name'] = tmp
-
-
 
    # parse common human copy paste formats
    # remove newlines
@@ -137,7 +135,7 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path, list_of_c
             'and then rerun the web app')
             st.stop()
 
-   st.write('The samples and wells scheme QC is done!')
+   st.success('The samples and wells scheme QC is done!')
 
 if st.button("Check the samples and wells"):
    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, 
