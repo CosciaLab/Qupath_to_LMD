@@ -109,8 +109,8 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path, list_of_c
 
    #create list of acceptable wells, default is using a space in between columns
    list_of_acceptable_wells =[]
-   for row in list(string.ascii_uppercase[2:14]):
-      for column in range(2,22):
+   for row in list(string.ascii_uppercase[1:14]):
+      for column in range(1,22):
          list_of_acceptable_wells.append(str(row) + str(column))
 
    #check for improper wells
