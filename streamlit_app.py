@@ -18,6 +18,7 @@ st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for M
 st.divider()
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
+export_name = f'{uploaded_file.name.replace("geojson", "xml")}'
 
 
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
@@ -109,8 +110,9 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path, list_of_c
 
    #create list of acceptable wells, default is using a space in between columns
    list_of_acceptable_wells =[]
+   #Allowing columns 2->22, rows B->N
    for row in list(string.ascii_uppercase[1:14]):
-      for column in range(1,22):
+      for column in range(2,23):
          list_of_acceptable_wells.append(str(row) + str(column))
 
    #check for improper wells
@@ -190,7 +192,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    the_collection.plot(save_name= "./TheCollection.png")
    st.image("./TheCollection.png", caption='Your Contours', use_column_width=True)
    st.write(the_collection.stats())
-   the_collection.save(f"./LMD_ready_contours.xml")
+   the_collection.save(f'./{uploaded_file.name.replace("geojson", "xml")}')
    
    #create and export dataframe with sample placement in 384 well plate
    rows_A_P= [i for i in string.ascii_uppercase[:16]]
@@ -201,12 +203,17 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
       location = samples_and_wells[i]
       df_wp384.at[location[0],location[1:]] = i
    #save dataframe as csv
-   df_wp384.to_csv(f"./384_wellplate.csv", index=True)
+   df_wp384.to_csv(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}', index=True)
 
 if st.button("Process geojson and create the contours"):
    create_collection(geojson_path=uploaded_file,
                      list_of_calibpoint_names=list_of_calibpoint_names,
                      samples_and_wells_input=samples_and_wells_input)
    st.success("Contours created successfully!")
-   st.download_button("Download contours file", Path(f"./LMD_ready_contours.xml").read_text(), f"./_LMD_ready_contours.xml")
-   st.download_button("Download 384 plate scheme", Path(f"./384_wellplate.csv").read_text(), f"./_384_wellplate.csv")
+   st.download_button("Download contours file", 
+                     Path(f'./{uploaded_file.name.replace("geojson", "xml")}').read_text(), 
+                     f'./{uploaded_file.name.replace("geojson", "xml")}')
+   
+   st.download_button("Download 384 plate scheme", 
+                     Path(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}').read_text(),
+                     f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}')
