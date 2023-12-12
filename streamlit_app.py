@@ -18,7 +18,6 @@ st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for M
 st.divider()
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
-export_name = f'{uploaded_file.name.replace("geojson", "xml")}'
 
 
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
