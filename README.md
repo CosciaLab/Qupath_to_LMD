@@ -58,8 +58,7 @@ https://www.youtube.com/watch?v=tyvHjttjSBE
 
 # Citation
 Please cite the following work when using this package.
-
-Makhmut, A. et al. A framework for ultra-low input spatial tissue proteomics. bioRxiv 2023.05.13.540426 (2023) doi:10.1101/2023.05.13.540426.   
+Makhmut, A. et al. A framework for ultra-low-input spatial tissue proteomics. Cell Syst. 14, 1002-1014.e5 (2023).
 
 Please use the APA format for Github repositories:   
 Nimo, J. (2023). Qupath_to_LMD: A tool to transform QuPath annotations to LMD coordenates. GitHub. [https://github.com/CosciaLab/Qupath_to_LMD](https://github.com/CosciaLab/Qupath_to_LMD/)
