@@ -17,7 +17,7 @@ import sys
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-st.title("Convert a GeoJSON polygons to xml for Laser Microdissection, 26.04.2024")
+st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
 st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
 st.divider()
 
