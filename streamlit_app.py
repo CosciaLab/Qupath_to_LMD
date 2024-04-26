@@ -12,6 +12,10 @@ from pathlib import Path
 import ast
 import string
 
+from loguru import logger
+import sys
+logger.remove()
+logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
 st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
@@ -21,29 +25,60 @@ uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
 
 
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
+   """
+   This function loads a geojson file and checks for common issues that might arise when converting it to xml for LMD
+
+   Parameters:
+   geojson_path (str): path to the geojson file
+   list_of_calibpoint_names (list): list of calibration point names in the geojson file
+
+   Returns:
+   None
+
+   Latest update: 26.04.2024 by Jose Nimo
+
+   """
 
    #load geojson file
    df = geopandas.read_file(geojson_path)
-   df['annotation_name'] = df['name']
+   logger.info(f"Geojson file loaded with shape {df.shape}")
+   
+   try:
+      df['annotation_name'] = df['name']
+   except:
+      logger.warning('No name column found, meaning no annotation in Qupath was named, at least calibration points should be named')
+      st.stop()
+
+   geometry_counts = df.geometry.geom_type.value_counts()
+   log_message = ", ".join(f"{count} {geom_type}s" for geom_type, count in geometry_counts.items())
+   logger.info(f"Geometries in DataFrame: {log_message}")
+   st.write(f"Geometries in DataFrame: {log_message}")
 
    #save calib points in a list
    caliblist = []
    for point_name in list_of_calibpoint_names:
       if point_name in df['annotation_name'].unique():
-            caliblist.append(df.loc[df['annotation_name'] == point_name, 'geometry'].values[0])
+         caliblist.append(df.loc[df['annotation_name'] == point_name, 'geometry'].values[0])
       else:
-            st.write('Your given annotation_name is not present in the file  \n', 
-            f'These are the calib points you passed: {list_of_calibpoint_names}  \n',
-            f"These are the calib points found in the geojson you gave me: ")
-            st.table(df[df['geometry'].geom_type == 'Point']['annotation_name'])
-            
-   #check and remove empty classifications 
+         logger.error(f'Your given annotation_name {point_name} is not present in the file')
+         logger.error(f'These are the calib points you passed: {list_of_calibpoint_names}')
+         logger.error(f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['annotation_name']}")
+         st.write('Your given annotation_name is not present in the file  \n', 
+         f'These are the calib points you passed: {list_of_calibpoint_names}  \n',
+         f"These are the calib points found in the geojson you gave me: ")
+         st.table(df[df['geometry'].geom_type == 'Point']['annotation_name'])
+   
+   #remove points
+   df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
+   logger.info(f"Point geometries have been removed")
+
+   #check and remove empty classifications
    if df['classification'].isna().sum() !=0 :
       st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
             "these are unclassified objects from Qupath, they will be ignored") 
       df = df[df['classification'].notna()]
    
-   #rename classification
+   #get classification name from inside geometry properties
    df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
 
    #create coordenate list
@@ -58,19 +93,21 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
       st.write('MultiPolygon objects present:  \n')
-      #print out the classification name of the MultiPolygon objects
       st.table(df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']])
       st.write('these are not supported, please convert them to polygons in Qupath  \n',
       'the script will continue but these objects will be ignored')
-      #remove MultiPolygon objects
       df = df[df.geometry.geom_type != 'MultiPolygon']
 
-   # reformat shape coordenate list
-   df['coords'] = numpy.nan
-   df['coords'] = df['coords'].astype('object')
-   # simplify to reduce number of points
-   df['simple'] = df.geometry.simplify(1)
-   df['coords'] = df['simple'].apply(lambda geom: numpy.array(list(geom.exterior.coords)))
+   def extract_coordinates(geometry):
+      if geometry.geom_type == 'Polygon':
+         return [list(coord) for coord in geometry.exterior.coords]
+      elif geometry.geom_type == 'LineString':
+         return [list(coord) for coord in geometry.coords]
+      else:
+         st.write(f'Geometry type {geometry.geom_type} not supported, please convert to Polygon or LineString in Qupath')
+         st.stop()
+
+   df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
 
    st.success('The file QC is complete')
 
@@ -104,7 +141,7 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path, list_of_c
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    # remove spaces
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-   #parse into python dictionary
+   # parse into python dictionary
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
 
    #create list of acceptable wells, default is using a space in between columns
@@ -163,23 +200,25 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    df = df[df['name'].isin(list_of_calibpoint_names) == False]
    df = df[df['classification'].notna()]
    df = df[df.geometry.geom_type != 'MultiPolygon']
-   df['simple'] = df.geometry.simplify(1)
-   df['coords'] = numpy.nan
-   df['coords'] = df['coords'].astype('object')
-   df['coords'] = df['simple'].apply(lambda geom: numpy.array(list(geom.exterior.coords)))
+
+   def extract_coordinates(geometry):
+      if geometry.geom_type == 'Polygon':
+         return [list(coord) for coord in geometry.exterior.coords]
+      elif geometry.geom_type == 'LineString':
+         return [list(coord) for coord in geometry.coords]
+   
+   df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
 
    df['Name'] = numpy.nan
    for i in df.index:
       tmp = df.classification[i].get('name')
       df.at[i,'Name'] = tmp
 
-
    ###### samples and wells processing ######
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
-
 
    ###### create the collection ######
 
