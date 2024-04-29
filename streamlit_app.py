@@ -165,7 +165,6 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    df = df[df['classification'].notna()]
    df = df[df.geometry.geom_type != 'MultiPolygon']
 
-   # df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
    df['Name'] = df['classification'].apply(lambda x: x.get('name'))
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
@@ -174,14 +173,14 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
 
    list_of_acceptable_wells = create_list_of_acceptable_wells()
 
-   #check for improper wells
+   logger.debug("Checking if the wells are in the list of acceptable wells")
    for well in samples_and_wells.values():
       if well not in list_of_acceptable_wells:
          st.write(f'Your well {well} is not in the list of acceptable wells, please correct it',
          'the LMD is not able to collect into this well, the script will stop here')
          st.stop()
 
-   #check that names in df are all present in the samples and wells
+   logger.debug("Checking if the names of geometries are in the samples_and_wells dictionary")
    for name in df.Name.unique():
       if name not in samples_and_wells.keys():
          st.write(f'Your name {name} is not in the list of samples_and_wells, please correct either',
