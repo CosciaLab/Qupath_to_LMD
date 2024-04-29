@@ -196,16 +196,16 @@ if st.button("Check the samples and wells"):
                                                    list_of_calibpoint_names=list_of_calibpoint_names)
 
 def sample_placement_384wp(samples_and_wells):
-   #create and export dataframe with sample placement in 384 well plate
+
    rows_A_P= [i for i in string.ascii_uppercase[:16]]
    columns_1_24 = [str(i) for i in range(1,25)]
    df_wp384 = pandas.DataFrame('',columns=columns_1_24, index=rows_A_P)
-   #fill in the dataframe with samples and wells
+
    for i in samples_and_wells:
       location = samples_and_wells[i]
       df_wp384.at[location[0],location[1:]] = i
-   #save dataframe as csv
-   df_wp384.to_csv(f"./384_wellplate.csv", index=True)
+
+   return df_wp384
 
 def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
 
