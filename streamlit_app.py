@@ -165,7 +165,8 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    df = df[df['classification'].notna()]
    df = df[df.geometry.geom_type != 'MultiPolygon']
 
-   df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
+   # df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
+   df['Name'] = df['classification'].apply(lambda x: x.get('name'))
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
