@@ -88,10 +88,8 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    logger.info(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
    st.write(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
 
-   st.write(f"Intersect fraction: {intersect_fraction}")
-
    if intersect_fraction < 0.25:
-      st.write('Less than 25% of the objects intersect with the calibration triangle')
+      st.write('WARNING: Less than 25% of the objects intersect with the calibration triangle')
       logger.warning(f"Less than 25% of the objects intersect with the calibration triangle")
       logger.warning(f"Polygons will most likely be warped, consider changing calib points")
    
