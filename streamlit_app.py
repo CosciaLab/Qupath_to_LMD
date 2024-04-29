@@ -23,6 +23,14 @@ st.divider()
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
 
+def extract_coordinates(geometry):
+      if geometry.geom_type == 'Polygon':
+         return [list(coord) for coord in geometry.exterior.coords]
+      elif geometry.geom_type == 'LineString':
+         return [list(coord) for coord in geometry.coords]
+      else:
+         st.write(f'Geometry type {geometry.geom_type} not supported, please convert to Polygon or LineString in Qupath')
+         st.stop()
 
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
    """
@@ -79,25 +87,13 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    intersect_fraction = df['intersects'].sum()/num_of_polygons_and_LineString
    logger.info(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
    st.write(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
+
+   st.write(f"Intersect fraction: {intersect_fraction}")
+
    if intersect_fraction < 0.25:
       st.write('Less than 25% of the objects intersect with the calibration triangle')
       logger.warning(f"Less than 25% of the objects intersect with the calibration triangle")
       logger.warning(f"Polygons will most likely be warped, consider changing calib points")
-
-
-   # #save calib points in a list
-   # caliblist = []
-   # for point_name in list_of_calibpoint_names:
-   #    if point_name in df['annotation_name'].unique():
-   #       caliblist.append(df.loc[df['annotation_name'] == point_name, 'geometry'].values[0])
-   #    else:
-   #       logger.error(f'Your given annotation_name {point_name} is not present in the file')
-   #       logger.error(f'These are the calib points you passed: {list_of_calibpoint_names}')
-   #       logger.error(f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['annotation_name']}")
-   #       st.write('Your given annotation_name is not present in the file  \n', 
-   #       f'These are the calib points you passed: {list_of_calibpoint_names}  \n',
-   #       f"These are the calib points found in the geojson you gave me: ")
-   #       st.table(df[df['geometry'].geom_type == 'Point']['annotation_name'])
    
    #remove points
    df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
@@ -111,15 +107,6 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    
    #get classification name from inside geometry properties
    df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
-
-   # #create coordenate list
-   # listarray = []
-   # for point in caliblist:
-   #    listarray.append([point.x, point.y])
-   # calib_np_array = numpy.array(listarray)
-
-   # #now that calibration points are saved, remove them from the dataframe
-   # df = df[df['annotation_name'].isin(list_of_calibpoint_names) == False]
    
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
@@ -128,15 +115,6 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       st.write('these are not supported, please convert them to polygons in Qupath  \n',
       'the script will continue but these objects will be ignored')
       df = df[df.geometry.geom_type != 'MultiPolygon']
-
-   def extract_coordinates(geometry):
-      if geometry.geom_type == 'Polygon':
-         return [list(coord) for coord in geometry.exterior.coords]
-      elif geometry.geom_type == 'LineString':
-         return [list(coord) for coord in geometry.coords]
-      else:
-         st.write(f'Geometry type {geometry.geom_type} not supported, please convert to Polygon or LineString in Qupath')
-         st.stop()
 
    df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
 
@@ -154,7 +132,6 @@ if st.button("Load and check the geojson file"):
       st.warning("Please upload a file first.")
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
-
 
 def create_list_of_acceptable_wells():
    list_of_acceptable_wells =[]
@@ -190,21 +167,12 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    df = df[df['classification'].notna()]
    df = df[df.geometry.geom_type != 'MultiPolygon']
 
-   # df['Name'] = numpy.nan
-   # for i in df.index:
-   #    tmp = df.classification[i].get('name')
-   #    df.at[i,'Name'] = tmp
-
    df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
 
-   # remove newlines
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
-   # remove spaces
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-   # parse into python dictionary
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
 
-   #create list of acceptable wells, default is using a space in between columns
    list_of_acceptable_wells = create_list_of_acceptable_wells()
 
    #check for improper wells
@@ -213,11 +181,6 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
          st.write(f'Your well {well} is not in the list of acceptable wells, please correct it',
          'the LMD is not able to collect into this well, the script will stop here')
          st.stop()
-
-   # df['Name'] = numpy.nan
-   # for i in df.index:
-   #    tmp = df.classification[i].get('name')
-   #    df.at[i,'Name'] = tmp
 
    #check that names in df are all present in the samples and wells
    for name in df.Name.unique():
@@ -248,54 +211,24 @@ def sample_placement_384wp(samples_and_wells):
 
 def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
 
-   ###### dataframe processing ######
-
    df = geopandas.read_file(geojson_path)
-
-   # caliblist = []
-   # for point_name in list_of_calibpoint_names:
-   #    if point_name in df['name'].unique():
-   #          caliblist.append(df.loc[df['name'] == point_name, 'geometry'].values[0])
-   #    else:
-   #          st.stop('Your given name is not present in the file')
-   
-   # listarray = []
-   # for point in caliblist:
-   #    listarray.append([point.x, point.y])
-   # calib_np_array = numpy.array(listarray)
 
    calib_np_array = numpy.array(
       [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
          df.loc[df['name'] == point_name, 'geometry'].values[0].y] 
          for point_name in list_of_calibpoint_names])
 
-   # df = df[df['name'].isin(list_of_calibpoint_names) == False]
    df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
    df = df[df['classification'].notna()]
    df = df[df.geometry.geom_type != 'MultiPolygon']
    
-   def extract_coordinates(geometry):
-      if geometry.geom_type == 'Polygon':
-         return [list(coord) for coord in geometry.exterior.coords]
-      elif geometry.geom_type == 'LineString':
-         return [list(coord) for coord in geometry.coords]
-   
    df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
-
-   # df['Name'] = numpy.nan
-   # for i in df.index:
-   #    tmp = df.classification[i].get('name')
-   #    df.at[i,'Name'] = tmp
-
    df['Name'] = df['classification'].apply(lambda x: x.get('name'))
 
-   ###### samples and wells processing ######
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
-
-   ###### create the collection ######
 
    the_collection = Collection(calibration_points = calib_np_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
@@ -307,16 +240,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    st.write(the_collection.stats())
    the_collection.save(f'./{uploaded_file.name.replace("geojson", "xml")}')
    
-   #create and export dataframe with sample placement in 384 well plate
    df_wp384 = sample_placement_384wp(samples_and_wells)
-   # rows_A_P= [i for i in string.ascii_uppercase[:16]]
-   # columns_1_24 = [str(i) for i in range(1,25)]
-   # df_wp384 = pandas.DataFrame('',columns=columns_1_24, index=rows_A_P)
-   # #fill in the dataframe with samples and wells
-   # for i in samples_and_wells:
-   #    location = samples_and_wells[i]
-   #    df_wp384.at[location[0],location[1:]] = i
-   # #save dataframe as csv
    df_wp384.to_csv(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}', index=True)
 
 if st.button("Process geojson and create the contours"):
