@@ -165,7 +165,7 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    df = df[df['classification'].notna()]
    df = df[df.geometry.geom_type != 'MultiPolygon']
 
-   df['Name'] = df['classification'].apply(lambda x: x.get('name'))
+   df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
@@ -221,8 +221,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    df = df[df.geometry.geom_type != 'MultiPolygon']
    
    df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
-   df['Name'] = df['classification'].apply(lambda x: x.get('name'))
-
+   df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
 
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
