@@ -103,10 +103,8 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
             "these are unclassified objects from Qupath, they will be ignored") 
       df = df[df['classification'].notna()]
    
-   #get classification name from inside geometry properties
-   # df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
-   #get classification name from inside geometry properties
-   df['classification_name'] = df['classification'].apply(lambda x: x.get('name') if isinstance(x, dict) else logger.warning(f"Classification is not a dictionary: {x}"))
+   #get classification name from inside geometry properties   
+   df['classification_name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
    
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
