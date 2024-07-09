@@ -104,7 +104,9 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
       df = df[df['classification'].notna()]
    
    #get classification name from inside geometry properties
-   df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
+   # df['classification_name'] = df['classification'].apply(lambda x: x.get('name'))
+   #get classification name from inside geometry properties
+   df['classification_name'] = df['classification'].apply(lambda x: x.get('name') if isinstance(x, dict) else logger.warning(f"Classification is not a dictionary: {x}"))
    
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
