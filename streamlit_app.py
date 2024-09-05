@@ -145,18 +145,18 @@ def create_default_samples_and_wells(df):
       samples_and_wells[sample] = list_of_acceptable_wells.pop(0)
    return samples_and_wells
 
-def load_and_QC_SamplesandWells(samples_and_wells_input):
+# def load_and_QC_SamplesandWells(samples_and_wells_input):
 
-   samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
-   samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-   samples_and_wells = ast.literal_eval(samples_and_wells_processed)
+#    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
+#    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
+#    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
 
-   # check if the wells are in the list of acceptable wells
-   for key, value in samples_and_wells.items():
-      if value not in create_list_of_acceptable_wells():
-         logger.error(f"Your well {value} for sample {key} is not in the list of acceptable wells")
-         logger.error(f"Please choose wells that are not rows (A,O) not columns (1,22,23,24)")
-         sys.exit()
+#    # check if the wells are in the list of acceptable wells
+#    for key, value in samples_and_wells.items():
+#       if value not in create_list_of_acceptable_wells():
+#          logger.error(f"Your well {value} for sample {key} is not in the list of acceptable wells")
+#          logger.error(f"Please choose wells that are not rows (A,O) not columns (1,22,23,24)")
+#          sys.exit()
 
 def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
 
@@ -176,9 +176,9 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    logger.debug("Checking if the wells are in the list of acceptable wells")
    for well in samples_and_wells.values():
       if well not in list_of_acceptable_wells:
-         st.write(f'Your well {well} is not in the list of acceptable wells, please correct it',
-         'the LMD is not able to collect into this well, the script will stop here')
-         st.stop()
+         st.write(f'Your well {well} is not in the list of acceptable wells for 384 well plate, please correct it',
+            'ask an expert if unsure, the script will continue')
+         # st.stop(),  let users know, but don't stop the script
 
    logger.debug("Checking if the names of geometries are in the samples_and_wells dictionary")
    for name in df.Name.unique():
