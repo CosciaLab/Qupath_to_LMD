@@ -185,10 +185,11 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    logger.debug("Checking if the names of geometries are in the samples_and_wells dictionary")
    for name in df.Name.unique():
       if name not in samples_and_wells.keys():
-         st.write(f'Your name {name} is not in the list of samples_and_wells, please correct either',
-         'please change the class name in Qupath or add it to the samples_and_wells dictionary',
-         'and then rerun the web app')
-         st.stop()
+         st.write(f'Your name {name} is not in the list of samples_and_wells \n',
+         f'Option A: change the class name in Qupath \n',
+         f'Option B: add it to the samples_and_wells dictionary \n',
+         'Option C: ignore this, and these annotations will not be exported')
+         # st.stop(), let users know, but don't stop the script
 
    st.success('The samples and wells scheme QC is done!')
 
