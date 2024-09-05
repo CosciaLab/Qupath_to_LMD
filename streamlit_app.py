@@ -145,19 +145,6 @@ def create_default_samples_and_wells(df):
       samples_and_wells[sample] = list_of_acceptable_wells.pop(0)
    return samples_and_wells
 
-# def load_and_QC_SamplesandWells(samples_and_wells_input):
-
-#    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
-#    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-#    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
-
-#    # check if the wells are in the list of acceptable wells
-#    for key, value in samples_and_wells.items():
-#       if value not in create_list_of_acceptable_wells():
-#          logger.error(f"Your well {value} for sample {key} is not in the list of acceptable wells")
-#          logger.error(f"Please choose wells that are not rows (A,O) not columns (1,22,23,24)")
-#          sys.exit()
-
 def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
 
    df = geopandas.read_file(geojson_path)
@@ -185,9 +172,9 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    logger.debug("Checking if the names of geometries are in the samples_and_wells dictionary")
    for name in df.Name.unique():
       if name not in samples_and_wells.keys():
-         st.write(f'Your name {name} is not in the list of samples_and_wells \n',
-         f'Option A: change the class name in Qupath \n',
-         f'Option B: add it to the samples_and_wells dictionary \n',
+         st.write(f'Your name "{name}" is not in the list of samples_and_wells',
+         'Option A: change the class name in Qupath',
+         'Option B: add it to the samples_and_wells dictionary',
          'Option C: ignore this, and these annotations will not be exported')
          # st.stop(), let users know, but don't stop the script
 
