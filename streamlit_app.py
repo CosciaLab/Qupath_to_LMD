@@ -154,9 +154,9 @@ def load_and_QC_SamplesandWells(samples_and_wells_input, geojson_path, list_of_c
    #check for improper wells
    for well in samples_and_wells.values():
       if well not in list_of_acceptable_wells:
-            st.write(f'Your well {well} is not in the list of acceptable wells, please correct it',
-            'the LMD is not able to collect into this well, the script will stop here')
-            st.stop()
+            st.write(f'Your well {well} is not in the list of acceptable wells for 384 well plate, please correct it',
+            'ask an expert if unsure, the script will continue')
+            # st.stop(), let users know, but don't stop the script
 
    df['Name'] = numpy.nan
    for i in df.index:
