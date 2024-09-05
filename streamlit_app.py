@@ -216,6 +216,9 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
+   
+   #filter out shapes from df that are not in samples_and_wells
+   df = df[df['Name'].isin(samples_and_wells.keys())]
 
    the_collection = Collection(calibration_points = calib_np_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
