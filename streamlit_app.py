@@ -19,6 +19,7 @@ logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level
 
 st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
 st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
+st.subheader("I am aware of resource issues, as of 04.12.2024, I am working on it :)")
 st.divider()
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
