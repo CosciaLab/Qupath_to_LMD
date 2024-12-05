@@ -17,9 +17,13 @@ import sys
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
+# Clear all cache data on app start, this hopefully gets rid of resource issues
+st.cache_data.clear()
+st.cache_resource.clear()
+
 st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
 st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
-st.subheader("I am aware of resource issues, as of 04.12.2024, I am working on it :)")
+st.subheader("I am aware of resource issues, as of 04.12.2024, please report github issue if you encounter any")
 st.divider()
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
