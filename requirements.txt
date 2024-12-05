@@ -8,5 +8,6 @@ numpy
 datetime
 tifffile
 shapely
+loguru
 streamlit
 git+https://github.com/MannLabs/py-lmd
