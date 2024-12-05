@@ -33,6 +33,7 @@ def extract_coordinates(geometry):
          st.write(f'Geometry type {geometry.geom_type} not supported, please convert to Polygon or LineString in Qupath')
          st.stop()
 
+@st.cache_data
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
    """
    This function loads a geojson file and checks for common issues that might arise when converting it to xml for LMD
@@ -146,6 +147,7 @@ def create_default_samples_and_wells(df):
       samples_and_wells[sample] = list_of_acceptable_wells.pop(0)
    return samples_and_wells
 
+@st.cache_data
 def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
 
    df = geopandas.read_file(geojson_path)
@@ -197,6 +199,7 @@ def sample_placement_384wp(samples_and_wells):
 
    return df_wp384
 
+@st.cache_data
 def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
 
    df = geopandas.read_file(geojson_path)
