@@ -169,10 +169,9 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    unacceptable_wells = []
    for well in samples_and_wells.values():
       if well not in list_of_acceptable_wells:
-         unacceptable_wells.append(well)
-   st.write(f'{unacceptable_wells} are considered unacceptable fo collection in 384 well plates',
+            st.write(f'Your well {well} is not in the list of acceptable wells for 384 well plate, please correct it',
             'ask an expert if unsure, the script will continue')
-         # st.stop(),  let users know, but don't stop the script
+            # st.stop(), let users know, but don't stop the script
 
    logger.debug("Checking if the names of geometries are in the samples_and_wells dictionary")
    for name in df.Name.unique():
