@@ -11,6 +11,9 @@ from PIL import Image
 from pathlib import Path
 import ast
 import string
+import itertools
+import random
+import json
 
 from loguru import logger
 import sys
@@ -32,6 +35,29 @@ def extract_coordinates(geometry):
       else:
          st.write(f'Geometry type {geometry.geom_type} not supported, please convert to Polygon or LineString in Qupath')
          st.stop()
+
+def generate_combinations(list1, list2, num) -> list:
+   """Generate dictionary from all combinations of two lists and a range, assigning arbitrary values."""
+   assert isinstance(list1, list) and all(isinstance(i, str) for i in list1), "Input 1 must be a list of strings"
+   assert isinstance(list2, list) and all(isinstance(i, str) for i in list2), "Input 2 must be a list of strings"
+   assert isinstance(num, int) and num > 0, "Input 3 must be a positive integer"
+   assert len(list1) * len(list2) * num < 228, "Too many combinations (>228), please distribute to different plates"
+   keys = [f"{a}_{b}_{i}" for a, b, i in itertools.product(list1, list2, range(1, num + 1))]
+   return keys
+
+def create_list_of_acceptable_wells_C3_C5_C7():
+   list_of_acceptable_wells =[]
+   for row in list(string.ascii_uppercase[2:14]):
+      for column in range(3,22):
+         list_of_acceptable_wells.append(str(row) + str(column))
+   return list_of_acceptable_wells
+
+def create_default_samples_and_wells(list_of_samples, list_of_acceptable_wells):
+   assert len(list_of_samples) <= len(list_of_acceptable_wells), "Number of samples must be less than or equal to the number of wells"
+   samples_and_wells = {}
+   for sample,well in zip(list_of_samples, list_of_acceptable_wells):
+      samples_and_wells[sample] = well
+   return samples_and_wells
 
 @st.cache_data
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
@@ -120,6 +146,45 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
 
    st.success('The file QC is complete')
 
+#default colors for classes
+color_map = {"red": 0xFF0000,"green": 0x00FF00,"blue": 0x0000FF,
+            "magenta": 0xFF00FF,"cyan": 0x00FFFF,"yellow": 0xFFFF00}
+java_colors = [-(0x1000000 - rgb) for rgb in color_map.values()]
+
+### Create samples and wells scheme
+st.subheader("Create samples and wells scheme")
+st.write("This will be used to assign each object to a well in the 384 well plate")
+st.write("This will create sample names that combine the two categorical variables and a range of replicates")
+st.write("For example, if you have two categorical: celltypes (A,B) and treatment, and 2 replicates, you will get:")
+st.write("cell_A_control_1, cell_A_control_2, cell_A_drug_1, cell_A_drug_treated_2, cell_B_control_1, cell_B_control_2, cell_B_drug_treated_1, cell_B_drug_treated_2")
+
+input1 = st.text_area("Enter first categorical (comma-separated)", placeholder="example: cell_A, cell_B")
+input2 = st.text_area("Enter second categorical (comma-separated)", placeholder="example: control, drug_treated")
+input3 = st.number_input("Enter number of replicates", min_value=1, step=1, value=2)
+list1 = [i.strip() for i in input1.split(",") if i.strip()]
+list2 = [i.strip() for i in input2.split(",") if i.strip()]
+
+if st.button("Export class names for QuPath"):
+   try:
+      list_of_samples = generate_combinations(list1, list2, input3)
+
+      json_data = {"pathClasses": []}
+      for i, name in enumerate(list_of_samples):
+         json_data["pathClasses"].append({
+            "name": name,
+            "color": java_colors[i % len(java_colors)]
+         })
+
+      with open("classes.json", "w") as f:
+         json.dump(json_data, f, indent=2)
+
+      st.download_button("Download Samples and Wells file for Qupath", 
+                        data="./classes.json", 
+                        file_name="classes.json")
+
+   except Exception as e:
+      st.error(f"Error exporting class names: {e}")
+
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
 calibration_point_3 = st.text_input("Enter the name of the third calibration point: ",  placeholder ="calib3")
@@ -133,19 +198,7 @@ if st.button("Load and check the geojson file"):
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
-def create_list_of_acceptable_wells():
-   list_of_acceptable_wells =[]
-   for row in list(string.ascii_uppercase[1:14]):
-      for column in range(2,22):
-         list_of_acceptable_wells.append(str(row) + str(column))
-   return list_of_acceptable_wells
 
-def create_default_samples_and_wells(df):
-   list_of_acceptable_wells = create_list_of_acceptable_wells()
-   samples_and_wells = {}
-   for sample in df["Name"]:
-      samples_and_wells[sample] = list_of_acceptable_wells.pop(0)
-   return samples_and_wells
 
 @st.cache_data
 def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
@@ -244,7 +297,6 @@ if st.button("Process geojson and create the contours"):
    st.download_button("Download contours file", 
                      Path(f'./{uploaded_file.name.replace("geojson", "xml")}').read_text(), 
                      f'./{uploaded_file.name.replace("geojson", "xml")}')
-   
    st.download_button("Download 384 plate scheme", 
                      Path(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}').read_text(),
                      f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}')
