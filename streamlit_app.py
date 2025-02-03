@@ -167,23 +167,29 @@ list2 = [i.strip() for i in input2.split(",") if i.strip()]
 if st.button("Export class names for QuPath"):
    try:
       list_of_samples = generate_combinations(list1, list2, input3)
-
       json_data = {"pathClasses": []}
       for i, name in enumerate(list_of_samples):
          json_data["pathClasses"].append({
             "name": name,
             "color": java_colors[i % len(java_colors)]
          })
-
       with open("classes.json", "w") as f:
          json.dump(json_data, f, indent=2)
 
       st.download_button("Download Samples and Wells file for Qupath", 
                         data=Path('./classes.json').read_text(), 
                         file_name="classes.json")
-
    except Exception as e:
       st.error(f"Error exporting class names: {e}")
+
+if st.button("Create Samples and wells scheme with default wells"):
+   list_of_acceptable_wells = create_list_of_acceptable_wells_C3_C5_C7()
+   samples_and_wells = create_default_samples_and_wells(list_of_samples, list_of_acceptable_wells)
+   with open("samples_and_wells.json", "w") as f:
+      json.dump(samples_and_wells, f, indent=4)
+   st.download_button("Download Samples and Wells file",
+                     data=Path('./samples_and_wells.json').read_text(),
+                     file_name="samples_and_wells.json")
 
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="calib1")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="calib2")
