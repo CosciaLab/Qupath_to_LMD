@@ -179,7 +179,7 @@ if st.button("Export class names for QuPath"):
          json.dump(json_data, f, indent=2)
 
       st.download_button("Download Samples and Wells file for Qupath", 
-                        data="./classes.json", 
+                        data=Path('./classes.json').read_text(), 
                         file_name="classes.json")
 
    except Exception as e:
