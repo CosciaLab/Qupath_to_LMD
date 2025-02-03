@@ -257,6 +257,9 @@ list1 = [i.strip() for i in input1.split(",") if i.strip()]
 list2 = [i.strip() for i in input2.split(",") if i.strip()]
 
 if st.button("Step 1.1: Create class names for QuPath"):
+   if len(list1) * len(list2) * input3 > 114:
+      st.write("More than 144 combinations! It will need custom well spacing or more plates")
+   
    try:
       list_of_samples = generate_combinations(list1, list2, input3)
       json_data = {"pathClasses": []}
