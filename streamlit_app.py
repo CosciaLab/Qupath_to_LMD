@@ -184,6 +184,7 @@ if st.button("Export class names for QuPath"):
 
 if st.button("Create Samples and wells scheme with default wells"):
    list_of_acceptable_wells = create_list_of_acceptable_wells_C3_C5_C7()
+   list_of_samples = generate_combinations(list1, list2, input3)
    samples_and_wells = create_default_samples_and_wells(list_of_samples, list_of_acceptable_wells)
    with open("samples_and_wells.json", "w") as f:
       json.dump(samples_and_wells, f, indent=4)
