@@ -241,9 +241,8 @@ st.divider()
 #######################
 
 st.title("Step 1: Design your samples and wells scheme")
-st.write("Which tissues will go to which wells?, this app assumes each QuPath class is one sample")
-
 st.subheader("Create class names for QuPath, with 2 lists and replicate numbers, their combinations will be created")
+st.write("Which tissues will go to which wells?, this app assumes each QuPath class is one sample")
 
 #default colors for classes
 color_map = {"red": 0xFF0000,"green": 0x00FF00,"blue": 0x0000FF,
@@ -274,11 +273,13 @@ if st.button("Step 1.1: Create class names for QuPath"):
                         file_name="classes.json")
    except Exception as e:
       st.error(f"Error exporting class names: {e}")
+st.divider()
 
 ######################################
 ## Create default samples and wells ##
 ######################################
 
+st.title("Step 2 (optional): Design your samples and wells scheme")
 st.subheader("Create samples_and_wells scheme to designate which annotation classes go to which wells")
 st.write("Default wells start at C3, C5, C7 and so on, modify at your discretion")
 
@@ -292,11 +293,13 @@ if st.button("Step 1.2: Create Samples and wells scheme with default wells"):
    st.download_button("Download Samples and Wells file",
                      data=Path('./samples_and_wells.json').read_text(),
                      file_name="samples_and_wells.json")
+st.divider()
 
 ####################
 ## Geojson upload ##
 ####################
 
+st.title("Step 3: Upload and check .geojson file from Qupath")
 st.subheader("Upload your .geojson file from qupath, order of calibration points is important")
 
 uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
@@ -310,12 +313,13 @@ if st.button("Load and check the geojson file"):
       load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
    else:
       st.warning("Please upload a file first.")
+st.divider()
 
 ##############################
 ## Samples and wells upload ##
 ##############################
 
-st.subheader("Copy paste your samples_and_wells dictionary")
+st.title("Step 4: Copy/Paste and check samples and wells scheme")
 st.write("Using default is no possible, I am nudging users to save their samples_and_wells")
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
@@ -324,10 +328,13 @@ if st.button("Check the samples and wells"):
    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, 
                                                    geojson_path=uploaded_file, 
                                                    list_of_calibpoint_names=list_of_calibpoint_names)
+st.divider()
 
 #######################
 ### Process contours ##
 #######################
+
+st.title("Step 5: Process to create .xml file for LMD")
 
 if st.button("Process geojson and create the contours"):
    create_collection(geojson_path=uploaded_file,
