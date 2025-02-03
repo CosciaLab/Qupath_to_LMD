@@ -241,8 +241,8 @@ st.divider()
 #######################
 
 st.title("Step 1 (optional): Design samples/class names for QuPath project")
-st.subheader("Create class names for QuPath, with 2 lists and replicate numbers, their combinations will be created")
-st.write("Which tissues will go to which wells?, this app assumes each QuPath class is one sample")
+st.subheader("Which tissues will go to which wells?, this app assumes each QuPath class is one sample")
+st.write("Create class names for QuPath, with 2 lists and replicate numbers, their combinations will be created")
 
 #default colors for classes
 color_map = {"red": 0xFF0000,"green": 0x00FF00,"blue": 0x0000FF,
@@ -277,6 +277,7 @@ if st.button("Step 1.1: Create class names for QuPath"):
 st.image(image="./assets/sample_names_example.png",
          caption="Example of class names for QuPath")
 
+st.write("classes.json must remain named that way, and replace the other classes.json in <QuPath project>/classifiers/annotations")
 st.divider()
 
 ######################################
@@ -299,6 +300,10 @@ if st.button("Step 2: Create Samples and wells scheme with default wells"):
    st.download_button("Download Samples and Wells file",
                      data=Path('./samples_and_wells.json').read_text(),
                      file_name="samples_and_wells.txt")
+
+st.image(image="./assets/samples_and_wells_example.png",
+         caption="Example of samples and wells scheme")
+
 st.divider()
 
 ####################
@@ -327,7 +332,7 @@ st.divider()
 
 st.title("Step 4: Copy/Paste and check samples and wells scheme")
 st.write("Sample names will be checked against the uploaded geojson file")
-st.write("Using default is no possible, I am nudging users to save their samples_and_wells")
+st.write("Using default is not possible, I am nudging users to save their samples_and_wells")
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
