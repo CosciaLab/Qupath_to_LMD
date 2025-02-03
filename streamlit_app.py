@@ -240,7 +240,7 @@ st.divider()
 ## Classes for QuPath ##
 #######################
 
-st.title("Step 1 (optional): Design your samples names, export for QuPath classes")
+st.title("Step 1 (optional): Design samples/class names for QuPath project")
 st.subheader("Create class names for QuPath, with 2 lists and replicate numbers, their combinations will be created")
 st.write("Which tissues will go to which wells?, this app assumes each QuPath class is one sample")
 
@@ -273,6 +273,10 @@ if st.button("Step 1.1: Create class names for QuPath"):
                         file_name="classes.json")
    except Exception as e:
       st.error(f"Error exporting class names: {e}")
+
+st.image(image="./assets/sample_names_example.png",
+         caption="Example of class names for QuPath")
+
 st.divider()
 
 ######################################
@@ -280,19 +284,21 @@ st.divider()
 ######################################
 
 st.title("Step 2 (optional): Design your samples and wells scheme")
-st.subheader("Create samples_and_wells scheme to designate which annotation classes go to which wells")
-st.write("Default wells start at C3, C5, C7 and so on, modify at your discretion")
+st.subheader("To designate which samples go to which wells")
+st.write("Each QuPath class represents one sample, therefore each class needs one designated well for collection")
+st.write("Default wells are spaced (C3, C5, C7) for easier pipetting, modify at your discretion")
+st.write("The file can be opened by any text reader Word, Notepad, etc.")
 
-if st.button("Step 1.2: Create Samples and wells scheme with default wells"):
+if st.button("Step 2: Create Samples and wells scheme with default wells"):
    list_of_acceptable_wells = create_list_of_acceptable_wells_C3_C5_C7()
    spaced_list_of_acceptable_wells = list_of_acceptable_wells[::2]
    list_of_samples = generate_combinations(list1, list2, input3)
-   samples_and_wells = create_default_samples_and_wells(list_of_samples, list_of_acceptable_wells)
+   samples_and_wells = create_default_samples_and_wells(list_of_samples, spaced_list_of_acceptable_wells)
    with open("samples_and_wells.json", "w") as f:
       json.dump(samples_and_wells, f, indent=4)
    st.download_button("Download Samples and Wells file",
                      data=Path('./samples_and_wells.json').read_text(),
-                     file_name="samples_and_wells.json")
+                     file_name="samples_and_wells.txt")
 st.divider()
 
 ####################
@@ -320,6 +326,7 @@ st.divider()
 ##############################
 
 st.title("Step 4: Copy/Paste and check samples and wells scheme")
+st.write("Sample names will be checked against the uploaded geojson file")
 st.write("Using default is no possible, I am nudging users to save their samples_and_wells")
 
 samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
