@@ -240,7 +240,7 @@ st.divider()
 ## Classes for QuPath ##
 #######################
 
-st.title("Step 1: Design your samples and wells scheme")
+st.title("Step 1 (optional): Design your samples names, export for QuPath classes")
 st.subheader("Create class names for QuPath, with 2 lists and replicate numbers, their combinations will be created")
 st.write("Which tissues will go to which wells?, this app assumes each QuPath class is one sample")
 
