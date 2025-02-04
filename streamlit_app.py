@@ -42,7 +42,7 @@ def generate_combinations(list1, list2, num) -> list:
    keys = [f"{a}_{b}_{i}" for a, b, i in itertools.product(list1, list2, range(1, num + 1))]
    return keys
 
-def create_list_of_acceptable_wells_C3_C5_C7():
+def create_list_of_acceptable_wells():
    list_of_acceptable_wells =[]
    for row in list(string.ascii_uppercase[2:14]):
       for column in range(3,22):
@@ -294,8 +294,7 @@ st.write("Default wells are spaced (C3, C5, C7) for easier pipetting, modify at 
 st.write("The file can be opened by any text reader Word, Notepad, etc.")
 
 if st.button("Step 2: Create Samples and wells scheme with default wells"):
-   list_of_acceptable_wells = create_list_of_acceptable_wells_C3_C5_C7()
-   spaced_list_of_acceptable_wells = list_of_acceptable_wells[::2]
+   spaced_list_of_acceptable_wells = create_list_of_acceptable_wells()[::2]
    list_of_samples = generate_combinations(list1, list2, input3)
    samples_and_wells = create_default_samples_and_wells(list_of_samples, spaced_list_of_acceptable_wells)
    with open("samples_and_wells.json", "w") as f:
