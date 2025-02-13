@@ -99,4 +99,11 @@ Your tolerance for distortion depends on the size of your annotations (single ce
 
 For example:
 
+<img width="300" alt="bad_calibpoints" src="https://github.com/user-attachments/assets/887f7afc-fedb-438b-b00c-bbbd2a524f6f" />
+
 In this image the small contours at the top will likely suffer distortion leading the collection to be of different tissue than the one annotated for.
+
+The solution is to separate into two different sets of contours with closer calibration points:
+![better_calib_points_1](https://github.com/user-attachments/assets/4eb068b8-afbb-4cd7-9ed8-790dd7622950)
+![better_calib_points_2](https://github.com/user-attachments/assets/6111132c-72dd-48fb-ae9f-0b04a01ede86)
+
