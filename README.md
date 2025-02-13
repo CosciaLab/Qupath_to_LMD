@@ -78,3 +78,25 @@ Check the example_input folder in the repository to see how they should look lik
 (3) I have an error what do I do? 
 
 Create a gihtub issue explaning what are you doing and pasting the Traceback (the code that is trying to tell you what went wrong)
+
+(4) I have different number of replicates per category of samples?
+
+Either you create a set of classes that includes unnecessary classes and remove the ones you don't need from the samples and wells, or you create a set of classes that includes most samples, and then add the samples that have more replicates.
+
+(5) Can I somehow set a threshold of how much area to annotate per class?
+
+Not algorithmically. Options are: You manually sum the area per class as you annotate, QuPath has measurements per annotation that you can filter by class. OR, you can limit the collection at the LMD7 software (>8).
+
+(6) What if I want to collect various slides of tissue into the same 384wp
+
+I suggest you create a set of QuPath classes that include all slides, make sure they are unique (Slide1_celltypeA_control_1). Then annotate as normal and export a .geojson file per slide. 
+Then you should create a samples and wells scheme that includes all classes from all slides. Process each .geojson file with the same samples and wells scheme, and collect one slide at a time. 
+
+(7) How should I position my calibration points?
+
+The closer the three calibration points are to the annotations the less distortion you are going to suffer.
+Your tolerance for distortion depends on the size of your annotations (single cells will suffer greatly, mini-bulk less so).
+
+For example:
+
+In this image the small contours at the top will likely suffer distortion leading the collection to be of different tissue than the one annotated for.
