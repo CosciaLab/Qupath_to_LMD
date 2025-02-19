@@ -284,6 +284,7 @@ if st.button("Step 1.1: Create class names for QuPath"):
 st.image(image="./assets/sample_names_example.png",
          caption="Example of class names for QuPath")
 
+st.subheader("You have to replace QuPath's default classes.json")
 st.write("classes.json must remain named that way, and replace the other classes.json in <QuPath project>/classifiers/annotations")
 st.divider()
 
