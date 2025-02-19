@@ -174,7 +174,7 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    logger.debug("Checking if the wells are in the list of acceptable wells")
    warning_limit = 0
    for well in samples_and_wells.values():
-      if well not in list_of_acceptable_wells and warning_limit<10 :
+      if well not in list_of_acceptable_wells:
          warning_limit +=1
          if warning_limit<10:
             st.write(f'Your well {well} is not in the list of acceptable wells for 384 well plate, please correct it',
