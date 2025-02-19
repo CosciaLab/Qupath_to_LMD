@@ -177,8 +177,7 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
       if well not in list_of_acceptable_wells:
          warning_limit +=1
          if warning_limit<10:
-            st.write(f'Your well {well} is not in the list of acceptable wells for 384 well plate, please correct it',
-            'ask an expert if unsure, the script will continue')
+            st.write(f'Your well {well} is not in the list of acceptable wells for 384 well plate, please correct it')
 
    if warning_limit>=10:
       st.write(f'You have received +10 warnings about wells, I let you be, but I hope you know what you are doing!')
