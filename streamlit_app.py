@@ -92,8 +92,12 @@ def check_ids(shapes, metadata, metadata_name_key):
    # remove whitespaces
    metadata[metadata_name_key] = metadata[metadata_name_key].astype(str).str.strip()
    logger.debug("metadata names have been stripped")
+   logger.debug(f"metadata shape {metadata.shape}")   
+
    shape_names_set = set(shapes['classification_name'])
    metadata_names_set = set(metadata[metadata_name_key])
+   logger.debug(f"First 5 shape names: {list(shape_names_set)[:5]}")
+   logger.debug(f"First 5 metadata names: {list(metadata_names_set)[:5]}")
 
    # all shapes must be in metadata
    if shape_names_set.issubset(metadata_names_set): 
