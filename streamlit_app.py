@@ -103,7 +103,6 @@ def check_ids(shapes, metadata, metadata_name_key):
    else:
       logger.error(f"{shape_names_set - metadata_names_set} were not found in the metadata")
       logger.error(f"overlapping names: {shape_names_set & metadata_names_set}")
-      logger.error(f"{})
       return False
 
 def process_geojson_with_metadata(path_to_geojson, path_to_csv, metadata_name_key, metadata_variable_key):
