@@ -107,7 +107,7 @@ def process_geojson_with_metadata(path_to_geojson, path_to_csv, metadata_name_ke
    shapes = QC_geojson_file(geojson_path=path_to_geojson)
    metadata = parse_metadata_csv(path_to_csv)
    
-   assert check_ids(shapes=shapes, metadata=metadata, metadata_key=metadata_name_key)
+   assert check_ids(shapes=shapes, metadata=metadata, metadata_name_key=metadata_name_key)
    
    #add info to shapes
    mapping = dict(zip(metadata[metadata_name_key], metadata[metadata_variable_key])) #assumes class name in first column
