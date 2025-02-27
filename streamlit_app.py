@@ -124,6 +124,7 @@ def process_geojson_with_metadata(path_to_geojson, path_to_csv, metadata_name_ke
    default_colors = [[31, 119, 180], [255, 127, 14], [44, 160, 44], [214, 39, 40], [148, 103, 189]]
    color_cycle = itertools.cycle(default_colors)
    color_dict = dict(zip(metadata[metadata_variable_key].astype("category").cat.categories.astype(str), color_cycle))
+   shapes.drop(columns=["classification"])
    shapes['classification'] = shapes["metadata"].apply(lambda x: {'name': x, 'color': color_dict[x]})
    shapes.drop(columns=["classification_name", "metadata"], inplace=True)
 
