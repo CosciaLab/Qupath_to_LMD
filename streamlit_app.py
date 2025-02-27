@@ -14,6 +14,7 @@ import string
 import itertools
 import random
 import json
+import time
 
 from loguru import logger
 import sys
@@ -67,6 +68,59 @@ def sample_placement_384wp(samples_and_wells):
       df_wp384.at[location[0],location[1:]] = i
 
    return df_wp384
+
+def QC_geojson_file(geojson_path: str):
+   df = geopandas.read_file(geojson_path)
+   logger.info(f"Geojson file loaded with shape {df.shape} for metadata coloring")
+   df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
+   logger.info(f"Point geometries have been removed")
+   df = df[df['classification'].notna()]
+   df = df[df.geometry.geom_type != 'MultiPolygon']
+   df['classification_name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
+   return df
+
+def parse_metadata_csv(csv_path):
+   try:
+      df = pandas.read_csv(csv_path, sep=None, engine="python", encoding="utf-8-sig")
+      return df
+   except Exception as e:
+      logger.error(f"Error reading CSV file: {e}")
+      st.stop()
+   
+def check_ids(shapes, metadata, metadata_name_key):
+   # remove whitespaces
+   metadata[metadata_name_key] = metadata[metadata_name_key].astype(str).str.strip()
+   shape_names_set = set(shapes['classification_name'])
+   metadata_names_set = set(metadata[metadata_name_key])
+
+   # all shapes must be in metadata
+   if shape_names_set.issubset(metadata_names_set): 
+      print("All shape names are found in the metadata")
+      st.write("All shape names are found in the metadata")
+      return True
+   else:
+      logger.error(f"{shape_names_set - metadata_names_set} were not found in the metadata")
+      return False
+
+def process_geojson_with_metadata(path_to_geojson, path_to_csv, metadata_name_key, metadata_variable_key):
+
+   shapes = QC_geojson_file(geojson_path=path_to_geojson)
+   metadata = parse_metadata_csv(path_to_csv)
+   
+   assert check_ids(shapes=shapes, metadata=metadata, metadata_key=metadata_name_key)
+   
+   #add info to shapes
+   mapping = dict(zip(metadata[metadata_name_key], metadata[metadata_variable_key])) #assumes class name in first column
+   shapes["metadata"] = shapes["classification_name"].map(mapping)
+   
+   #format info to QuPath readable way
+   default_colors = [[31, 119, 180], [255, 127, 14], [44, 160, 44], [214, 39, 40], [148, 103, 189]]
+   color_cycle = itertools.cycle(default_colors)
+   color_dict = dict(zip(metadata[metadata_variable_key].astype("category").cat.categories.astype(str), color_cycle))
+   shapes['classification'] = shapes["metadata"].apply(lambda x: {'name': x, 'color': color_dict[x]})
+   
+   #export
+   shapes.to_file(f"./{path_to_geojson.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}", driver= "GeoJSON")
 
 @st.cache_data
 def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
@@ -230,7 +284,6 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    df_wp384 = sample_placement_384wp(samples_and_wells)
    df_wp384.to_csv(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}', index=True)
 
-
 ####################
 ### Introduction ###
 ####################
@@ -365,3 +418,29 @@ if st.button("Process geojson and create the contours"):
    st.download_button("Download 384 plate scheme", 
                      Path(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}').read_text(),
                      f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}')
+st.divider()
+
+######################################
+### Color contours with categorical ##
+######################################
+
+st.title("Step 6: Optional: Label shapes with metadata ")
+
+st.write("Upload table as csv with two columns")
+metadata_file = st.file_uploader("Choose a csv file", accept_multiple_files=False)
+metadata_name_key = st.text_area("Column header with shape's classification", placeholder="class name")
+metadata_variable_key = st.text_area("Column header to color you shapes with", placeholder="Collection status")
+
+st.write("Upload geojson file you would like to color with metadata")
+geojson_file = st.file_uploader("Choose a geojson file", accept_multiple_files=False)
+
+if st.button("Process metadata and geojson, for labelled shapes"):
+   process_geojson_with_metadata(
+      path_to_geojson=geojson_file,
+      path_to_csv=metadata_file,
+      metadata_name_key=metadata_name_key,
+      metadata_variable_key=metadata_variable_key)
+   
+   st.download_button("Download lablled shapes", 
+                     Path(f"./{geojson_file.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}").read_text(),
+                     f"./{geojson_file.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}")
