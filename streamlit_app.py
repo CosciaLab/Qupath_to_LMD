@@ -88,18 +88,22 @@ def parse_metadata_csv(csv_path):
       st.stop()
    
 def check_ids(shapes, metadata, metadata_name_key):
+   logger.debug("Running Check IDS")
    # remove whitespaces
    metadata[metadata_name_key] = metadata[metadata_name_key].astype(str).str.strip()
+   logger.debug("metadata names have been stripped")
    shape_names_set = set(shapes['classification_name'])
    metadata_names_set = set(metadata[metadata_name_key])
 
    # all shapes must be in metadata
    if shape_names_set.issubset(metadata_names_set): 
-      print("All shape names are found in the metadata")
+      logger.info("All shape names are found in the metadata")
       st.write("All shape names are found in the metadata")
       return True
    else:
       logger.error(f"{shape_names_set - metadata_names_set} were not found in the metadata")
+      logger.error(f"overlapping names: {shape_names_set & metadata_names_set}")
+      logger.error(f"{})
       return False
 
 def process_geojson_with_metadata(path_to_geojson, path_to_csv, metadata_name_key, metadata_variable_key):
