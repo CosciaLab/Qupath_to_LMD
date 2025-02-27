@@ -28,7 +28,8 @@ There are three inputs for the jupyter notebook.
 
 ## Streamlit webapp
 
-Go to [Streamlit Webapp Link](https://qupath-to-lmd.streamlit.app/)
+Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
+
 1. Upload your geojson file.  
 2. Write down your calibration points  
 3. Paste in your samples_and_wells dictionary (see below)
