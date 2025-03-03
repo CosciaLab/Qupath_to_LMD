@@ -299,6 +299,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
 
 st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
 st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
+st.subheader("For help, post issue on https://github.com/CosciaLab/Qupath_to_LMD with .geojson file")
 st.divider()
 
 #######################
