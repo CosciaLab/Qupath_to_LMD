@@ -39,7 +39,7 @@ def generate_combinations(list1, list2, num) -> list:
    assert isinstance(list1, list) and all(isinstance(i, str) for i in list1), "Input 1 must be a list of strings"
    assert isinstance(list2, list) and all(isinstance(i, str) for i in list2), "Input 2 must be a list of strings"
    assert isinstance(num, int) and num > 0, "Input 3 must be a positive integer"
-   assert len(list1) * len(list2) * num < 228, "Too many combinations (>228), please distribute to different plates"
+   # assert len(list1) * len(list2) * num < 228, "Too many combinations (>228), please distribute to different plates" Arbitrary limitation
    keys = [f"{a}_{b}_{i}" for a, b, i in itertools.product(list1, list2, range(1, num + 1))]
    return keys
 
@@ -341,7 +341,10 @@ if st.button("Step 1.1: Create class names for QuPath"):
                         data=Path('./classes.json').read_text(), 
                         file_name="classes.json")
    except Exception as e:
-      st.error(f"Error exporting class names: {e}")
+      st.error(f"Error exporting class names: {e}") # bug here with melissa
+
+# "Error exporting class names: Too many combinations (>228), please distribute to different plates" 
+
 
 st.image(image="./assets/sample_names_example.png",
          caption="Example of class names for QuPath")
