@@ -25,7 +25,8 @@ Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
 
 # Youtube Tutorial 
 
-Version 1: https://www.youtube.com/watch?v=tyvHjttjSBE
+[NEW! Youtube Tutorial](https://youtu.be/jimBIqGUaXg)
+[OLD! Youtube Tutorial](https://www.youtube.com/watch?v=tyvHjttjSBE) 
 
 
 ## What is the "samples_and_wells" scheme
