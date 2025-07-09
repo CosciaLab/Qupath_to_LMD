@@ -296,10 +296,14 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
 ####################
 ### Introduction ###
 ####################
-
-st.title("Convert a GeoJSON polygons to xml for Laser Microdissection")
-st.subheader("From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
-st.subheader("For help, post issue on https://github.com/CosciaLab/Qupath_to_LMD with .geojson file")
+st.markdown("""
+            # Convert a GeoJSON polygons for Laser Microdissection
+            ## Part of the [openDVP](https://github.com/CosciaLab/openDVP) framework
+            ### For help, post issue on [Github](https://github.com/CosciaLab/Qupath_to_LMD) with .geojson file
+            """)
+# st.title("")
+# st.subheader(" From Jose Nimo, PhD at AG Coscia in the Max Delbrueck Center for Molecular Medicine in Berlin")
+# st.subheader("For help, post issue on https://github.com/CosciaLab/Qupath_to_LMD with .geojson file")
 st.divider()
 
 #######################
@@ -351,6 +355,7 @@ st.image(image="./assets/sample_names_example.png",
 
 st.subheader("You have to replace QuPath's default classes.json")
 st.write("classes.json must remain named that way, and replace the other classes.json in <QuPath project>/classifiers/annotations")
+st.write("Please close QuPath, replace, and re-open project.")
 st.divider()
 
 ######################################
