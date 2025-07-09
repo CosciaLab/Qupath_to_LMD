@@ -1,3 +1,5 @@
+[![Open the QuPath-to-LMD WebApp](https://img.shields.io/badge/Launch%20App-Streamlit-brightgreen?logo=streamlit)](https://qupath-to-lmd-mdcberlin.streamlit.app/)
+
 # Introduction
 
 QuPath-to-LMD is the easiest way to go from QuPath annotations to LMD collection!
@@ -25,8 +27,7 @@ Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
 
 # Youtube Tutorial 
 
-[NEW! Youtube Tutorial](https://youtu.be/jimBIqGUaXg)
-[OLD! Youtube Tutorial](https://www.youtube.com/watch?v=tyvHjttjSBE) 
+[![Watch the video](https://img.youtube.com/vi/jimBIqGUaXg/0.jpg)](https://www.youtube.com/watch?v=jimBIqGUaXg&t=2s)
 
 
 ## What is the "samples_and_wells" scheme
