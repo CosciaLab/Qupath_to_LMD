@@ -13,26 +13,18 @@ You can go through the Jupyter notebook locally on your own machine, or use the 
 5. Export annotations as a **FeatureCollection** in the **.geojson** format
 6. Load into webapp or jupyter notebook (see below)
 
-## Jupyter notebook
-
-To run the Jupyter notebook you have to create a local environment with the right packages.  
-Please follow the instructions at https://github.com/MannLabs/py-lmd. (thanks to them this is possible)  
-Then please install these extra packages with the following command:  
-`conda install geojson geopandas shapely ipykernel`
-
-There are three inputs for the jupyter notebook.
-1. The path to your geoJSON file
-2. The directory to save your output files
-3. The samples_and_wells dictionary (see below for instructions)
-
-
 ## Streamlit webapp
 
-Go to [Streamlit Webapp Link](https://qupath-to-lmd.streamlit.app/)
+Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
 1. Upload your geojson file.  
 2. Write down your calibration points  
 3. Paste in your samples_and_wells dictionary (see below)
 4. Click Run the script, and download your output file.
+
+
+# Youtube Tutorial 
+
+Version 1: https://www.youtube.com/watch?v=tyvHjttjSBE
 
 
 ## What is the "samples_and_wells" scheme
@@ -52,9 +44,7 @@ The "C3", "C5", "C7" strings determine into which well are the contours going to
 Works for both 384-well plates and 96-well plates
 Note: For 384 well plate users, in the LMD7 system, do not use rows A or B, nor columns 1 or 2. The system struggles to collect to these wells.
 
-# Youtube Tutorial 
 
-https://www.youtube.com/watch?v=tyvHjttjSBE
 
 # Citation
 Please cite the following work when using this package.
