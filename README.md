@@ -19,6 +19,11 @@ With more than 60 unique users, we try to help everyone collect their tissues.
 
 Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
 
+<a href="https://qupath-to-lmd-mdcberlin.streamlit.app/">
+  <img src="assets/webapp_screenshot.png" alt="Open WebApp" width="600"/>
+</a>
+
+
 1. Upload your geojson file.  
 2. Write down your calibration points  
 3. Paste in your samples_and_wells dictionary (see below)
