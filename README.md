@@ -1,7 +1,7 @@
 # Introduction
 
-This repository includes all the code necesary to easily transform a Qupath geojson file to the Leica LMD7 compatible .xml file.
-You can go through the Jupyter notebook locally on your own machine, or use the webapp version that simply requires a file upload.
+QuPath-to-LMD is the easiest way to go from QuPath annotations to LMD collection!
+With more than 60 unique users, we try to help everyone collect their tissues.
 
 ## Qupath Annotations
 
@@ -13,19 +13,6 @@ You can go through the Jupyter notebook locally on your own machine, or use the 
 5. Export annotations as a **FeatureCollection** in the **.geojson** format
 6. Load into webapp or jupyter notebook (see below)
 
-## Jupyter notebook
-
-To run the Jupyter notebook you have to create a local environment with the right packages.  
-Please follow the instructions at https://github.com/MannLabs/py-lmd. (thanks to them this is possible)  
-Then please install these extra packages with the following command:  
-`conda install geojson geopandas shapely ipykernel`
-
-There are three inputs for the jupyter notebook.
-1. The path to your geoJSON file
-2. The directory to save your output files
-3. The samples_and_wells dictionary (see below for instructions)
-
-
 ## Streamlit webapp
 
 Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
@@ -34,6 +21,11 @@ Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
 2. Write down your calibration points  
 3. Paste in your samples_and_wells dictionary (see below)
 4. Click Run the script, and download your output file.
+
+
+# Youtube Tutorial 
+
+Version 1: https://www.youtube.com/watch?v=tyvHjttjSBE
 
 
 ## What is the "samples_and_wells" scheme
@@ -53,9 +45,7 @@ The "C3", "C5", "C7" strings determine into which well are the contours going to
 Works for both 384-well plates and 96-well plates
 Note: For 384 well plate users, in the LMD7 system, do not use rows A or B, nor columns 1 or 2. The system struggles to collect to these wells.
 
-# Youtube Tutorial 
 
-https://www.youtube.com/watch?v=tyvHjttjSBE
 
 # Citation
 Please cite the following work when using this package.
@@ -79,3 +69,32 @@ Check the example_input folder in the repository to see how they should look lik
 (3) I have an error what do I do? 
 
 Create a gihtub issue explaning what are you doing and pasting the Traceback (the code that is trying to tell you what went wrong)
+
+(4) I have different number of replicates per category of samples?
+
+Either you create a set of classes that includes unnecessary classes and remove the ones you don't need from the samples and wells, or you create a set of classes that includes most samples, and then add the samples that have more replicates.
+
+(5) Can I somehow set a threshold of how much area to annotate per class?
+
+Not algorithmically. Options are: You manually sum the area per class as you annotate, QuPath has measurements per annotation that you can filter by class. OR, you can limit the collection at the LMD7 software (>8).
+
+(6) What if I want to collect various slides of tissue into the same 384wp
+
+I suggest you create a set of QuPath classes that include all slides, make sure they are unique (Slide1_celltypeA_control_1). Then annotate as normal and export a .geojson file per slide. 
+Then you should create a samples and wells scheme that includes all classes from all slides. Process each .geojson file with the same samples and wells scheme, and collect one slide at a time. 
+
+(7) How should I position my calibration points?
+
+The closer the three calibration points are to the annotations the less distortion you are going to suffer.
+Your tolerance for distortion depends on the size of your annotations (single cells will suffer greatly, mini-bulk less so).
+
+For example:
+
+<img width="300" alt="bad_calibpoints" src="https://github.com/user-attachments/assets/887f7afc-fedb-438b-b00c-bbbd2a524f6f" />
+
+In this image the small contours at the top will likely suffer distortion leading the collection to be of different tissue than the one annotated for.
+
+The solution is to separate into two different sets of contours with closer calibration points:
+![better_calib_points_1](https://github.com/user-attachments/assets/4eb068b8-afbb-4cd7-9ed8-790dd7622950)
+![better_calib_points_2](https://github.com/user-attachments/assets/6111132c-72dd-48fb-ae9f-0b04a01ede86)
+

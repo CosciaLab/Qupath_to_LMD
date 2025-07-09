@@ -1,0 +1,34 @@
+[project]
+authors = [{name = "Jose Nimo", email = "nimojose@gmail.com"}]
+name = "Qupath_to_LMD"
+requires-python = ">= 3.11"
+version = "0.1.0"
+dependencies = [
+    "py-lmd>=1.0.0,<2"
+    ]
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+qupath_to_lmd = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+scipy = ">=1.16.0,<2"
+numba = ">=0.61.2,<0.62"
+scikit-image = ">=0.25.2,<0.26"
+geojson = ">=3.2.0,<4"
+geopandas = ">=1.1.1,<2"
+pandas = ">=2.3.0,<3"
+numpy = ">=2.2.6,<3"
+tifffile = ">=2025.6.11,<2026"
+shapely = ">=2.1.1,<3"
+loguru = ">=0.7.3,<0.8"
+streamlit = ">=1.46.1,<2"
