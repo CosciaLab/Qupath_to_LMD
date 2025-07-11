@@ -2738,7 +2738,7 @@ packages:
 - pypi: ./
   name: qupath-to-lmd
   version: 0.1.0
-  sha256: b6fbe4d7215c1ae0e88d467338cb82943ba76aafd127c26d73f6343ff33132e4
+  sha256: a1996ba3bd01a3cfafca4525c280c05afaafba7ebeba746497904f1c5c7cc207
   requires_dist:
   - py-lmd>=1.0.0,<2
   requires_python: '>=3.11'
