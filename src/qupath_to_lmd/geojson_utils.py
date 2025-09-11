@@ -29,6 +29,7 @@ def check_ids(shapes, metadata, metadata_name_key):
    logger.debug("Running Check IDS")
    # remove whitespaces
    metadata[metadata_name_key] = metadata[metadata_name_key].astype(str).str.strip()
+   shapes['classification_name'] = shapes['classification_name'].astype(str).str.strip()
    logger.debug("metadata names have been stripped")
    logger.debug(f"metadata shape {metadata.shape}")   
 
@@ -67,4 +68,5 @@ def process_geojson_with_metadata(path_to_geojson, path_to_csv, metadata_name_ke
    shapes.drop(columns=["classification_name", "metadata", "id"], inplace=True)
 
    #export
-   shapes.to_file(f"./{path_to_geojson.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}", driver= "GeoJSON")
+   output_name = path_to_geojson.name.replace(".geojson", "")
+   shapes.to_file(f"./{output_name}_{metadata_variable_key}_labelled_shapes.geojson", driver= "GeoJSON")

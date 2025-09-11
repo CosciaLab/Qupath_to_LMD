@@ -51,6 +51,7 @@ def load_and_QC_geojson_file(
          logger.error(f'Your given annotation_name {point_name} is not present in the file')
          logger.error(f'These are the calib points you passed: {list_of_calibpoint_names}')
          logger.error(f"These are the calib points found in the geojson: {df[df['geometry'].geom_type == 'Point']['annotation_name'].values}")
+         st.stop()
 
    calib_np_array = numpy.array(
       [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
