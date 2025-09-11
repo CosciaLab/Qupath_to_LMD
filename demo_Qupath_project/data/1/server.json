@@ -1,0 +1,9 @@
+{
+  "builderType": "uri",
+  "providerClassName": "qupath.lib.images.servers.bioformats.BioFormatsServerBuilder",
+  "uri": "file:/Volumes/RD_Coscia/Jose/__TestDatasets/TD_01_verysmall_mIF.ome.tif",
+  "args": [
+    "--series",
+    "0"
+  ]
+}

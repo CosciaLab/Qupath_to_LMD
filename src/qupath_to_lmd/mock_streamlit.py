@@ -1,5 +1,4 @@
 import streamlit as st
-import sys
 import pandas
 
 def patch_streamlit():

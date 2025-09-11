@@ -1,0 +1,25 @@
+{
+  "version": "0.6.0",
+  "createTimestamp": 1757590337918,
+  "modifyTimestamp": 1757590337918,
+  "uri": "file:/Users/jnimoca/Jose_BI/5_QuPath_Projects/demo_QTL/project.qpproj",
+  "lastID": 1,
+  "images": [
+    {
+      "serverBuilder": {
+        "builderType": "uri",
+        "providerClassName": "qupath.lib.images.servers.bioformats.BioFormatsServerBuilder",
+        "uri": "file:/Volumes/RD_Coscia/Jose/__TestDatasets/TD_01_verysmall_mIF.ome.tif",
+        "args": [
+          "--series",
+          "0"
+        ]
+      },
+      "entryID": 1,
+      "randomizedName": "6c11a8d7-9e91-42a9-a929-11153a3e95fa",
+      "imageName": "TD_01_verysmall_mIF.ome.tif",
+      "metadata": {},
+      "tags": []
+    }
+  ]
+}

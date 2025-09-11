@@ -1,5 +1,4 @@
 import geopandas
-import pandas
 import shapely
 import streamlit as st
 import ast

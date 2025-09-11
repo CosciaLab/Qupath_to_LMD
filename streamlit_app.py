@@ -1,28 +1,13 @@
-import geopandas
-import pandas
-import numpy
-import tifffile
-import shapely
 import streamlit as st
-from lmd.lib import SegmentationLoader
-from lmd.lib import Collection, Shape
-from lmd import tools
-from PIL import Image
 from pathlib import Path
-import ast
-import string
-import itertools
-import random
 import json
-import time
 
 from loguru import logger
 import sys
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-from qupath_to_lmd.utils import generate_combinations
-from qupath_to_lmd.well_plate import create_list_of_acceptable_wells, create_default_samples_and_wells
+from qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
 from qupath_to_lmd.geojson_utils import process_geojson_with_metadata
 from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
 

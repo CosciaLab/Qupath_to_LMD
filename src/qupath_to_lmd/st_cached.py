@@ -1,39 +1,30 @@
 import geopandas
-import pandas
 import numpy
-import tifffile
 import shapely
 import streamlit as st
-from lmd.lib import SegmentationLoader
-from lmd.lib import Collection, Shape
-from lmd import tools
-from PIL import Image
-from pathlib import Path
+from lmd.lib import Collection
 import ast
-import string
-import itertools
-import random
-import json
-import time
 
 from loguru import logger
 
 from qupath_to_lmd.geojson_utils import extract_coordinates
-from qupath_to_lmd.well_plate import create_list_of_acceptable_wells, sample_placement_384wp
+from qupath_to_lmd.utils import create_list_of_acceptable_wells, sample_placement_384wp
 
 @st.cache_data
-def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
+def load_and_QC_geojson_file(
+   geojson_path: str, 
+   list_of_calibpoint_names: list = ['calib1','calib2','calib3']):
    """
    This function loads a geojson file and checks for common issues that might arise when converting it to xml for LMD
 
    Parameters:
-   geojson_path (str): path to the geojson file
-   list_of_calibpoint_names (list): list of calibration point names in the geojson file
+   -------------
+      geojson_path (str): path to the geojson file
+      list_of_calibpoint_names (list): list of calibration point names in the geojson file
 
    Returns:
-   None
-
-   Latest update: 29.04.2024 by Jose Nimo
+   -------------
+      None
    """
 
    #load geojson file
@@ -54,9 +45,12 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    #check for calibration points
    for point_name in list_of_calibpoint_names:
       if point_name not in df['annotation_name'].unique():
+         st.write(f'Your given annotation_name >>{point_name}<< is not present in the file')
+         st.write(f'These are the calib points you passed: {list_of_calibpoint_names}')
+         st.write(f"These are the calib points found in the geojson: {df[df['geometry'].geom_type == 'Point']['annotation_name'].values}")
          logger.error(f'Your given annotation_name {point_name} is not present in the file')
          logger.error(f'These are the calib points you passed: {list_of_calibpoint_names}')
-         logger.error(f"These are the calib points found in the geojson you gave me: {df[df['geometry'].geom_type == 'Point']['annotation_name']}")
+         logger.error(f"These are the calib points found in the geojson: {df[df['geometry'].geom_type == 'Point']['annotation_name'].values}")
 
    calib_np_array = numpy.array(
       [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
@@ -98,11 +92,9 @@ def load_and_QC_geojson_file(geojson_path: str, list_of_calibpoint_names: list =
    
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
-      st.write('MultiPolygon objects present:  
-')
+      st.write('MultiPolygon objects present:')
       st.table(df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']])
-      st.write('these are not supported, please convert them to polygons in Qupath  
-',
+      st.write('these are not supported, please convert them to polygons in Qupath',
       'the script will continue but these objects will be ignored')
       df = df[df.geometry.geom_type != 'MultiPolygon']
 
@@ -120,8 +112,7 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
 
    df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
 
-   samples_and_wells_processed = samples_and_wells_input.replace("
-", "")
+   samples_and_wells_processed = samples_and_wells_input.replace(" ", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
 
@@ -145,7 +136,6 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
          'Option A: change the class name in Qupath',
          'Option B: add it to the samples_and_wells dictionary',
          'Option C: ignore this, and these annotations will not be exported')
-         # st.stop(), let users know, but don't stop the script
 
    st.success('The samples and wells scheme QC is done!')
 
@@ -166,8 +156,7 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
    df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
 
-   samples_and_wells_processed = samples_and_wells_input.replace("
-", "")
+   samples_and_wells_processed = samples_and_wells_input.replace(" ", "")
    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
    
