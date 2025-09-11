@@ -1,5 +1,9 @@
+# macOS
 *.DS_Store
-.pixi
-*.egg-info
+
+# python
 __pycache__
 *.ipynb
+
+# streamlit
+.devcontainer
