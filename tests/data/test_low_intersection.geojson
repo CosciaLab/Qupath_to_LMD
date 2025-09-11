@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "calib1", "classification": null, "id": null },
+      "geometry": { "type": "Point", "coordinates": [ 0, 0 ] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "calib2", "classification": null, "id": null },
+      "geometry": { "type": "Point", "coordinates": [ 1, 0 ] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "calib3", "classification": null, "id": null },
+      "geometry": { "type": "Point", "coordinates": [ 0, 1 ] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Annotation 1", "classification": {"name": "Tumor", "colorRGB": -13260}, "id": "PathAnnotationObject" },
+      "geometry": { "type": "Polygon", "coordinates": [ [ [ 10, 10 ], [ 10, 20 ], [ 20, 20 ], [ 20, 10 ], [ 10, 10 ] ] ] }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "classification": "{'name': 'Tumor'}" },
+      "geometry": { "type": "Polygon", "coordinates": [ [ [ 10, 10 ], [ 10, 20 ], [ 20, 20 ], [ 20, 10 ], [ 10, 10 ] ] ] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "classification": "{'name': 'Stroma'}" },
+      "geometry": { "type": "Point", "coordinates": [ 30, 30 ] }
+    }
+  ]
+}
