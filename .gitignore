@@ -1,5 +1,5 @@
 *.DS_Store
-# pixi environments
 .pixi
 *.egg-info
 __pycache__
+*.ipynb
