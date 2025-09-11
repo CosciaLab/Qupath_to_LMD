@@ -141,7 +141,10 @@ def load_and_QC_SamplesandWells(geojson_path, list_of_calibpoint_names, samples_
    st.success('The samples and wells scheme QC is done!')
 
 @st.cache_data
-def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_input):
+def create_collection(
+   geojson_path : str = None, 
+   list_of_calibpoint_names :list = None, 
+   samples_and_wells_input : str = None):
 
    df = geopandas.read_file(geojson_path)
 
@@ -157,9 +160,13 @@ def create_collection(geojson_path, list_of_calibpoint_names, samples_and_wells_
    df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
    df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
 
-   samples_and_wells_processed = samples_and_wells_input.replace(" ", "")
-   samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-   samples_and_wells = ast.literal_eval(samples_and_wells_processed)
+   if samples_and_wells_input:
+      samples_and_wells_processed = samples_and_wells_input.replace(" ", "")
+      samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
+      samples_and_wells = ast.literal_eval(samples_and_wells_processed)
+   else:
+      st.write("Please add a samples and wells in step 2")
+      logger.error("No samples and wells passed")
    
    #filter out shapes from df that are not in samples_and_wells
    df = df[df['Name'].isin(samples_and_wells.keys())]
