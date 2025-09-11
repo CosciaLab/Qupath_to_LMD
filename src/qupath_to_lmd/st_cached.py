@@ -161,7 +161,7 @@ def create_collection(
    df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
 
    if samples_and_wells_input:
-      samples_and_wells_processed = samples_and_wells_input.replace(" ", "")
+      samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
       samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
       samples_and_wells = ast.literal_eval(samples_and_wells_processed)
    else:
