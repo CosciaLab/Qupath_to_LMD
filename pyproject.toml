@@ -1,34 +1,105 @@
 [project]
 authors = [{name = "Jose Nimo", email = "nimojose@gmail.com"}]
+maintainers = [{ name = "Jose Nimo", email = "jose.nimo@mdc-berlin.de" }]
 name = "Qupath_to_LMD"
 requires-python = ">= 3.11"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
-    "py-lmd>=1.0.0,<2"
+    "py-lmd>=1.0.0,<2",
+    "scipy >=1.16.0,<2",
+    "numba >=0.61.2,<0.62",
+    "scikit-image >=0.25.2,<0.26",
+    "geojson >=3.2.0,<4",
+    "geopandas >=1.1.1,<2",
+    "pandas >=2.3.0,<3",
+    "numpy >=2.2.6,<3",
+    "tifffile >=2025.6.11,<2026",
+    "shapely >=2.1.1,<3",
+    "loguru >=0.7.3,<0.8",
+    "streamlit >=1.46.1,<2",
+    "ipykernel >=6.30.1,<7",
     ]
 
+[dependency-groups]
+dev = [
+  "ruff",
+  "pytest",
+  "pytest-cov",
+  "coverage",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/CosciaLab/qupath_to_lmd"
+"Source" = "https://github.com/CosciaLab/qupath_to_lmd"
+
 [build-system]
-build-backend = "hatchling.build"
-requires = ["hatchling"]
+requires = ["uv_build>=0.8.13,<0.9.0"]
+build-backend = "uv_build"
 
-[tool.pixi.workspace]
-channels = ["conda-forge"]
-platforms = ["osx-arm64"]
+##############################
+### FORMATTING AND LINTING ###
+##############################
 
-[tool.pixi.pypi-dependencies]
-qupath_to_lmd = { path = ".", editable = true }
+[tool.ruff]
+line-length = 120
+target-version = "py311"
 
-[tool.pixi.tasks]
+[tool.ruff.lint]
+per-file-ignores."*/__init__.py" = [ "F401" ]
+per-file-ignores."docs/*" = [ "I" ]
+per-file-ignores."tests/*" = [ "D" ]
 
-[tool.pixi.dependencies]
-scipy = ">=1.16.0,<2"
-numba = ">=0.61.2,<0.62"
-scikit-image = ">=0.25.2,<0.26"
-geojson = ">=3.2.0,<4"
-geopandas = ">=1.1.1,<2"
-pandas = ">=2.3.0,<3"
-numpy = ">=2.2.6,<3"
-tifffile = ">=2025.6.11,<2026"
-shapely = ">=2.1.1,<3"
-loguru = ">=0.7.3,<0.8"
-streamlit = ">=1.46.1,<2"
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    "env",
+    "docs",
+    "notebooks",
+    "tests/data",
+    "src/opendvp/tl/scimap_*.py",
+    "src/opendvp/pp/scimap_*.py",
+    "src/opendvp/experimental/*",
+]
+
+select = [
+  "B",      # flake8-bugbear
+  "BLE",    # flake8-blind-except
+  "C4",     # flake8-comprehensions
+  "D",      # pydocstyle
+  "E",      # Error detected by Pycodestyle
+  "F",      # Errors detected by Pyflakes
+  "I",      # isort
+  "RUF100", # Report unused noqa directives
+  "TID",    # flake8-tidy-imports
+  "UP",     # pyupgrade
+  "W",      # Warning detected by Pycodestyle
+]
+
+ignore = [
+  "B008", # Errors from function calls in argument defaults. These are fine when the result is immutable.
+  "D100", # Missing docstring in public module
+  "D104", # Missing docstring in public package
+  "D105", # __magic__ methods are often self-explanatory, allow missing docstrings
+  "D107", # Missing docstring in __init__
+  # Disable one in each pair of mutually incompatible rules
+  "D203", # We don’t want a blank line before a class docstring
+  "D213", # <> We want docstrings to start immediately after the opening triple quote
+  "D400", # first line should end with a period [Bug: doesn’t work with single-line docstrings]
+  "D401", # First line should be in imperative mood; try rephrasing
+  "E501", # line too long -> we accept long comment lines; formatter gets rid of long code lines
+  "E731", # Do not assign a lambda expression, use a def -> lambda expression assignments are convenient
+  "E741", # allow I, O, l as variable names -> I is the identity matrix
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
