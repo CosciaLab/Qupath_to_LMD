@@ -44,10 +44,36 @@ if st.button("Load and check the geojson file"):
       st.warning("Please upload a file first.")
 st.divider()
 
+########################################
+## Step 2: Choose collection settings ##
+########################################
 
-######################################
-## Step 2: Samples and wells upload ##
-######################################
+st.markdown("""
+            ## Step 2: Decide which plate to collect into, either 384 or 96 well plate
+            Decide how many wells to make unavailable as a margin (for 384wp we suggest a margin of 2)
+            Decide how many wells to leave blank in between, for easier pipetting.
+            """)
+
+# --- Setup the single row of inputs ---
+plate, margin, step_row, step_col = st.columns(4)
+with plate:
+   selected_option = st.selectbox('Select an item',('384 well plate', '96 well plate'),key='dropdown_key')
+with margin:
+   int_input_1 = st.number_input('Margin (integer)', min_value=0, max_value=10, value=0, key='margin_key')
+with step_row:
+   int_input_2 = st.number_input('Step rows (integer)', min_value=0, max_value=10, value=0, key='step_row_key')
+with step_col:
+   int_input_3 = st.number_input('Step columns (integer)', min_value=0, max_value=10, value=0, key='step_col_key')
+
+
+# Check format button
+
+# Prints out format
+
+
+############################################
+## Step 2: Input custom samples and wells ##
+############################################
 
 st.markdown("""
             ## Step 2: Copy/Paste and check samples and wells scheme
@@ -81,6 +107,8 @@ st.markdown("""
             Here we create the .xml file from your geojson.  
             Please download the QC image, and plate scheme for future reference.  
             """)
+
+# Dropdown: use collection setup, or use custom samples and wells
 
 if st.button("Process geojson and create the contours"):
    create_collection(geojson_path=uploaded_file,
