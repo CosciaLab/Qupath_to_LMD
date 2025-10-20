@@ -98,6 +98,8 @@ if st.button("Check the samples and wells"):
                                                    list_of_calibpoint_names=list_of_calibpoint_names)
 st.divider()
 
+# remove warning, lets assume custom people know what they are doing
+
 ###############################
 ### Step 3: Process contours ##
 ###############################
