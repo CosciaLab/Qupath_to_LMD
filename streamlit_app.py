@@ -5,12 +5,14 @@ import pandas as pd
 import string
 import numpy as np
 
+
 from loguru import logger
 import sys
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 from qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
+from qupath_to_lmd.utils import create_dataframe_samples_wells
 from qupath_to_lmd.geojson_utils import process_geojson_with_metadata
 from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
 
@@ -67,55 +69,90 @@ plate, margin, step_row, step_col = st.columns(4)
 with plate:
    plate_string = st.selectbox('Select a plate type',('384 well plate', '96 well plate'))
 with margin:
-   int_input_1 = st.number_input('Margin (integer)', min_value=0, max_value=10, value=1)
+   margin_int = st.number_input('Margin (integer)', min_value=0, max_value=10, value=1)
 with step_row:
-   int_input_2 = st.number_input('Space between rows', min_value=1, max_value=10, value=1)
+   step_row_int = st.number_input('Space between rows', min_value=1, max_value=10, value=1)
 with step_col:
-   int_input_3 = st.number_input('Space between columns', min_value=1, max_value=10, value=1)
+   step_col_int = st.number_input('Space between columns', min_value=1, max_value=10, value=1)
 
-
-# --- Main Logic to Create and Display the DataFrame ---
-
-plate_type = plate_string.split(' ')[0]
-
+# ---  Parse user plate inputs ---
 try:
+   plate_type = plate_string.split(' ')[0]
    acceptable_wells_list = create_list_of_acceptable_wells(
-      plate=plate_type, margins=int_input_1, step_row=int_input_2, step_col=int_input_3
-   )
-   
+         plate=plate_type, margins=margin_int, step_row=step_row_int, step_col=step_col_int)
    acceptable_wells_set = set(acceptable_wells_list)
 
    if plate_type == "384":
-      num_rows = 16
-      num_cols = 24
-   else:
-      num_rows = 8
-      num_cols = 12
-
-   row_labels = list(string.ascii_uppercase[:num_rows])
-   col_labels = list(range(1, num_cols + 1))
-
-   # Create DataFrame
-   plate_data = []
-   for r in row_labels:
-      row_data = [f"{r}{c}" for c in col_labels]
-      plate_data.append(row_data)
-   df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
-
-   # styling of wells
-   def highlight_selected(well_name):
-      if well_name in acceptable_wells_set:
-         return 'background-color: #77dd77; color: black;' # Green
-      else:
-         return 'background-color: #f0f2f6;' # Light gray
-
-   # Display the styled DataFrame
-   st.subheader(f"Visualization for {plate_type}-Well Plate")
-   st.dataframe(df.style.applymap(highlight_selected), use_container_width=True )
-   st.write(f"You can increase plate size by dragging bottom right corner")
+      rows, cols = 16, 24
+   elif plate_type == "96":
+      rows, cols = 8, 12
 
 except ValueError as e:
-    st.error(f"Error: {e}")
+    st.error(f"Error Parsing plate inputs: {e}")
+
+# styling of wells
+
+
+# --- Setup single row with two buttons ---
+plotdefaults, plotsamples = st.columns(2)
+
+# --- Logic for using defaults geojson ---
+with plotdefaults:
+   if st.button("Show plate format with default wells"):
+      try: 
+         row_labels = list(string.ascii_uppercase[:rows])
+         col_labels = list(range(1, cols + 1))
+
+         # Create DataFrame
+         plate_data = []
+         for r in row_labels:
+            row_data = [f"{r}{c}" for c in col_labels]
+            plate_data.append(row_data)
+         df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
+
+         def highlight_selected(well_name):
+            if well_name in acceptable_wells_set:
+               return 'background-color: #77dd77; color: black;' # Green
+            else:
+               return 'background-color: #f0f2f6;' # Light gray
+
+      # Display the styled DataFrame
+         st.subheader(f"Visualization for {plate_type}-Well Plate")
+         st.dataframe(df.style.applymap(highlight_selected), use_container_width=True )
+         st.write(f"You can increase plate size by dragging bottom right corner")
+
+      except ValueError as e:
+         st.error(f"Error plotting defaults: {e}")
+
+# --- Logic for using samples geojson ---
+with plotsamples:
+   if st.button("Show plate format with samples from geojson"):
+
+      if uploaded_file is None:
+         st.warning("Please upload a file first.")
+
+      try:
+         df,list_of_classes = create_dataframe_samples_wells(
+                  geojson_path = uploaded_file,
+                  randomize = True,
+                  plate_string = plate_string,
+                  acceptable_wells_list = acceptable_wells_list,
+               )
+
+         def highlight_selected(well_name):
+            if well_name in list_of_classes:
+               return 'background-color: #77dd77; color: black;' # Green
+            else:
+               return 'background-color: #f0f2f6;' # Light gray
+
+         # Display the styled DataFrame
+         st.subheader(f"Visualization for {plate_type}-Well Plate")
+         st.dataframe(df.style.applymap(highlight_selected), use_container_width=True )
+         st.write(f"You can increase plate size by dragging bottom right corner")
+
+      except ValueError as e:
+         st.error(f"Error: {e}")
+
 
 
 

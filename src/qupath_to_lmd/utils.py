@@ -3,6 +3,19 @@ import pandas
 import streamlit as st
 from loguru import logger
 import string
+import geopandas
+import shapely
+import ast
+
+def QC_geojson_file(geojson_path: str):
+   df = geopandas.read_file(geojson_path)
+   logger.info(f"Geojson file loaded with shape {df.shape} for metadata coloring")
+   df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
+   logger.info(f"Point geometries have been removed")
+   df = df[df['classification'].notna()]
+   df = df[df.geometry.geom_type != 'MultiPolygon']
+   df['classification_name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
+   return df
 
 def generate_combinations(list1, list2, num) -> list:
    """Generate dictionary from all combinations of two lists and a range, assigning arbitrary values."""
@@ -72,3 +85,43 @@ def sample_placement_384wp(samples_and_wells):
       df_wp384.at[location[0],location[1:]] = i
 
    return df_wp384
+
+
+import pandas as pd
+import numpy as np
+from random import sample
+
+def create_dataframe_samples_wells(
+      geojson_path:str=None, 
+      randomize:bool = True, 
+      plate_string:str="384", 
+      acceptable_wells_list:list = None):
+   
+   gdf = QC_geojson_file(geojson_path=geojson_path)
+
+   # list of samples
+   list_of_classes = set(gdf['classification_name'].values)
+
+   # create dataframe skeleton
+   plate = plate_string.split(' ')[0]
+   if plate == "384":
+      rows, cols = 16, 24
+   elif plate == "96":
+      rows, cols = 8, 12
+
+   df = pd.DataFrame(np.nan, index=list(string.ascii_uppercase[:rows]), columns=range(1, cols + 1))
+
+   #warning about more classes than wells
+   if len(list_of_classes) > len(acceptable_wells_list):
+      st.warning("More classes than allowed wells")
+      list_of_classes = list_of_classes[:len(acceptable_wells_list)]
+
+   if randomize:
+      acceptable_wells_list = sample(acceptable_wells_list, len(acceptable_wells_list))
+
+   for s, well in zip(list_of_classes, acceptable_wells_list):
+        row = well[0]
+        col = int(well[1:])
+        df.at[row, col] = s
+   
+   return df, set(list_of_classes)
