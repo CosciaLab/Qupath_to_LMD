@@ -57,9 +57,9 @@ st.divider()
 ########################################
 
 st.markdown("""
-            ## Step 2: Decide which plate to collect into, either 384 or 96 well plate
-            Decide how many wells to make unavailable as a margin (for 384wp we suggest a margin of 2)
-            Decide how many wells to leave blank in between, for easier pipetting.
+            ## Step 2: Decide which plate to collect into, either 384 or 96 well plate.  
+            Decide how many wells to make unavailable as a margin (for 384wp we suggest a margin of 2).  
+            Decide how many wells to leave blank in between, for easier pipetting.  
             """)
 
 # --- Setup the single row of inputs ---
@@ -79,59 +79,45 @@ with step_col:
 plate_type = plate_string.split(' ')[0]
 
 try:
-    # 2. Get the list of acceptable wells from your function
-    acceptable_wells_list = create_list_of_acceptable_wells(
-        plate=plate_type,
-        margins=int_input_1,
-        step_row=int_input_2,
-        step_col=int_input_3
-    )
-    
-    # Convert to a Set for very fast lookup (O(1) average)
-    acceptable_wells_set = set(acceptable_wells_list)
+   acceptable_wells_list = create_list_of_acceptable_wells(
+      plate=plate_type, margins=int_input_1, step_row=int_input_2, step_col=int_input_3
+   )
+   
+   acceptable_wells_set = set(acceptable_wells_list)
 
-    # 3. Define plate dimensions
-    if plate_type == "384":
-        num_rows = 16
-        num_cols = 24
-    else: # "96"
-        num_rows = 8
-        num_cols = 12
+   if plate_type == "384":
+      num_rows = 16
+      num_cols = 24
+   else:
+      num_rows = 8
+      num_cols = 12
 
-    # Create row (A-H or A-P) and column (1-12 or 1-24) labels
-    row_labels = list(string.ascii_uppercase[:num_rows])
-    col_labels = list(range(1, num_cols + 1))
+   row_labels = list(string.ascii_uppercase[:num_rows])
+   col_labels = list(range(1, num_cols + 1))
 
-    # 4. Create the full plate grid as a DataFrame
-    # We will fill it with the well names (e.g., "A1", "A2"...)
-    plate_data = []
-    for r in row_labels:
-        row_data = [f"{r}{c}" for c in col_labels]
-        plate_data.append(row_data)
+   # Create DataFrame
+   plate_data = []
+   for r in row_labels:
+      row_data = [f"{r}{c}" for c in col_labels]
+      plate_data.append(row_data)
+   df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
 
-    df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
+   # styling of wells
+   def highlight_selected(well_name):
+      if well_name in acceptable_wells_set:
+         return 'background-color: #77dd77; color: black;' # Green
+      else:
+         return 'background-color: #f0f2f6;' # Light gray
 
-    # 5. Define a styling function
-    def highlight_selected(well_name):
-        """
-        Applies a background color to the cell if the well_name
-        is in our set of acceptable wells.
-        """
-        # Check if the cell's value (the well name) is in our set
-        if well_name in acceptable_wells_set:
-            return 'background-color: #77dd77; color: black;' # Green
-        else:
-            return 'background-color: #f0f2f6;' # Light gray
-
-    # 6. Display the styled DataFrame
-    st.subheader(f"Visualization for {plate_type}-Well Plate")
-    st.dataframe(
-        df.style.applymap(highlight_selected),
-        use_container_width=True # <-- This is the key argument
-    )
+   # Display the styled DataFrame
+   st.subheader(f"Visualization for {plate_type}-Well Plate")
+   st.dataframe(df.style.applymap(highlight_selected), use_container_width=True )
+   st.write(f"You can increase plate size by dragging bottom right corner")
 
 except ValueError as e:
     st.error(f"Error: {e}")
+
+
 
 
 ############################################
