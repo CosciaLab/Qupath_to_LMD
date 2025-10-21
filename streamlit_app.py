@@ -1,6 +1,9 @@
 import streamlit as st
 from pathlib import Path
 import json
+import pandas as pd
+import string
+import numpy as np
 
 from loguru import logger
 import sys
@@ -10,6 +13,11 @@ logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level
 from qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
 from qupath_to_lmd.geojson_utils import process_geojson_with_metadata
 from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
+
+####################
+## Page settings ###
+####################
+st.set_page_config(layout="wide")
 
 ####################
 ### Introduction ###
@@ -57,18 +65,73 @@ st.markdown("""
 # --- Setup the single row of inputs ---
 plate, margin, step_row, step_col = st.columns(4)
 with plate:
-   selected_option = st.selectbox('Select an item',('384 well plate', '96 well plate'),key='dropdown_key')
+   plate_string = st.selectbox('Select a plate type',('384 well plate', '96 well plate'))
 with margin:
-   int_input_1 = st.number_input('Margin (integer)', min_value=0, max_value=10, value=0, key='margin_key')
+   int_input_1 = st.number_input('Margin (integer)', min_value=0, max_value=10, value=1)
 with step_row:
-   int_input_2 = st.number_input('Step rows (integer)', min_value=0, max_value=10, value=0, key='step_row_key')
+   int_input_2 = st.number_input('Space between rows', min_value=1, max_value=10, value=1)
 with step_col:
-   int_input_3 = st.number_input('Step columns (integer)', min_value=0, max_value=10, value=0, key='step_col_key')
+   int_input_3 = st.number_input('Space between columns', min_value=1, max_value=10, value=1)
 
 
-# Check format button
+# --- Main Logic to Create and Display the DataFrame ---
 
-# Prints out format
+plate_type = plate_string.split(' ')[0]
+
+try:
+    # 2. Get the list of acceptable wells from your function
+    acceptable_wells_list = create_list_of_acceptable_wells(
+        plate=plate_type,
+        margins=int_input_1,
+        step_row=int_input_2,
+        step_col=int_input_3
+    )
+    
+    # Convert to a Set for very fast lookup (O(1) average)
+    acceptable_wells_set = set(acceptable_wells_list)
+
+    # 3. Define plate dimensions
+    if plate_type == "384":
+        num_rows = 16
+        num_cols = 24
+    else: # "96"
+        num_rows = 8
+        num_cols = 12
+
+    # Create row (A-H or A-P) and column (1-12 or 1-24) labels
+    row_labels = list(string.ascii_uppercase[:num_rows])
+    col_labels = list(range(1, num_cols + 1))
+
+    # 4. Create the full plate grid as a DataFrame
+    # We will fill it with the well names (e.g., "A1", "A2"...)
+    plate_data = []
+    for r in row_labels:
+        row_data = [f"{r}{c}" for c in col_labels]
+        plate_data.append(row_data)
+
+    df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
+
+    # 5. Define a styling function
+    def highlight_selected(well_name):
+        """
+        Applies a background color to the cell if the well_name
+        is in our set of acceptable wells.
+        """
+        # Check if the cell's value (the well name) is in our set
+        if well_name in acceptable_wells_set:
+            return 'background-color: #77dd77; color: black;' # Green
+        else:
+            return 'background-color: #f0f2f6;' # Light gray
+
+    # 6. Display the styled DataFrame
+    st.subheader(f"Visualization for {plate_type}-Well Plate")
+    st.dataframe(
+        df.style.applymap(highlight_selected),
+        use_container_width=True # <-- This is the key argument
+    )
+
+except ValueError as e:
+    st.error(f"Error: {e}")
 
 
 ############################################
