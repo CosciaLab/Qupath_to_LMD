@@ -20,11 +20,38 @@ def parse_metadata_csv(csv_path):
       logger.error(f"Error reading CSV file: {e}")
       st.stop()
 
-def create_list_of_acceptable_wells():
-   list_of_acceptable_wells =[]
-   for row in list(string.ascii_uppercase[2:14]):
-      for column in range(3,22):
+def create_list_of_acceptable_wells(
+      plate:str="384", 
+      margins:int=0,
+      step_row:int=1,
+      step_col:int=1):
+
+   if plate not in ["384","96"]:
+      raise ValueError("Plate must be either 384 or 96")
+   if not isinstance(margins,int):
+      raise ValueError("margins must be an integer")
+
+   min_row = 1
+   min_col = 1
+
+   if plate == "384":
+      max_row = 16
+      max_col = 24
+   else:
+      max_row = 8
+      max_col = 12
+
+   if margins>0 :
+      max_col += -(margins)
+      max_row += -(margins)
+      min_col += margins
+      min_row += margins
+
+   list_of_acceptable_wells = []
+   for row in list(string.ascii_uppercase[min_row-1 : max_row : step_row]):
+      for column in range(min_col , max_col+1, step_col):
          list_of_acceptable_wells.append(str(row) + str(column))
+
    return list_of_acceptable_wells
 
 def create_default_samples_and_wells(list_of_samples, list_of_acceptable_wells):
