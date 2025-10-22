@@ -6,6 +6,9 @@ import string
 import geopandas
 import shapely
 import ast
+import pandas as pd
+import numpy as np
+from random import sample
 
 def QC_geojson_file(geojson_path: str):
    df = geopandas.read_file(geojson_path)
@@ -86,42 +89,73 @@ def sample_placement_384wp(samples_and_wells):
 
    return df_wp384
 
-
-import pandas as pd
-import numpy as np
-from random import sample
-
 def create_dataframe_samples_wells(
-      geojson_path:str=None, 
-      randomize:bool = True, 
-      plate_string:str="384", 
+      geojson_path:str = None, 
+      randomize:bool = False, 
+      plate_string:str = "384", 
       acceptable_wells_list:list = None):
    
-   gdf = QC_geojson_file(geojson_path=geojson_path)
-
-   # list of samples
-   list_of_classes = set(gdf['classification_name'].values)
-
-   # create dataframe skeleton
-   plate = plate_string.split(' ')[0]
-   if plate == "384":
+   if plate_string == "384":
       rows, cols = 16, 24
-   elif plate == "96":
+   elif plate_string == "96":
       rows, cols = 8, 12
 
-   df = pd.DataFrame(np.nan, index=list(string.ascii_uppercase[:rows]), columns=range(1, cols + 1))
+   if geojson_path is None:
 
-   #warning about more classes than wells
-   if len(list_of_classes) > len(acceptable_wells_list):
-      st.warning("More classes than allowed wells")
-      list_of_classes = list_of_classes[:len(acceptable_wells_list)]
+      row_labels = list(string.ascii_uppercase[:rows])
+      col_labels = list(range(1, cols + 1))
 
-   if randomize:
-      acceptable_wells_list = sample(acceptable_wells_list, len(acceptable_wells_list))
+      plate_data = []
+      for r in row_labels:
+         row_data = [f"{r}{c}" for c in col_labels]
+         plate_data.append(row_data)
+      df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
 
-   for s, well in zip(list_of_classes, acceptable_wells_list):
-        row = well[0]
-        col = int(well[1:])
-        df.at[row, col] = s
+   elif geojson_path is not None: 
+
+      gdf = QC_geojson_file(geojson_path=geojson_path)
+      list_of_classes = set(gdf['classification_name'].values)
+      df = pd.DataFrame(np.nan, index=list(string.ascii_uppercase[:rows]), columns=range(1, cols + 1))
+
+      if len(list_of_classes) > len(acceptable_wells_list):
+         st.warning("More classes than allowed wells")
+         list_of_classes = list_of_classes[:len(acceptable_wells_list)]
+
+      if randomize:
+         acceptable_wells_list = sample(acceptable_wells_list, len(acceptable_wells_list))
+
+      for s, well in zip(list_of_classes, acceptable_wells_list):
+         row = well[0]
+         col = int(well[1:])
+         df.at[row, col] = s
+      
+   return df
+
+def provide_highlighting_for_df(
+      geojson_path:str = None,
+      acceptable_wells_set:set = None):
+
+   if geojson_path is None:
+      print("geojson path is None")
+      print(f"{geojson_path}")
+
+      def highlight_selected(well_name):
+         if well_name in acceptable_wells_set:
+            return 'background-color: #77dd77; color: black;' # Green
+         else:
+            return 'background-color: #f0f2f6;' # Light gray
+         
+      return highlight_selected
    
-   return df, set(list_of_classes)
+   elif geojson_path is not None:
+
+      gdf = QC_geojson_file(geojson_path=geojson_path)
+      list_of_classes = set(gdf['classification_name'].values)
+
+      def highlight_selected(well_name):
+            if well_name in list_of_classes:
+               return 'background-color: #77dd77; color: black;' # Green
+            else:
+               return 'background-color: #f0f2f6;' # Light gray
+            
+      return highlight_selected

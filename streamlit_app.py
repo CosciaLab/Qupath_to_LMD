@@ -12,7 +12,7 @@ logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 from qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
-from qupath_to_lmd.utils import create_dataframe_samples_wells
+from qupath_to_lmd.utils import create_dataframe_samples_wells, provide_highlighting_for_df
 from qupath_to_lmd.geojson_utils import process_geojson_with_metadata
 from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
 
@@ -64,6 +64,8 @@ st.markdown("""
             Decide how many wells to leave blank in between, for easier pipetting.  
             """)
 
+st.write(f"You can increase plate size by dragging bottom right corner")
+
 # --- Setup the single row of inputs ---
 plate, margin, step_row, step_col = st.columns(4)
 with plate:
@@ -82,80 +84,69 @@ try:
          plate=plate_type, margins=margin_int, step_row=step_row_int, step_col=step_col_int)
    acceptable_wells_set = set(acceptable_wells_list)
 
-   if plate_type == "384":
-      rows, cols = 16, 24
-   elif plate_type == "96":
-      rows, cols = 8, 12
+   # if plate_type == "384":
+   #    rows, cols = 16, 24
+   # elif plate_type == "96":
+   #    rows, cols = 8, 12
 
 except ValueError as e:
     st.error(f"Error Parsing plate inputs: {e}")
 
-# styling of wells
+##########################################
+## Step 3: Plot collection with samples ##
+##########################################
 
+# session state defaults to default
+if 'view_mode' not in st.session_state:
+   st.session_state.view_mode = 'default'
 
 # --- Setup single row with two buttons ---
-plotdefaults, plotsamples = st.columns(2)
-
-# --- Logic for using defaults geojson ---
-with plotdefaults:
+st.subheader(f"Visualization for {plate_type}-Well Plate")
+col1, col2, col3 = st.columns(3)
+with col1:
    if st.button("Show plate format with default wells"):
-      try: 
-         row_labels = list(string.ascii_uppercase[:rows])
-         col_labels = list(range(1, cols + 1))
-
-         # Create DataFrame
-         plate_data = []
-         for r in row_labels:
-            row_data = [f"{r}{c}" for c in col_labels]
-            plate_data.append(row_data)
-         df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
-
-         def highlight_selected(well_name):
-            if well_name in acceptable_wells_set:
-               return 'background-color: #77dd77; color: black;' # Green
-            else:
-               return 'background-color: #f0f2f6;' # Light gray
-
-      # Display the styled DataFrame
-         st.subheader(f"Visualization for {plate_type}-Well Plate")
-         st.dataframe(df.style.applymap(highlight_selected), use_container_width=True )
-         st.write(f"You can increase plate size by dragging bottom right corner")
-
-      except ValueError as e:
-         st.error(f"Error plotting defaults: {e}")
-
-# --- Logic for using samples geojson ---
-with plotsamples:
+      st.session_state.view_mode = 'default'
+with col2:
    if st.button("Show plate format with samples from geojson"):
-
       if uploaded_file is None:
          st.warning("Please upload a file first.")
+      else:
+         st.session_state.view_mode = 'samples'
+with col3:
+   randomize_toggle = st.toggle("Randomize samples", value=False)
 
-      try:
-         df,list_of_classes = create_dataframe_samples_wells(
-                  geojson_path = uploaded_file,
-                  randomize = True,
-                  plate_string = plate_string,
-                  acceptable_wells_list = acceptable_wells_list,
-               )
+# --- plot dataframes ---
+if st.session_state.view_mode == 'default':
+   st.subheader(f"Visualization for {plate_type}-Well Plate (Default)")
+   try: 
+      df = create_dataframe_samples_wells(plate_string=plate_type)
+      mapping = provide_highlighting_for_df(
+         geojson_path = None,
+         acceptable_wells_set=acceptable_wells_set)
+      st.dataframe(df.style.applymap(mapping), width="stretch" )
+   except ValueError as e:
+      st.error(f"Error plotting defaults: {e}")
 
-         def highlight_selected(well_name):
-            if well_name in list_of_classes:
-               return 'background-color: #77dd77; color: black;' # Green
-            else:
-               return 'background-color: #f0f2f6;' # Light gray
+elif st.session_state.view_mode == 'samples':
+   st.subheader(f"Visualization for {plate_type}-Well Plate (Samples from GeoJSON)")
 
-         # Display the styled DataFrame
-         st.subheader(f"Visualization for {plate_type}-Well Plate")
-         st.dataframe(df.style.applymap(highlight_selected), use_container_width=True )
-         st.write(f"You can increase plate size by dragging bottom right corner")
-
+   if uploaded_file is None:
+      st.warning("File no longer available. Please upload a file or switch to the default view.")
+      st.session_state.view_mode = 'none'
+   else:
+      try: 
+         df = create_dataframe_samples_wells(
+            geojson_path = uploaded_file,
+            randomize = randomize_toggle,
+            plate_string = plate_type,
+            acceptable_wells_list = acceptable_wells_list
+         )
+         mapping = provide_highlighting_for_df(
+            geojson_path = uploaded_file,
+         )
+         st.dataframe(df.style.applymap(mapping), width="stretch")
       except ValueError as e:
          st.error(f"Error: {e}")
-
-
-
-
 
 ############################################
 ## Step 2: Input custom samples and wells ##
