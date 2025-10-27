@@ -2,7 +2,7 @@
 authors = [{name = "Jose Nimo", email = "nimojose@gmail.com"}]
 maintainers = [{ name = "Jose Nimo", email = "jose.nimo@mdc-berlin.de" }]
 name = "Qupath_to_LMD"
-requires-python = ">= 3.11"
+requires-python = ">= 3.11, <3.14"
 version = "0.2.0"
 dependencies = [
     "py-lmd>=1.0.0,<2",

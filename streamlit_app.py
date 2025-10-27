@@ -11,8 +11,9 @@ import sys
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-from qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
-from qupath_to_lmd.utils import create_dataframe_samples_wells, provide_highlighting_for_df
+import qupath_to_lmd.utils as utils
+# qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
+# from qupath_to_lmd.utils import create_dataframe_samples_wells, provide_highlighting_for_df
 from qupath_to_lmd.geojson_utils import process_geojson_with_metadata
 from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
 
@@ -22,8 +23,16 @@ from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_Sample
 st.set_page_config(layout="wide")
 if 'session_id' not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
+if 'view_mode' not in st.session_state:
+   st.session_state.view_mode = 'default'
 if 'gdf' not in st.session_state:
    st.session_state.gdf = None
+if 'calibs' not in st.session_state:
+   st.session_state.calibs = None
+if 'saw' not in st.session_state:
+   st.session_state.saw = None
+if "use_plate_wells" not in st.session_state:
+   st.session_state.use_plate_wells = True
 
 ####################
 ### Introduction ###
@@ -45,19 +54,18 @@ st.markdown("""
             Upload your .geojson file from qupath, order of calibration points is important
             """)
 
-uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
+uploaded_file = st.file_uploader(label="Choose a file", type="geojson", accept_multiple_files=False)
 calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="first_calib")
 calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="second_calib")
 calibration_point_3 = st.text_input("Enter the name of the third calibration point: ",  placeholder ="third_calib")
 list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibration_point_3]
 
 if st.button("Load and check the geojson file"):
-   if uploaded_file is not None:
-      st.session_state.gdf = load_and_QC_geojson_file(
-         geojson_path=uploaded_file,
-         list_of_calibpoint_names=list_of_calibpoint_names)
-   else:
-      st.warning("Please upload a file first.")
+   # process calibs
+   st.session_state.calibs = [calibration_point_1, calibration_point_2, calibration_point_3]
+   # process and QC geojson
+   st.session_state.gdf = load_and_QC_geojson_file(geojson_path=uploaded_file)
+
 st.divider()
 
 ########################################
@@ -86,7 +94,7 @@ with step_col:
 # ---  Parse user plate inputs ---
 try:
    plate_type = plate_string.split(' ')[0]
-   acceptable_wells_list = create_list_of_acceptable_wells(
+   acceptable_wells_list = utils.create_list_of_acceptable_wells(
          plate=plate_type, margins=margin_int, step_row=step_row_int, step_col=step_col_int)
    acceptable_wells_set = set(acceptable_wells_list)
 
@@ -96,10 +104,6 @@ except ValueError as e:
 ##########################################
 ## Step 3: Plot collection with samples ##
 ##########################################
-
-# session state defaults to default
-if 'view_mode' not in st.session_state:
-   st.session_state.view_mode = 'default'
 
 # --- Setup single row with two buttons ---
 st.subheader(f"Visualization for {plate_type}-Well Plate")
@@ -119,9 +123,9 @@ with col3:
 # --- plot dataframes ---
 if st.session_state.view_mode == 'default':
    st.subheader(f"Visualization for {plate_type}-Well Plate (Default)")
-   try: 
-      df = create_dataframe_samples_wells(plate_string=plate_type)
-      mapping = provide_highlighting_for_df(
+   try:
+      df = utils.create_dataframe_samples_wells(plate_string=plate_type)
+      mapping = utils.provide_highlighting_for_df(
          geojson_path = None,
          acceptable_wells_set=acceptable_wells_set)
       st.dataframe(df.style.applymap(mapping), width="stretch" )
@@ -135,22 +139,32 @@ elif st.session_state.view_mode == 'samples':
       st.warning("File no longer available. Please upload a file or switch to the default view.")
       st.session_state.view_mode = 'none'
    else:
-      try: 
-         df = create_dataframe_samples_wells(
+      try:
+         df = utils.create_dataframe_samples_wells(
             geojson_path = uploaded_file,
             randomize = randomize_toggle,
             plate_string = plate_type,
             acceptable_wells_list = acceptable_wells_list
          )
-         mapping = provide_highlighting_for_df(
+         mapping = utils.provide_highlighting_for_df(
             geojson_path = uploaded_file,
          )
          st.dataframe(df.style.applymap(mapping), width="stretch")
       except ValueError as e:
          st.error(f"Error: {e}")
 
+
+# button to upload custom samples and wells
+if st.button("Upload custom samples and wells dictionary:"):
+   uploaded_saw = st.file_uploader(
+      label = "Choose a file",
+      type = "txt",
+      accept_multiple_files=False)
+   st.session_state.saw = utils.parse_dictionary_from_file(uploaded_saw)
+   st.session_state.use_plate_wells = False
+
 ############################################
-## Step 2: Input custom samples and wells ##
+####### Step 4: Process geojson  ###########
 ############################################
 
 st.markdown("""

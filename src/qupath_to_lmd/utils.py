@@ -1,4 +1,5 @@
 import itertools
+import re
 import pandas
 import streamlit as st
 from loguru import logger
@@ -70,24 +71,24 @@ def create_list_of_acceptable_wells(
 
    return list_of_acceptable_wells
 
-def create_default_samples_and_wells(list_of_samples, list_of_acceptable_wells):
-   assert len(list_of_samples) <= len(list_of_acceptable_wells), "Number of samples must be less than or equal to the number of wells"
-   samples_and_wells = {}
-   for sample,well in zip(list_of_samples, list_of_acceptable_wells):
-      samples_and_wells[sample] = well
-   return samples_and_wells
+# def create_default_samples_and_wells(list_of_samples, list_of_acceptable_wells):
+#    assert len(list_of_samples) <= len(list_of_acceptable_wells), "Number of samples must be less than or equal to the number of wells"
+#    samples_and_wells = {}
+#    for sample,well in zip(list_of_samples, list_of_acceptable_wells):
+#       samples_and_wells[sample] = well
+#    return samples_and_wells
 
-def sample_placement_384wp(samples_and_wells):
+# def sample_placement_384wp(samples_and_wells):
 
-   rows_A_P= [i for i in string.ascii_uppercase[:16]]
-   columns_1_24 = [str(i) for i in range(1,25)]
-   df_wp384 = pandas.DataFrame('',columns=columns_1_24, index=rows_A_P)
+#    rows_A_P= [i for i in string.ascii_uppercase[:16]]
+#    columns_1_24 = [str(i) for i in range(1,25)]
+#    df_wp384 = pandas.DataFrame('',columns=columns_1_24, index=rows_A_P)
 
-   for i in samples_and_wells:
-      location = samples_and_wells[i]
-      df_wp384.at[location[0],location[1:]] = i
+#    for i in samples_and_wells:
+#       location = samples_and_wells[i]
+#       df_wp384.at[location[0],location[1:]] = i
 
-   return df_wp384
+#    return df_wp384
 
 def create_dataframe_samples_wells(
       geojson_path:str = None, 
@@ -159,3 +160,38 @@ def provide_highlighting_for_df(
                return 'background-color: #f0f2f6;' # Light gray
             
       return highlight_selected
+
+def parse_dictionary_from_file(file_path: str) -> dict:
+    """
+    Reads a text file supposed to contain a Python dictionary and parses it.
+    Handles common user errors like comments and extra whitespace.
+
+    Args:
+        file_path: The path to the text file.
+
+    Returns:
+        The parsed dictionary, or an empty dictionary if parsing fails.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8-sig') as f:
+            content = f.read()
+    except FileNotFoundError:
+        logger.error(f"File not found: {file_path}")
+        return {}
+    except Exception as e:
+        logger.error(f"Error reading file {file_path}: {e}")
+        return {}
+
+    # Remove comments and strip whitespace
+    content = re.sub(r'#.*', '', content)
+    content = content.strip()
+
+    if not content:
+        return {}
+
+    try:
+        # ast.literal_eval is safe and handles many Python literal formats
+        return ast.literal_eval(content)
+    except (ValueError, SyntaxError) as e:
+        logger.error(f"Failed to parse dictionary from file {file_path}: {e}")
+        return {}
