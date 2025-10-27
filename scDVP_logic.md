@@ -1,6 +1,4 @@
-App will check geojson
-
-check for duplicate class names
+App checks geojson
 
 if duplicate class names
 

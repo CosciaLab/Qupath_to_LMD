@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import string
 import numpy as np
-
+import uuid
 
 from loguru import logger
 import sys
@@ -20,6 +20,10 @@ from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_Sample
 ## Page settings ###
 ####################
 st.set_page_config(layout="wide")
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+if 'gdf' not in st.session_state:
+   st.session_state.gdf = None
 
 ####################
 ### Introduction ###
@@ -27,10 +31,10 @@ st.set_page_config(layout="wide")
 st.markdown("""
             # Convert a GeoJSON polygons for Laser Microdissection
             ## Part of the [openDVP](https://github.com/CosciaLab/openDVP) framework
-            ### For help, post issue on [Github](https://github.com/CosciaLab/Qupath_to_LMD) with .geojson file
+            ### For help, post issue on [Github](https://github.com/CosciaLab/Qupath_to_LMD) with .geojson file and session id
             """)
+st.write(f" Session id: {st.session_state.session_id}")
 st.divider()
-
 
 ############################
 ## Step 1: Geojson upload ##
@@ -49,7 +53,9 @@ list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibratio
 
 if st.button("Load and check the geojson file"):
    if uploaded_file is not None:
-      load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
+      st.session_state.gdf = load_and_QC_geojson_file(
+         geojson_path=uploaded_file,
+         list_of_calibpoint_names=list_of_calibpoint_names)
    else:
       st.warning("Please upload a file first.")
 st.divider()
@@ -64,7 +70,7 @@ st.markdown("""
             Decide how many wells to leave blank in between, for easier pipetting.  
             """)
 
-st.write(f"You can increase plate size by dragging bottom right corner")
+st.write("You can increase plate size by dragging bottom right corner")
 
 # --- Setup the single row of inputs ---
 plate, margin, step_row, step_col = st.columns(4)
@@ -83,11 +89,6 @@ try:
    acceptable_wells_list = create_list_of_acceptable_wells(
          plate=plate_type, margins=margin_int, step_row=step_row_int, step_col=step_col_int)
    acceptable_wells_set = set(acceptable_wells_list)
-
-   # if plate_type == "384":
-   #    rows, cols = 16, 24
-   # elif plate_type == "96":
-   #    rows, cols = 8, 12
 
 except ValueError as e:
     st.error(f"Error Parsing plate inputs: {e}")
