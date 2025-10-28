@@ -1,4 +1,6 @@
 import ast
+import os
+import tempfile
 
 import geopandas
 import numpy
@@ -14,30 +16,20 @@ import qupath_to_lmd.utils as utils
 def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.GeoDataFrame:
    """Checks and load the geojson.
 
-   This function loads a geojson file and checks for common issues that might arise when converting it to xml for LMD
-
-   Parameters:
-   -------------
-      geojson_path (str): path to the geojson file
-      list_of_calibpoint_names (list): list of calibration point names in the geojson file
-
-   Returns:
-   -------------
-      None
+   It digests the geojson and returns a sanitized geodataframe
    """
    #check for streamlit variables
    if st.session_state.calibs is None:
       st.error("Calibration points were not accesible directly")
       st.stop()
-   #load geojson file
+
+   # 1 Digestion
    df = geopandas.read_file(geojson_path)
    logger.info(f"Geojson file loaded with shape {df.shape}")
-
    if df.empty:
       st.warning("The uploaded geojson file is empty.")
       logger.warning("The uploaded geojson file is empty.")
       st.stop()
-
    if "name" not in df.columns:
       st.warning("No calibration points in file")
       st.stop()
@@ -50,7 +42,7 @@ def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.Geo
 
    #check for calibration points
    for point_name in st.session_state.calibs:
-      if point_name not in df['classification_name'].unique():
+      if point_name not in df['name'].unique():
          st.write(f'Your given annotation_name >>{point_name}<< is not present in the file')
          st.write(f'These are the calib points you passed: {st.session_state.calibs}')
          st.write(f"These are the calib points found in the geojson: {df[df['geometry'].geom_type == 'Point']['name'].values}")
@@ -63,6 +55,9 @@ def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.Geo
       [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
          df.loc[df['name'] == point_name, 'geometry'].values[0].y] 
          for point_name in st.session_state.calibs])
+
+   if st.session_state.calib_array is None:
+      st.session_state.calib_array = calib_np_array
 
    def polygon_intersects_triangle(polygon, triangle):
       if isinstance(polygon, shapely.Polygon):
@@ -152,12 +147,9 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
 
    st.success('The samples and wells scheme QC is done!')
 
-@st.cache_data
-def create_collection(
-   # geojson_path : str = None,
-   # list_of_calibpoint_names :list = None, 
-   samples_and_wells_input : str = None):
-
+def create_collection():
+   """Creates XML from geojson and returns file contents."""
+   # streamlit checks
    if st.session_state.gdf is None:
       st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
       st.stop()
@@ -168,44 +160,31 @@ def create_collection(
       st.error("Samples and wells were not accesible")
       st.stop()
 
-   # df = geopandas.read_file(geojson_path)
-
    df = st.session_state.gdf.copy()
 
-   calib_np_array = numpy.array(
-      [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
-         df.loc[df['name'] == point_name, 'geometry'].values[0].y] 
-         for point_name in st.session_state.calibs])
-
-   # df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
-   # df = df[df['classification'].notna()]
-   # df = df[df.geometry.geom_type != 'MultiPolygon']
-
-   # df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
-   # df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
-
-   # if samples_and_wells_input:
-   #    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
-   #    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-   #    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
-   # else:
-   #    st.write("Please add a samples and wells in step 2")
-   #    logger.error("No samples and wells passed")
-
-   #filter out shapes from df that are not in samples_and_wells
-   # df = df[df['Name'].isin(samples_and_wells.keys())]
-
-   the_collection = Collection(calibration_points = calib_np_array)
+   the_collection = Collection(calibration_points = st.session_state.calib_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
+
    for i in df.index:
       the_collection.new_shape(
          df.at[i,'coords'],
          well = st.session_state.saw[df.at[i, "classification_name"]])
 
    the_collection.plot(save_name= "./TheCollection.png")
-   st.image("./TheCollection.png", caption='Your Contours', use_column_width=True)
+   st.image("./TheCollection.png", caption='Your Contours', width='stretch')
    st.write(the_collection.stats())
-   the_collection.save(f'./{geojson_path.name.replace("geojson", "xml")}')
-   
-   df_wp384 = utils.sample_placement_384wp(samples_and_wells)
-   df_wp384.to_csv(f'./{geojson_path.name.replace("geojson", "_384_wellplate.csv")}', index=True)
+
+   xml_content = ""
+   # Use a temporary file for the XML output
+   fd, path = tempfile.mkstemp(suffix=".xml", text=True)
+   try:
+       the_collection.save(path)
+       with os.fdopen(fd, 'r') as tmpfile:
+           xml_content = tmpfile.read()
+   finally:
+       os.remove(path)
+
+   df_wp384 = utils.sample_placement_384wp(st.session_state.saw)
+   csv_content = df_wp384.to_csv(index=True)
+
+   return xml_content, csv_content

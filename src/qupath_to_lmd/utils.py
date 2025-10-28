@@ -78,17 +78,17 @@ def create_list_of_acceptable_wells(
 #       samples_and_wells[sample] = well
 #    return samples_and_wells
 
-# def sample_placement_384wp(samples_and_wells):
+def sample_placement_384wp(samples_and_wells):
 
-#    rows_A_P= [i for i in string.ascii_uppercase[:16]]
-#    columns_1_24 = [str(i) for i in range(1,25)]
-#    df_wp384 = pandas.DataFrame('',columns=columns_1_24, index=rows_A_P)
+   rows_A_P= [i for i in string.ascii_uppercase[:16]]
+   columns_1_24 = [str(i) for i in range(1,25)]
+   df_wp384 = pandas.DataFrame('',columns=columns_1_24, index=rows_A_P)
 
-#    for i in samples_and_wells:
-#       location = samples_and_wells[i]
-#       df_wp384.at[location[0],location[1:]] = i
+   for i in samples_and_wells:
+      location = samples_and_wells[i]
+      df_wp384.at[location[0],location[1:]] = i
 
-#    return df_wp384
+   return df_wp384
 
 def create_dataframe_samples_wells(
       # geojson_path:str = None,
@@ -120,7 +120,7 @@ def create_dataframe_samples_wells(
          st.stop()
 
       list_of_classes = set(st.session_state.gdf['classification_name'].values)
-      df = pd.DataFrame(np.nan, index=list(string.ascii_uppercase[:rows]), columns=range(1, cols + 1))
+      df = pd.DataFrame(np.nan, index=list(string.ascii_uppercase[:rows]), columns=range(1, cols + 1), dtype=object)
 
       if len(list_of_classes) > len(acceptable_wells_list):
          st.warning("More classes than allowed wells")
@@ -258,3 +258,16 @@ def process_geojson_with_metadata(path_to_geojson, path_to_csv, metadata_name_ke
    #export
    output_name = path_to_geojson.name.replace(".geojson", "")
    shapes.to_file(f"./{output_name}_{metadata_variable_key}_labelled_shapes.geojson", driver= "GeoJSON")
+
+def dataframe_to_saw_dict(df: pd.DataFrame) -> dict:
+    """Converts the plate layout DataFrame to a samples-and-wells dictionary."""
+    saw_dict = {}
+    # The dataframe is indexed by letters and has numbered columns.
+    # The values are the sample names.
+    for well_row, series in df.iterrows():
+        for well_col, sample_name in series.items():
+            # Check if the cell contains a sample name (is not None, NaN, or empty string)
+            if sample_name and pd.notna(sample_name):
+                well_coordinate = f"{well_row}{well_col}"
+                saw_dict[sample_name] = well_coordinate
+    return saw_dict

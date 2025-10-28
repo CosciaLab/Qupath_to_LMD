@@ -3,6 +3,7 @@ import sys
 import uuid
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 from loguru import logger
 
@@ -24,10 +25,24 @@ if 'gdf' not in st.session_state:
    st.session_state.gdf = None
 if 'calibs' not in st.session_state:
    st.session_state.calibs = None
+if 'calib_array' not in st.session_state:
+   st.session_state.calib_array = None
 if 'saw' not in st.session_state:
    st.session_state.saw = None
 if "use_plate_wells" not in st.session_state:
    st.session_state.use_plate_wells = True
+if 'file_name' not in st.session_state:
+   st.session_state.file_name = None
+if 'xml_content' not in st.session_state:
+   st.session_state.xml_content = None
+if 'csv_content' not in st.session_state:
+   st.session_state.csv_content = None
+if 'plate_df' not in st.session_state:
+   st.session_state.plate_df = None
+if 'plate_gen_params' not in st.session_state:
+   st.session_state.plate_gen_params = None
+if 'show_saw_uploader' not in st.session_state:
+   st.session_state.show_saw_uploader = False
 
 ####################
 ### Introduction ###
@@ -56,10 +71,14 @@ calibration_point_3 = st.text_input("Enter the name of the third calibration poi
 list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibration_point_3]
 
 if st.button("Load and check the geojson file"):
-   # process calibs
-   st.session_state.calibs = [calibration_point_1, calibration_point_2, calibration_point_3]
-   # process and QC geojson
-   st.session_state.gdf = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
+   if uploaded_file:
+      # process calibs
+      st.session_state.calibs = [calibration_point_1, calibration_point_2, calibration_point_3]
+      st.session_state.file_name = uploaded_file.name
+      # process and QC geojson
+      st.session_state.gdf = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
+   else:
+      st.warning("Please upload a geojson file.")
 
 st.divider()
 
@@ -115,6 +134,20 @@ with col2:
 with col3:
    randomize_toggle = st.toggle("Randomize samples", value=False)
 
+# --- Logic to decide if we need to regenerate the plate dataframe ---
+plate_gen_params = {
+    "plate_type": plate_type,
+    "margins": margin_int,
+    "step_row": step_row_int,
+    "step_col": step_col_int,
+    "randomize": randomize_toggle,
+}
+
+# Check if parameters have changed since the last run, or if the df is missing
+params_have_changed = st.session_state.get('plate_gen_params') != plate_gen_params
+df_missing = 'plate_df' not in st.session_state or st.session_state.plate_df is None
+
+
 # --- plot dataframes ---
 if st.session_state.view_mode == 'default':
    st.subheader(f"Visualization for {plate_type}-Well Plate (Default)")
@@ -122,7 +155,7 @@ if st.session_state.view_mode == 'default':
       df = utils.create_dataframe_samples_wells(plate_string=plate_type)
       mapping = utils.provide_highlighting_for_df(
          acceptable_wells_set=acceptable_wells_set)
-      st.dataframe(df.style.applymap(mapping), width="stretch" )
+      st.dataframe(df.style.map(mapping), width="stretch" )
    except ValueError as e:
       st.error(f"Error plotting defaults: {e}")
 
@@ -134,26 +167,60 @@ elif st.session_state.view_mode == 'samples':
       st.session_state.view_mode = 'none'
    else:
       try:
-         df = utils.create_dataframe_samples_wells(
-            randomize = randomize_toggle,
-            plate_string = plate_type,
-            acceptable_wells_list = acceptable_wells_list
-         )
-         mapping = utils.provide_highlighting_for_df()
-         st.dataframe(df.style.applymap(mapping), width="stretch")
+         # Only regenerate the dataframe if parameters have changed or it doesn't exist
+         if (params_have_changed or df_missing) and st.session_state.gdf is not None:
+            st.session_state.plate_gen_params = plate_gen_params # Store the new params
+            st.session_state.plate_df = utils.create_dataframe_samples_wells(
+               randomize = randomize_toggle,
+               plate_string = plate_type,
+               acceptable_wells_list = acceptable_wells_list
+            )
+
+         # Always display the current dataframe from session state
+         if st.session_state.plate_df is not None:
+            mapping = utils.provide_highlighting_for_df()
+            st.dataframe(st.session_state.plate_df.style.map(mapping), width="stretch")
+         else:
+            st.info("Generate a plate layout to see it here.")
+
       except ValueError as e:
          st.error(f"Error: {e}")
 
+# --- New button to confirm layout ---
+if st.button("Confirm and use this plate layout"):
+    if st.session_state.view_mode == 'samples' and st.session_state.plate_df is not None:
+        # Convert dataframe to dictionary
+        saw_from_df = utils.dataframe_to_saw_dict(st.session_state.plate_df)
+
+        # Store in session state
+        st.session_state.saw = saw_from_df
+
+        # Run QC
+        core.load_and_QC_SamplesandWells(st.session_state.saw)
+        st.session_state.use_plate_wells = True # To indicate we are using a plate layout
+        st.success("Samples and wells layout confirmed and loaded!")
+        st.write(st.session_state.saw) # Show the user the resulting dictionary
+    else:
+        st.warning("Please generate and view a plate layout with samples from your GeoJSON first.")
 
 # button to upload custom samples and wells
 if st.button("Upload custom samples and wells dictionary, will override"):
+   st.session_state.show_saw_uploader = True
+
+# If the button has been clicked, show the uploader and process the file
+if st.session_state.show_saw_uploader:
    uploaded_saw = st.file_uploader(
-      label = "Choose a file",
-      type = "txt",
-      accept_multiple_files=False)
-   st.session_state.saw = utils.parse_dictionary_from_file(uploaded_saw)
-   core.load_and_QC_SamplesandWells(st.session_state.saw)
-   st.session_state.use_plate_wells = False
+      label = "Choose a custom samples-and-wells file (.txt or .json)",
+      type = ["txt", "json"],
+      accept_multiple_files=False,
+      key="saw_uploader"
+   )
+   if uploaded_saw is not None:
+      st.session_state.saw = utils.parse_dictionary_from_file(uploaded_saw)
+      core.load_and_QC_SamplesandWells(st.session_state.saw)
+      st.session_state.use_plate_wells = False
+      st.success("Custom samples and wells dictionary loaded and checked.")
+      st.session_state.show_saw_uploader = False
 
 # ############################################
 # ####### Step 4: Process geojson  ###########
@@ -197,16 +264,26 @@ st.markdown("""
 # Dropdown: use collection setup, or use custom samples and wells
 
 if st.button("Process geojson and create the contours"):
-   core.create_collection(geojson_path=uploaded_file,
-                     list_of_calibpoint_names=list_of_calibpoint_names,
-                     samples_and_wells_input=samples_and_wells_input)
-   st.success("Contours created successfully!")
-   st.download_button("Download contours file", 
-                     Path(f'./{uploaded_file.name.replace("geojson", "xml")}').read_text(), 
-                     f'./{uploaded_file.name.replace("geojson", "xml")}')
-   st.download_button("Download 384 plate scheme", 
-                     Path(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}').read_text(),
-                     f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}')
+   if st.session_state.gdf is not None and st.session_state.saw is not None:
+      xml_content, csv_content = core.create_collection()
+      st.session_state.xml_content = xml_content
+      st.session_state.csv_content = csv_content
+      st.success("Contours created successfully!")
+   else:
+      st.warning("Please ensure you have loaded a GeoJSON and provided a samples-and-wells scheme.")
+
+if st.session_state.xml_content:
+   st.download_button(
+      "Download contours file",
+      st.session_state.xml_content,
+      f'{Path(st.session_state.file_name).stem}.xml'
+   )
+if st.session_state.csv_content:
+   st.download_button(
+      "Download 384 plate scheme",
+      st.session_state.csv_content,
+      f'{Path(st.session_state.file_name).stem}_384_wellplate.csv'
+   )
 st.divider()
 
 

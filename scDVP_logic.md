@@ -10,4 +10,5 @@ TODOs:
 
 ## 28.10.2025
 
-Sanitizing main functions
+Sanitizing main functions. Done
+Collection. Done
