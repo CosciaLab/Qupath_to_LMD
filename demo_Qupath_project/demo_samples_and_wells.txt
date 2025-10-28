@@ -1,0 +1,6 @@
+{
+    "class_1" : "C3",
+    "single_cells_demo" : "C5",
+    "circles" : "C7",
+    "two_circles":"C9",
+}

@@ -12,3 +12,5 @@ TODOs:
 
 Sanitizing main functions. Done
 Collection. Done
+single cell. Done
+

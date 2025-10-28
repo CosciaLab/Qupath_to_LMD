@@ -37,12 +37,17 @@ if 'xml_content' not in st.session_state:
    st.session_state.xml_content = None
 if 'csv_content' not in st.session_state:
    st.session_state.csv_content = None
+# dataframe to display and potentially use for samples and wells
 if 'plate_df' not in st.session_state:
    st.session_state.plate_df = None
+# parameters for creating dataframe with samples or defaults
 if 'plate_gen_params' not in st.session_state:
    st.session_state.plate_gen_params = None
+
 if 'show_saw_uploader' not in st.session_state:
    st.session_state.show_saw_uploader = False
+if 'unique_classes_csv' not in st.session_state:
+   st.session_state.unique_classes_csv = None
 
 ####################
 ### Introduction ###
@@ -79,6 +84,48 @@ if st.button("Load and check the geojson file"):
       st.session_state.gdf = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
    else:
       st.warning("Please upload a geojson file.")
+
+st.divider()
+
+# --- New section for unique classes ---
+if st.session_state.gdf is not None:
+    st.markdown("## Step 1.5 (Optional): Create Unique IDs for Classes")
+    st.markdown(
+        "Select one or more classes below. For every shape belonging to a selected class, "
+        "a unique, numbered ID will be created (e.g., 'T-Cell' -> 'T-Cell_001', 'T-Cell_002'). "
+        "This is useful for single-cell collection."
+    )
+
+    all_classes = st.session_state.gdf['classification_name'].unique().tolist()
+    classes_to_make_unique = st.multiselect(
+        "Select classes to make unique:",
+        options=all_classes
+    )
+
+    if st.button("Generate Unique Names"):
+        if not classes_to_make_unique:
+            st.warning("Please select at least one class to make unique.")
+        else:
+            # This function modifies st.session_state.gdf
+            core.make_classes_unique(classes_to_make_unique)
+
+            # Invalidate the old samples-and-wells map and plate layout,
+            # as they are now based on outdated class names.
+            st.session_state.saw = None
+            st.session_state.plate_df = None
+            st.info("Unique names generated. Please proceed to Step 3 to create a new plate layout for the unique samples.")
+
+            # Prepare CSV for download
+            csv_data = st.session_state.gdf.to_csv(index=False)
+            st.session_state.unique_classes_csv = csv_data
+
+    if st.session_state.unique_classes_csv is not None:
+        st.download_button(
+            label="Download Unique Names CSV",
+            data=st.session_state.unique_classes_csv,
+            file_name=f"{Path(st.session_state.file_name).stem}_unique_names.csv",
+            mime="text/csv",
+        )
 
 st.divider()
 
@@ -217,42 +264,14 @@ if st.session_state.show_saw_uploader:
    )
    if uploaded_saw is not None:
       st.session_state.saw = utils.parse_dictionary_from_file(uploaded_saw)
+      logger.debug(uploaded_saw)
       core.load_and_QC_SamplesandWells(st.session_state.saw)
       st.session_state.use_plate_wells = False
       st.success("Custom samples and wells dictionary loaded and checked.")
       st.session_state.show_saw_uploader = False
 
-# ############################################
-# ####### Step 4: Process geojson  ###########
-# ############################################
-
-# st.markdown("""
-#             ## Step 2: Copy/Paste and check samples and wells scheme
-#             Sample names will be checked against the uploaded geojson file.  
-#             Using default is **not** possible, I am nudging users to save their samples_and_wells.  
-
-#             Samples and wells have this pattern:
-#             ```python  
-#             {"sample_1" : "C3",  
-#             "sample_2" : "C5",  
-#             "sample_3" : "C7"}  
-#             ```
-
-#             If you have many samples and this is very laborious go to Step 5, I offer you a shortcut :)  
-#             """)
-
-# samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
-
-# if st.button("Check the samples and wells"):
-#    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, 
-#                                                    geojson_path=uploaded_file, 
-#                                                    list_of_calibpoint_names=list_of_calibpoint_names)
-# st.divider()
-
-# # remove warning, lets assume custom people know what they are doing
-
 ###############################
-### Step 3: Process contours ##
+### Step 4: Process contours ##
 ###############################
 
 st.markdown("""
@@ -260,8 +279,6 @@ st.markdown("""
             Here we create the .xml file from your geojson.  
             Please download the QC image, and plate scheme for future reference.  
             """)
-
-# Dropdown: use collection setup, or use custom samples and wells
 
 if st.button("Process geojson and create the contours"):
    if st.session_state.gdf is not None and st.session_state.saw is not None:
@@ -294,8 +311,6 @@ st.divider()
 st.markdown("""
             # Extras to make your life easier :D
              - Create Qupath classes
-             - Create default samples and wells
-             - Color shapes with categorical
             """)
 st.divider()
 
@@ -308,7 +323,7 @@ st.markdown("""
             ## Extra #1 : Create QuPath classes from categoricals
             Creating many QuPath classes can be tedious, and is very error prone, especially for large projects.  
             This tool takes in two lists of categoricals, and a number for replicates, and create a class for every permutation.  
-            
+
             Afterwards you must:
             1. Create a new QuPath project 
             2. Close QuPath window
@@ -347,71 +362,3 @@ if st.button("Create class names for QuPath"):
 st.image(image="./assets/sample_names_example.png",
          caption="Example of class names for QuPath")
 st.divider()
-
-###############################################
-## EXTRA 2: Create default samples and wells ##
-###############################################
-
-# st.markdown("""
-#             ## Extra 2: Create samples and wells  
-#             ### To designate which samples go to which wells in the collection device
-#             Every QuPath class represents one sample, therefore each class needs one designated well for collection.  
-#             Default wells are spaced (C3, C5, C7) for easier pipetting, modify at your discretion.  
-#             The file can be opened by any text reader Word, Notepad, etc.  
-#             """)
-
-# input4 = st.text_area("Enter first categorical:", placeholder="example: celltype_A, celltype_B")
-# input5 = st.text_area("Enter second categorical:", placeholder="example: control, drug_treated")
-# input6 = st.number_input("Enter number of reps", min_value=1, step=1, value=2)
-# list3 = [i.strip() for i in input4.split(",") if i.strip()]
-# list4 = [i.strip() for i in input5.split(",") if i.strip()]
-
-# if st.button("Create Samples and wells scheme with default wells"):
-#    spaced_list_of_acceptable_wells = utils.create_list_of_acceptable_wells()[::2]
-#    list_of_samples = generate_combinations(list3, list4, input6)
-#    samples_and_wells = create_default_samples_and_wells(list_of_samples, spaced_list_of_acceptable_wells)
-#    with open("samples_and_wells.json", "w") as f:
-#       json.dump(samples_and_wells, f, indent=4)
-#    st.download_button("Download Samples and Wells file",
-#                      data=Path('./samples_and_wells.json').read_text(),
-#                      file_name="samples_and_wells.txt")
-   
-# st.image(image="./assets/samples_and_wells_example.png",
-#          caption="Example of samples and wells scheme")
-# st.divider()
-
-###############################################
-### EXTRA 3: Color contours with categorical ##
-###############################################
-
-st.markdown("""
-            ## Extra 3: Color contours with categorical  
-            This tool was born to let you check which shapes have been collected based on a simple excel sheet table.
-            It can also color the shapes based on any categorical values.
-
-            Instructions: 
-             - You must upload the .geojson file with classified annotations.
-             - You must upload a csv with two columns:
-               - Class name, this has to match the annotation classification names exactly.  
-               - Categorical column name, this can be any set of categoricals, For example: collection status. max 6 categories or colors repeat.
-            """)
-
-
-st.write("Upload geojson file you would like to color with metadata")
-geojson_file = st.file_uploader("Choose a geojson file", accept_multiple_files=False)
-
-st.write("Upload table as csv with two columns")
-metadata_file = st.file_uploader("Choose a csv file", accept_multiple_files=False)
-metadata_name_key = st.text_input("Column header with shape class names", placeholder="Class name")
-metadata_variable_key = st.text_input("Column header to color shapes with", placeholder="Categorical column name")
-
-if st.button("Process metadata and geojson, for labelled shapes"):
-   utils.process_geojson_with_metadata(
-      path_to_geojson=geojson_file,
-      path_to_csv=metadata_file,
-      metadata_name_key=metadata_name_key,
-      metadata_variable_key=metadata_variable_key)
-   
-   st.download_button("Download lablled shapes", 
-                     Path(f"./{geojson_file.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}").read_text(),
-                     f"./{geojson_file.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}")

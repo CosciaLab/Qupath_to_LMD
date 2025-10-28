@@ -147,6 +147,37 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
 
    st.success('The samples and wells scheme QC is done!')
 
+def make_classes_unique(classes_to_modify: list):
+    """
+    Modifies the GeoDataFrame in session state to make specified class names unique.
+    For each row of a specified class, a unique suffix is added to its 'classification_name'.
+    """
+    if 'gdf' not in st.session_state or st.session_state.gdf is None:
+        st.error("GeoDataFrame not found. Please load a GeoJSON file first.")
+        st.stop()
+
+    gdf = st.session_state.gdf.copy()
+    
+    # Keep track of original names for the download
+    if 'original_classification_name' not in gdf.columns:
+        gdf['original_classification_name'] = gdf['classification_name']
+
+    for class_name in classes_to_modify:
+        # Find all rows that match the original class_name
+        # Important to match on the original name in case of multiple runs
+        matching_indices = gdf[gdf['original_classification_name'] == class_name].index
+
+        if not matching_indices.empty:
+            # Generate new unique names for these rows
+            for i, idx in enumerate(matching_indices):
+                new_name = f"{class_name}_{str(i+1).zfill(3)}"
+                gdf.loc[idx, 'classification_name'] = new_name
+    
+    # Update the session state
+    st.session_state.gdf = gdf
+    st.success("GeoDataFrame updated with unique class names.")
+
+
 def create_collection():
    """Creates XML from geojson and returns file contents."""
    # streamlit checks

@@ -1,0 +1,1 @@
+{"timestamp":1761666970414,"imageType":"FLUORESCENCE","server":{"width":1000,"height":1000,"sizeC":15,"sizeZ":1,"sizeT":1},"hierarchy":{"nObjects":132,"objectTypeCounts":{"Root objects":1,"Annotations":10,"Cells":121},"annotationClassificationCounts":{"Unclassified":3,"circles":4,"two_circles":2,"class_1":1},"detectionClassificationCounts":{"single_cells_demo":121}}}

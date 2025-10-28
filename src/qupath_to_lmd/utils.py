@@ -155,16 +155,24 @@ def provide_highlighting_for_df(acceptable_wells_set:set = None):
                return 'background-color: #f0f2f6;' # Light gray
       return highlight_selected
 
-def parse_dictionary_from_file(file_path: str) -> dict:
-   """Reads a text file supposed to contain a Python dictionary and parses it."""
+def parse_dictionary_from_file(file_input) -> dict:
+   """Reads a file supposed to contain a Python dictionary and parses it."""
+   content = ""
    try:
-      with open(file_path, 'r', encoding='utf-8-sig') as f:
-         content = f.read()
-   except FileNotFoundError:
-      logger.error(f"File not found: {file_path}")
-      return {}
+      # Check if it's a string path (from Jupyter/testing)
+      if isinstance(file_input, str):
+         with open(file_input, 'r', encoding='utf-8-sig') as f:
+            content = f.read()
+      # Check if it's a file-like object (from st.file_uploader)
+      elif hasattr(file_input, 'read'):
+         # read() returns bytes, so we need to decode it to a string
+         content = file_input.read().decode('utf-8-sig')
+      else:
+         logger.error(f"Unsupported input type for parsing: {type(file_input)}")
+         return {}
+
    except Exception as e:
-      logger.error(f"Error reading file {file_path}: {e}")
+      logger.error(f"Error reading file content: {e}")
       return {}
 
    # Remove comments and strip whitespace
@@ -178,9 +186,9 @@ def parse_dictionary_from_file(file_path: str) -> dict:
       # ast.literal_eval is safe and handles many Python literal formats
       return ast.literal_eval(content)
    except (ValueError, SyntaxError) as e:
-      logger.error(f"Failed to parse dictionary from file {file_path}: {e}")
+      logger.error(f"Failed to parse dictionary from content: {e}")
       return {}
-   
+
 
 
 ## from geojson utils
