@@ -11,15 +11,15 @@ import pandas as pd
 import numpy as np
 from random import sample
 
-def QC_geojson_file(geojson_path: str):
-   df = geopandas.read_file(geojson_path)
-   logger.info(f"Geojson file loaded with shape {df.shape} for metadata coloring")
-   df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
-   logger.info(f"Point geometries have been removed")
-   df = df[df['classification'].notna()]
-   df = df[df.geometry.geom_type != 'MultiPolygon']
-   df['classification_name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
-   return df
+# def QC_geojson_file(geojson_path: str):
+#    df = geopandas.read_file(geojson_path)
+#    logger.info(f"Geojson file loaded with shape {df.shape} for metadata coloring")
+#    df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
+#    logger.info(f"Point geometries have been removed")
+#    df = df[df['classification'].notna()]
+#    df = df[df.geometry.geom_type != 'MultiPolygon']
+#    df['classification_name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
+#    return df
 
 def generate_combinations(list1, list2, num) -> list:
    """Generate dictionary from all combinations of two lists and a range, assigning arbitrary values."""
@@ -42,7 +42,7 @@ def create_list_of_acceptable_wells(
       margins:int=0,
       step_row:int=1,
       step_col:int=1):
-
+   """Creates wells according to user parameters."""
    if plate not in ["384","96"]:
       raise ValueError("Plate must be either 384 or 96")
    if not isinstance(margins,int):
@@ -91,17 +91,18 @@ def create_list_of_acceptable_wells(
 #    return df_wp384
 
 def create_dataframe_samples_wells(
-      geojson_path:str = None, 
-      randomize:bool = False, 
-      plate_string:str = "384", 
-      acceptable_wells_list:list = None):
-   
+      # geojson_path:str = None,
+      acceptable_wells_list:list = None,
+      randomize:bool = False,
+      plate_string:str = "384",
+      ):
+   """Creates a dataframe to be displayed."""
    if plate_string == "384":
       rows, cols = 16, 24
    elif plate_string == "96":
       rows, cols = 8, 12
 
-   if geojson_path is None:
+   if st.session_state.view_mode == "default":
 
       row_labels = list(string.ascii_uppercase[:rows])
       col_labels = list(range(1, cols + 1))
@@ -112,10 +113,13 @@ def create_dataframe_samples_wells(
          plate_data.append(row_data)
       df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
 
-   elif geojson_path is not None: 
+   elif st.session_state.view_mode == "samples": 
 
-      gdf = QC_geojson_file(geojson_path=geojson_path)
-      list_of_classes = set(gdf['classification_name'].values)
+      if st.session_state.gdf is None:
+         st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
+         st.stop()
+
+      list_of_classes = set(st.session_state.gdf['classification_name'].values)
       df = pd.DataFrame(np.nan, index=list(string.ascii_uppercase[:rows]), columns=range(1, cols + 1))
 
       if len(list_of_classes) > len(acceptable_wells_list):
@@ -125,73 +129,54 @@ def create_dataframe_samples_wells(
       if randomize:
          acceptable_wells_list = sample(acceptable_wells_list, len(acceptable_wells_list))
 
-      for s, well in zip(list_of_classes, acceptable_wells_list):
+      for s, well in zip(list_of_classes, acceptable_wells_list, strict=False):
          row = well[0]
          col = int(well[1:])
          df.at[row, col] = s
-      
+
    return df
 
-def provide_highlighting_for_df(
-      geojson_path:str = None,
-      acceptable_wells_set:set = None):
-
-   if geojson_path is None:
-      print("geojson path is None")
-      print(f"{geojson_path}")
-
+def provide_highlighting_for_df(acceptable_wells_set:set = None):
+   """Creates map to color dataframe."""
+   if st.session_state.view_mode == "default":
       def highlight_selected(well_name):
          if well_name in acceptable_wells_set:
             return 'background-color: #77dd77; color: black;' # Green
          else:
             return 'background-color: #f0f2f6;' # Light gray
-         
       return highlight_selected
-   
-   elif geojson_path is not None:
 
-      gdf = QC_geojson_file(geojson_path=geojson_path)
-      list_of_classes = set(gdf['classification_name'].values)
-
+   elif st.session_state.view_mode == "samples":
+      list_of_classes = set(st.session_state.gdf['classification_name'].values)
       def highlight_selected(well_name):
             if well_name in list_of_classes:
                return 'background-color: #77dd77; color: black;' # Green
             else:
                return 'background-color: #f0f2f6;' # Light gray
-            
       return highlight_selected
 
 def parse_dictionary_from_file(file_path: str) -> dict:
-    """
-    Reads a text file supposed to contain a Python dictionary and parses it.
-    Handles common user errors like comments and extra whitespace.
+   """Reads a text file supposed to contain a Python dictionary and parses it."""
+   try:
+      with open(file_path, 'r', encoding='utf-8-sig') as f:
+         content = f.read()
+   except FileNotFoundError:
+      logger.error(f"File not found: {file_path}")
+      return {}
+   except Exception as e:
+      logger.error(f"Error reading file {file_path}: {e}")
+      return {}
 
-    Args:
-        file_path: The path to the text file.
+   # Remove comments and strip whitespace
+   content = re.sub(r'#.*', '', content)
+   content = content.strip()
 
-    Returns:
-        The parsed dictionary, or an empty dictionary if parsing fails.
-    """
-    try:
-        with open(file_path, 'r', encoding='utf-8-sig') as f:
-            content = f.read()
-    except FileNotFoundError:
-        logger.error(f"File not found: {file_path}")
-        return {}
-    except Exception as e:
-        logger.error(f"Error reading file {file_path}: {e}")
-        return {}
+   if not content:
+      return {}
 
-    # Remove comments and strip whitespace
-    content = re.sub(r'#.*', '', content)
-    content = content.strip()
-
-    if not content:
-        return {}
-
-    try:
-        # ast.literal_eval is safe and handles many Python literal formats
-        return ast.literal_eval(content)
-    except (ValueError, SyntaxError) as e:
-        logger.error(f"Failed to parse dictionary from file {file_path}: {e}")
-        return {}
+   try:
+      # ast.literal_eval is safe and handles many Python literal formats
+      return ast.literal_eval(content)
+   except (ValueError, SyntaxError) as e:
+      logger.error(f"Failed to parse dictionary from file {file_path}: {e}")
+      return {}

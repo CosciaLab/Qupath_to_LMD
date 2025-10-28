@@ -25,3 +25,11 @@ show user expected setup, allow to download as csv or png :)
 allow optional samples and wells
 
 WARNING about potential 384-well plate shift.
+
+# 27.10.2025
+
+TODOs:
+
+- [] sanitize main functions with new logic
+- [] one class into many wells logic
+- [] collection  

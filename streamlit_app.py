@@ -126,7 +126,6 @@ if st.session_state.view_mode == 'default':
    try:
       df = utils.create_dataframe_samples_wells(plate_string=plate_type)
       mapping = utils.provide_highlighting_for_df(
-         geojson_path = None,
          acceptable_wells_set=acceptable_wells_set)
       st.dataframe(df.style.applymap(mapping), width="stretch" )
    except ValueError as e:
@@ -141,21 +140,18 @@ elif st.session_state.view_mode == 'samples':
    else:
       try:
          df = utils.create_dataframe_samples_wells(
-            geojson_path = uploaded_file,
             randomize = randomize_toggle,
             plate_string = plate_type,
             acceptable_wells_list = acceptable_wells_list
          )
-         mapping = utils.provide_highlighting_for_df(
-            geojson_path = uploaded_file,
-         )
+         mapping = utils.provide_highlighting_for_df()
          st.dataframe(df.style.applymap(mapping), width="stretch")
       except ValueError as e:
          st.error(f"Error: {e}")
 
 
 # button to upload custom samples and wells
-if st.button("Upload custom samples and wells dictionary:"):
+if st.button("Upload custom samples and wells dictionary, will override"):
    uploaded_saw = st.file_uploader(
       label = "Choose a file",
       type = "txt",
@@ -163,34 +159,34 @@ if st.button("Upload custom samples and wells dictionary:"):
    st.session_state.saw = utils.parse_dictionary_from_file(uploaded_saw)
    st.session_state.use_plate_wells = False
 
-############################################
-####### Step 4: Process geojson  ###########
-############################################
+# ############################################
+# ####### Step 4: Process geojson  ###########
+# ############################################
 
-st.markdown("""
-            ## Step 2: Copy/Paste and check samples and wells scheme
-            Sample names will be checked against the uploaded geojson file.  
-            Using default is **not** possible, I am nudging users to save their samples_and_wells.  
+# st.markdown("""
+#             ## Step 2: Copy/Paste and check samples and wells scheme
+#             Sample names will be checked against the uploaded geojson file.  
+#             Using default is **not** possible, I am nudging users to save their samples_and_wells.  
 
-            Samples and wells have this pattern:
-            ```python  
-            {"sample_1" : "C3",  
-            "sample_2" : "C5",  
-            "sample_3" : "C7"}  
-            ```
+#             Samples and wells have this pattern:
+#             ```python  
+#             {"sample_1" : "C3",  
+#             "sample_2" : "C5",  
+#             "sample_3" : "C7"}  
+#             ```
 
-            If you have many samples and this is very laborious go to Step 5, I offer you a shortcut :)  
-            """)
+#             If you have many samples and this is very laborious go to Step 5, I offer you a shortcut :)  
+#             """)
 
-samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
+# samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
 
-if st.button("Check the samples and wells"):
-   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, 
-                                                   geojson_path=uploaded_file, 
-                                                   list_of_calibpoint_names=list_of_calibpoint_names)
-st.divider()
+# if st.button("Check the samples and wells"):
+#    samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, 
+#                                                    geojson_path=uploaded_file, 
+#                                                    list_of_calibpoint_names=list_of_calibpoint_names)
+# st.divider()
 
-# remove warning, lets assume custom people know what they are doing
+# # remove warning, lets assume custom people know what they are doing
 
 ###############################
 ### Step 3: Process contours ##

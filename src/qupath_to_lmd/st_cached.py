@@ -51,7 +51,7 @@ def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.Geo
 
    #check for calibration points
    for point_name in st.session_state.calibs:
-      if point_name not in df['annotation_name'].unique():
+      if point_name not in df['classification_name'].unique():
          st.write(f'Your given annotation_name >>{point_name}<< is not present in the file')
          st.write(f'These are the calib points you passed: {st.session_state.calibs}')
          st.write(f"These are the calib points found in the geojson: {df[df['geometry'].geom_type == 'Point']['name'].values}")
@@ -155,39 +155,53 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
 
 @st.cache_data
 def create_collection(
-   geojson_path : str = None, 
-   list_of_calibpoint_names :list = None, 
+   # geojson_path : str = None,
+   # list_of_calibpoint_names :list = None, 
    samples_and_wells_input : str = None):
 
-   df = geopandas.read_file(geojson_path)
+   if st.session_state.gdf is None:
+      st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
+      st.stop()
+   if st.session_state.calibs is None:
+      st.error("Calibration points were not accesible directly")
+      st.stop()
+   if st.session_state.saw is None:
+      st.error("Samples and wells were not accesible")
+      st.stop()
+
+   # df = geopandas.read_file(geojson_path)
+
+   df = st.session_state.gdf.copy()
 
    calib_np_array = numpy.array(
       [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
          df.loc[df['name'] == point_name, 'geometry'].values[0].y] 
-         for point_name in list_of_calibpoint_names])
+         for point_name in st.session_state.calibs])
 
-   df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
-   df = df[df['classification'].notna()]
-   df = df[df.geometry.geom_type != 'MultiPolygon']
-   
-   df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
-   df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
+   # df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
+   # df = df[df['classification'].notna()]
+   # df = df[df.geometry.geom_type != 'MultiPolygon']
 
-   if samples_and_wells_input:
-      samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
-      samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
-      samples_and_wells = ast.literal_eval(samples_and_wells_processed)
-   else:
-      st.write("Please add a samples and wells in step 2")
-      logger.error("No samples and wells passed")
-   
+   # df['coords'] = df.geometry.simplify(1).apply(extract_coordinates)
+   # df['Name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
+
+   # if samples_and_wells_input:
+   #    samples_and_wells_processed = samples_and_wells_input.replace("\n", "")
+   #    samples_and_wells_processed = samples_and_wells_processed.replace(" ", "")
+   #    samples_and_wells = ast.literal_eval(samples_and_wells_processed)
+   # else:
+   #    st.write("Please add a samples and wells in step 2")
+   #    logger.error("No samples and wells passed")
+
    #filter out shapes from df that are not in samples_and_wells
-   df = df[df['Name'].isin(samples_and_wells.keys())]
+   # df = df[df['Name'].isin(samples_and_wells.keys())]
 
    the_collection = Collection(calibration_points = calib_np_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
    for i in df.index:
-      the_collection.new_shape(df.at[i,'coords'], well = samples_and_wells[df.at[i, "Name"]])
+      the_collection.new_shape(
+         df.at[i,'coords'],
+         well = st.session_state.saw[df.at[i, "classification_name"]])
 
    the_collection.plot(save_name= "./TheCollection.png")
    st.image("./TheCollection.png", caption='Your Contours', use_column_width=True)
