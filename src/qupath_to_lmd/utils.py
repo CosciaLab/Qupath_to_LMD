@@ -279,3 +279,25 @@ def dataframe_to_saw_dict(df: pd.DataFrame) -> dict:
                 well_coordinate = f"{well_row}{well_col}"
                 saw_dict[sample_name] = well_coordinate
     return saw_dict
+
+def update_classification_column(gdf:geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
+   """Updates the 'classification' dictionary for every row.
+
+   It replaces the value associated with the 'name' key inside the
+   'classification' dictionary with the string value from the
+   'classification_name' column.
+   """
+
+   def update_row_dict(row):
+      class_dict = row['classification']
+      new_name = row['classification_name']
+
+      if isinstance(class_dict, dict):
+         updated_dict = {**class_dict, 'name': new_name}
+      else:
+         updated_dict = {'name': new_name}
+      return updated_dict
+
+   gdf['classification'] = gdf.apply(update_row_dict, axis=1)
+
+   return gdf

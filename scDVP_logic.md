@@ -14,3 +14,7 @@ Sanitizing main functions. Done
 Collection. Done
 single cell. Done
 
+TODO:
+
+geojson output from scDVP logic, something that reads as expected by QuPath..
+Logging

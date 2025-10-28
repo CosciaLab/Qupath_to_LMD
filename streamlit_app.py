@@ -1,6 +1,8 @@
 import json
 import sys
 import uuid
+import tempfile
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -89,44 +91,69 @@ st.divider()
 
 # --- New section for unique classes ---
 if st.session_state.gdf is not None:
-    st.markdown("## Step 1.5 (Optional): Create Unique IDs for Classes")
-    st.markdown(
-        "Select one or more classes below. For every shape belonging to a selected class, "
-        "a unique, numbered ID will be created (e.g., 'T-Cell' -> 'T-Cell_001', 'T-Cell_002'). "
-        "This is useful for single-cell collection."
-    )
+   st.markdown("## Step 1.1 (Optional): Split a class into many classes")
+   st.markdown(
+      "For one or more classes below. For every shape belonging to a selected class, "
+      "a unique, numbered ID will be created (e.g., 'T-Cell' -> 'T-Cell_001', 'T-Cell_002'). "
+      "This is useful for single-cell collection."
+   )
 
-    all_classes = st.session_state.gdf['classification_name'].unique().tolist()
-    classes_to_make_unique = st.multiselect(
-        "Select classes to make unique:",
-        options=all_classes
-    )
+   all_classes = st.session_state.gdf['classification_name'].unique().tolist()
+   classes_to_make_unique = st.multiselect("Select classes to make unique:", options=all_classes)
 
-    if st.button("Generate Unique Names"):
-        if not classes_to_make_unique:
-            st.warning("Please select at least one class to make unique.")
-        else:
-            # This function modifies st.session_state.gdf
-            core.make_classes_unique(classes_to_make_unique)
+   if st.button("Generate Unique Names"):
+      if not classes_to_make_unique:
+         st.warning("Please select at least one class to make unique.")
+      else:
+         # This function modifies st.session_state.gdf
+         core.make_classes_unique(classes_to_make_unique)
+         st.session_state.saw = None
+         st.session_state.plate_df = None
+         st.info("Chosen classes were split up, check below.")
 
-            # Invalidate the old samples-and-wells map and plate layout,
-            # as they are now based on outdated class names.
-            st.session_state.saw = None
-            st.session_state.plate_df = None
-            st.info("Unique names generated. Please proceed to Step 3 to create a new plate layout for the unique samples.")
+         # Prepare CSV for download
+         csv_data = st.session_state.gdf.to_csv(index=False)
+         st.session_state.unique_classes_csv = csv_data
 
-            # Prepare CSV for download
-            csv_data = st.session_state.gdf.to_csv(index=False)
-            st.session_state.unique_classes_csv = csv_data
+   if st.session_state.unique_classes_csv is not None:
+      st.download_button(
+         label="Download Unique Names CSV",
+         data=st.session_state.unique_classes_csv,
+         file_name=f"{Path(st.session_state.file_name).stem}_unique_names.csv",
+         mime="text/csv",
+      )
 
-    if st.session_state.unique_classes_csv is not None:
-        st.download_button(
-            label="Download Unique Names CSV",
-            data=st.session_state.unique_classes_csv,
-            file_name=f"{Path(st.session_state.file_name).stem}_unique_names.csv",
-            mime="text/csv",
-        )
+   st.markdown("---")
+   st.markdown("#### Download Processed GeoDataFrame")
 
+   @st.cache_data
+   def get_geojson_download_data(_gdf):
+      # Sanitize the dataframe by removing any column with NA values
+      # This prevents 'null' values in the final GeoJSON properties
+      _gdf_sanitized = _gdf.dropna(axis='columns')
+
+      # Create a temporary file path
+      fd, path = tempfile.mkstemp(suffix=".geojson")
+      
+      try:
+         # Write the sanitized dataframe to the file
+         _gdf_sanitized.to_file(path, driver="GeoJSON")
+         
+         # Read the content back from the path
+         with open(path, 'r') as f:
+               return f.read()
+      finally:
+         # Clean up the file descriptor and the file itself
+         os.close(fd)
+         os.remove(path)
+   geojson_data = get_geojson_download_data(st.session_state.gdf)
+
+   st.download_button(
+      label="Download Processed GeoJSON",
+      data=geojson_data,
+      file_name=f"{Path(st.session_state.file_name).stem}_processed.geojson",
+      mime="application/json"
+   )
 st.divider()
 
 ########################################
