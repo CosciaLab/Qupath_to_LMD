@@ -12,9 +12,8 @@ logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 import qupath_to_lmd.utils as utils
-# qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
-# from qupath_to_lmd.utils import create_dataframe_samples_wells, provide_highlighting_for_df
-from qupath_to_lmd.geojson_utils import process_geojson_with_metadata
+import qupath_to_lmd.geojson_utils as g_utils
+process_geojson_with_metadata
 from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
 
 ####################
@@ -257,7 +256,7 @@ list1 = [i.strip() for i in input1.split(",") if i.strip()]
 list2 = [i.strip() for i in input2.split(",") if i.strip()]
 
 if st.button("Create class names for QuPath"):
-   list_of_samples = generate_combinations(list1, list2, input3)
+   list_of_samples = utils.generate_combinations(list1, list2, input3)
    json_data = {"pathClasses": []}
    for i, name in enumerate(list_of_samples):
       json_data["pathClasses"].append({
@@ -279,33 +278,33 @@ st.divider()
 ## EXTRA 2: Create default samples and wells ##
 ###############################################
 
-st.markdown("""
-            ## Extra 2: Create samples and wells  
-            ### To designate which samples go to which wells in the collection device
-            Every QuPath class represents one sample, therefore each class needs one designated well for collection.  
-            Default wells are spaced (C3, C5, C7) for easier pipetting, modify at your discretion.  
-            The file can be opened by any text reader Word, Notepad, etc.  
-            """)
+# st.markdown("""
+#             ## Extra 2: Create samples and wells  
+#             ### To designate which samples go to which wells in the collection device
+#             Every QuPath class represents one sample, therefore each class needs one designated well for collection.  
+#             Default wells are spaced (C3, C5, C7) for easier pipetting, modify at your discretion.  
+#             The file can be opened by any text reader Word, Notepad, etc.  
+#             """)
 
-input4 = st.text_area("Enter first categorical:", placeholder="example: celltype_A, celltype_B")
-input5 = st.text_area("Enter second categorical:", placeholder="example: control, drug_treated")
-input6 = st.number_input("Enter number of reps", min_value=1, step=1, value=2)
-list3 = [i.strip() for i in input4.split(",") if i.strip()]
-list4 = [i.strip() for i in input5.split(",") if i.strip()]
+# input4 = st.text_area("Enter first categorical:", placeholder="example: celltype_A, celltype_B")
+# input5 = st.text_area("Enter second categorical:", placeholder="example: control, drug_treated")
+# input6 = st.number_input("Enter number of reps", min_value=1, step=1, value=2)
+# list3 = [i.strip() for i in input4.split(",") if i.strip()]
+# list4 = [i.strip() for i in input5.split(",") if i.strip()]
 
-if st.button("Create Samples and wells scheme with default wells"):
-   spaced_list_of_acceptable_wells = create_list_of_acceptable_wells()[::2]
-   list_of_samples = generate_combinations(list3, list4, input6)
-   samples_and_wells = create_default_samples_and_wells(list_of_samples, spaced_list_of_acceptable_wells)
-   with open("samples_and_wells.json", "w") as f:
-      json.dump(samples_and_wells, f, indent=4)
-   st.download_button("Download Samples and Wells file",
-                     data=Path('./samples_and_wells.json').read_text(),
-                     file_name="samples_and_wells.txt")
+# if st.button("Create Samples and wells scheme with default wells"):
+#    spaced_list_of_acceptable_wells = utils.create_list_of_acceptable_wells()[::2]
+#    list_of_samples = generate_combinations(list3, list4, input6)
+#    samples_and_wells = create_default_samples_and_wells(list_of_samples, spaced_list_of_acceptable_wells)
+#    with open("samples_and_wells.json", "w") as f:
+#       json.dump(samples_and_wells, f, indent=4)
+#    st.download_button("Download Samples and Wells file",
+#                      data=Path('./samples_and_wells.json').read_text(),
+#                      file_name="samples_and_wells.txt")
    
-st.image(image="./assets/samples_and_wells_example.png",
-         caption="Example of samples and wells scheme")
-st.divider()
+# st.image(image="./assets/samples_and_wells_example.png",
+#          caption="Example of samples and wells scheme")
+# st.divider()
 
 ###############################################
 ### EXTRA 3: Color contours with categorical ##
