@@ -7,9 +7,8 @@ import streamlit as st
 from lmd.lib import Collection
 from loguru import logger
 
-from qupath_to_lmd.geojson_utils import extract_coordinates
-# from qupath_to_lmd.utils import create_list_of_acceptable_wells, sample_placement_384wp
 import qupath_to_lmd.utils as utils
+
 
 @st.cache_data
 def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.GeoDataFrame:
@@ -107,7 +106,7 @@ def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.Geo
       'the script will continue but these objects will be ignored')
       df = df[df.geometry.geom_type != 'MultiPolygon']
 
-   df['coords'] = df.geometry.simplify(simplify).apply(extract_coordinates)
+   df['coords'] = df.geometry.simplify(simplify).apply(utils.extract_coordinates)
 
    st.success('The file QC is complete')
    return df
@@ -208,5 +207,5 @@ def create_collection(
    st.write(the_collection.stats())
    the_collection.save(f'./{geojson_path.name.replace("geojson", "xml")}')
    
-   df_wp384 = sample_placement_384wp(samples_and_wells)
+   df_wp384 = utils.sample_placement_384wp(samples_and_wells)
    df_wp384.to_csv(f'./{geojson_path.name.replace("geojson", "_384_wellplate.csv")}', index=True)

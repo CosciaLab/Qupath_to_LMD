@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.qupath_to_lmd.st_cached import create_collection, load_and_QC_geojson_file, load_and_QC_SamplesandWells
+from qupath_to_lmd.core import create_collection, load_and_QC_geojson_file, load_and_QC_SamplesandWells
 from src.qupath_to_lmd.mock_streamlit import patch_streamlit
 
 # Patch streamlit before tests

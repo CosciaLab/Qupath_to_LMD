@@ -1,20 +1,16 @@
-import streamlit as st
-from pathlib import Path
 import json
-import pandas as pd
-import string
-import numpy as np
-import uuid
-
-from loguru import logger
 import sys
+import uuid
+from pathlib import Path
+
+import streamlit as st
+from loguru import logger
+
+import qupath_to_lmd.core as core
+import qupath_to_lmd.utils as utils
+
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
-
-import qupath_to_lmd.utils as utils
-import qupath_to_lmd.geojson_utils as g_utils
-process_geojson_with_metadata
-from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
 
 ####################
 ## Page settings ###
@@ -63,7 +59,7 @@ if st.button("Load and check the geojson file"):
    # process calibs
    st.session_state.calibs = [calibration_point_1, calibration_point_2, calibration_point_3]
    # process and QC geojson
-   st.session_state.gdf = load_and_QC_geojson_file(geojson_path=uploaded_file)
+   st.session_state.gdf = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
 
 st.divider()
 
@@ -156,6 +152,7 @@ if st.button("Upload custom samples and wells dictionary, will override"):
       type = "txt",
       accept_multiple_files=False)
    st.session_state.saw = utils.parse_dictionary_from_file(uploaded_saw)
+   core.load_and_QC_SamplesandWells(st.session_state.saw)
    st.session_state.use_plate_wells = False
 
 # ############################################
@@ -200,7 +197,7 @@ st.markdown("""
 # Dropdown: use collection setup, or use custom samples and wells
 
 if st.button("Process geojson and create the contours"):
-   create_collection(geojson_path=uploaded_file,
+   core.create_collection(geojson_path=uploaded_file,
                      list_of_calibpoint_names=list_of_calibpoint_names,
                      samples_and_wells_input=samples_and_wells_input)
    st.success("Contours created successfully!")
@@ -332,7 +329,7 @@ metadata_name_key = st.text_input("Column header with shape class names", placeh
 metadata_variable_key = st.text_input("Column header to color shapes with", placeholder="Categorical column name")
 
 if st.button("Process metadata and geojson, for labelled shapes"):
-   process_geojson_with_metadata(
+   utils.process_geojson_with_metadata(
       path_to_geojson=geojson_file,
       path_to_csv=metadata_file,
       metadata_name_key=metadata_name_key,
