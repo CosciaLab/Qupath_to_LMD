@@ -4,6 +4,8 @@ import uuid
 import tempfile
 import os
 from pathlib import Path
+import io
+import zipfile
 
 import pandas as pd
 import streamlit as st
@@ -39,13 +41,12 @@ if 'xml_content' not in st.session_state:
    st.session_state.xml_content = None
 if 'csv_content' not in st.session_state:
    st.session_state.csv_content = None
-# dataframe to display and potentially use for samples and wells
+if 'zip_buffer' not in st.session_state:
+    st.session_state.zip_buffer = None
 if 'plate_df' not in st.session_state:
    st.session_state.plate_df = None
-# parameters for creating dataframe with samples or defaults
 if 'plate_gen_params' not in st.session_state:
    st.session_state.plate_gen_params = None
-
 if 'show_saw_uploader' not in st.session_state:
    st.session_state.show_saw_uploader = False
 if 'unique_classes_csv' not in st.session_state:
@@ -89,7 +90,10 @@ if st.button("Load and check the geojson file"):
 
 st.divider()
 
-# --- New section for unique classes ---
+##########################################################
+## Step 1.1 (Optional): Split a class into many classes ##
+##########################################################
+
 if st.session_state.gdf is not None:
    st.markdown("## Step 1.1 (Optional): Split a class into many classes")
    st.markdown(
@@ -111,49 +115,6 @@ if st.session_state.gdf is not None:
          st.session_state.plate_df = None
          st.info("Chosen classes were split up, check below.")
 
-         # Prepare CSV for download
-         csv_data = st.session_state.gdf.to_csv(index=False)
-         st.session_state.unique_classes_csv = csv_data
-
-   if st.session_state.unique_classes_csv is not None:
-      st.download_button(
-         label="Download Unique Names CSV",
-         data=st.session_state.unique_classes_csv,
-         file_name=f"{Path(st.session_state.file_name).stem}_unique_names.csv",
-         mime="text/csv",
-      )
-
-   st.markdown("---")
-   st.markdown("#### Download Processed GeoDataFrame")
-
-   @st.cache_data
-   def get_geojson_download_data(_gdf):
-      # Sanitize the dataframe by removing any column with NA values
-      # This prevents 'null' values in the final GeoJSON properties
-      _gdf_sanitized = _gdf.dropna(axis='columns')
-
-      # Create a temporary file path
-      fd, path = tempfile.mkstemp(suffix=".geojson")
-      
-      try:
-         # Write the sanitized dataframe to the file
-         _gdf_sanitized.to_file(path, driver="GeoJSON")
-         
-         # Read the content back from the path
-         with open(path, 'r') as f:
-               return f.read()
-      finally:
-         # Clean up the file descriptor and the file itself
-         os.close(fd)
-         os.remove(path)
-   geojson_data = get_geojson_download_data(st.session_state.gdf)
-
-   st.download_button(
-      label="Download Processed GeoJSON",
-      data=geojson_data,
-      file_name=f"{Path(st.session_state.file_name).stem}_processed.geojson",
-      mime="application/json"
-   )
 st.divider()
 
 ########################################
@@ -277,6 +238,10 @@ if st.button("Confirm and use this plate layout"):
     else:
         st.warning("Please generate and view a plate layout with samples from your GeoJSON first.")
 
+#################################################
+### Step 3.1 : Upload Custom Samples and Wells ##
+#################################################
+
 # button to upload custom samples and wells
 if st.button("Upload custom samples and wells dictionary, will override"):
    st.session_state.show_saw_uploader = True
@@ -307,26 +272,45 @@ st.markdown("""
             Please download the QC image, and plate scheme for future reference.  
             """)
 
-if st.button("Process geojson and create the contours"):
+if st.button("Process files"):
    if st.session_state.gdf is not None and st.session_state.saw is not None:
-      xml_content, csv_content = core.create_collection()
+      xml_content, csv_content, image_path = core.create_collection()
       st.session_state.xml_content = xml_content
       st.session_state.csv_content = csv_content
-      st.success("Contours created successfully!")
+
+      # Create a zip file in memory
+      zip_buffer = io.BytesIO()
+      with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+         # Add XML file
+         zip_file.writestr(f'{Path(st.session_state.file_name).stem}.xml', xml_content)
+         # Add CSV file
+         zip_file.writestr(f'{Path(st.session_state.file_name).stem}_384_wellplate.csv', csv_content)
+
+         # Add GeoJSON file
+         with tempfile.NamedTemporaryFile(suffix=".geojson") as tmp_geojson:
+            tmp_gdf = utils.sanitize_gdf(st.session_state.gdf)
+            tmp_gdf.to_file(tmp_geojson.name, driver="GeoJSON")
+            zip_file.write(tmp_geojson.name, f'{Path(st.session_state.file_name).stem}_processed.geojson')
+
+         # Add image file
+         with open(image_path, "rb") as f:
+            zip_file.writestr("collection.png", f.read())
+         # Add unique classes CSV if it exists
+         if st.session_state.unique_classes_csv is not None:
+            zip_file.writestr(f'{Path(st.session_state.file_name).stem}_unique_names.csv', st.session_state.unique_classes_csv)
+
+      st.session_state.zip_buffer = zip_buffer
+      st.image(image_path, caption='Your Contours', width='content')
+      st.success("All files have been processed and are ready for download.")
    else:
       st.warning("Please ensure you have loaded a GeoJSON and provided a samples-and-wells scheme.")
 
-if st.session_state.xml_content:
+if st.session_state.zip_buffer:
    st.download_button(
-      "Download contours file",
-      st.session_state.xml_content,
-      f'{Path(st.session_state.file_name).stem}.xml'
-   )
-if st.session_state.csv_content:
-   st.download_button(
-      "Download 384 plate scheme",
-      st.session_state.csv_content,
-      f'{Path(st.session_state.file_name).stem}_384_wellplate.csv'
+      label="Download All as ZIP",
+      data=st.session_state.zip_buffer.getvalue(),
+      file_name=f"{Path(st.session_state.file_name).stem}_collection.zip",
+      mime="application/zip"
    )
 st.divider()
 

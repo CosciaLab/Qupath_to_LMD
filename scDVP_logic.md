@@ -18,3 +18,7 @@ TODO:
 
 geojson output from scDVP logic, something that reads as expected by QuPath..
 Logging
+
+## 29.10.2025
+
+single download

@@ -303,3 +303,21 @@ def update_classification_column(gdf:geopandas.GeoDataFrame) -> geopandas.GeoDat
    gdf['classification'] = gdf.apply(update_row_dict, axis=1)
 
    return gdf
+
+
+def sanitize_gdf(gdf):
+   """Ensure compatibility with QuPath."""
+   #check for NaNs (they cause error with QuPath)
+   # drop columns if they exist
+   gdf = gdf.dropna(axis="columns")
+
+   #ensure critical columns there
+   cols_to_keep = ['id',"objectType","classification","geometry"]
+   # Check that all critical columns are present
+   missing = [col for col in cols_to_keep if col not in gdf.columns]
+   if missing:
+      logger.error(f"Missing critical columns: {missing}")
+      raise ValueError(f"Missing critical columns: {missing}")
+
+   return gdf[cols_to_keep]
+

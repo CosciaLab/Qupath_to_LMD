@@ -13,7 +13,7 @@ import qupath_to_lmd.utils as utils
 
 
 @st.cache_data
-def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.GeoDataFrame:
+def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
    """Checks and load the geojson.
 
    It digests the geojson and returns a sanitized geodataframe
@@ -56,8 +56,9 @@ def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.Geo
          df.loc[df['name'] == point_name, 'geometry'].values[0].y] 
          for point_name in st.session_state.calibs])
 
-   if st.session_state.calib_array is None:
-      st.session_state.calib_array = calib_np_array
+
+   st.session_state.calib_array = calib_np_array
+   logger.info(f"Calib_array set to {calib_np_array}")
 
    def polygon_intersects_triangle(polygon, triangle):
       if isinstance(polygon, shapely.Polygon):
@@ -100,8 +101,6 @@ def load_and_QC_geojson_file(geojson_path: str, simplify:int=1) -> geopandas.Geo
       st.write('these are not supported, please convert them to polygons in Qupath',
       'the script will continue but these objects will be ignored')
       df = df[df.geometry.geom_type != 'MultiPolygon']
-
-   df['coords'] = df.geometry.simplify(simplify).apply(utils.extract_coordinates)
 
    st.success('The file QC is complete')
    return df
@@ -176,10 +175,6 @@ def make_classes_unique(classes_to_modify: list):
    #replace old classification name inside classification dict
    gdf = utils.update_classification_column(gdf=gdf)
 
-   #delete useless columns for readability:
-   cols_to_keep = ['id',"objectType","classification","geometry","classification_name","coords"]
-   gdf = gdf[cols_to_keep]
-
    # Update the session state
    st.session_state.gdf = gdf
    st.success("GeoDataFrame updated with unique class names.")
@@ -199,6 +194,7 @@ def create_collection():
       st.stop()
 
    df = st.session_state.gdf.copy()
+   df['coords'] = df.geometry.simplify(1).apply(utils.extract_coordinates)
 
    the_collection = Collection(calibration_points = st.session_state.calib_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
@@ -208,8 +204,8 @@ def create_collection():
          df.at[i,'coords'],
          well = st.session_state.saw[df.at[i, "classification_name"]])
 
-   the_collection.plot(save_name= "./TheCollection.png")
-   st.image("./TheCollection.png", caption='Your Contours', width='content')
+   image_path = "./TheCollection.png"
+   the_collection.plot(save_name=image_path)
    st.write(the_collection.stats())
 
    xml_content = ""
@@ -225,4 +221,4 @@ def create_collection():
    df_wp384 = utils.sample_placement_384wp(st.session_state.saw)
    csv_content = df_wp384.to_csv(index=True)
 
-   return xml_content, csv_content
+   return xml_content, csv_content, image_path
