@@ -314,6 +314,10 @@ if st.button("Process files"):
          if st.session_state.unique_classes_csv is not None:
             zip_file.writestr(f'{Path(st.session_state.file_name).stem}_unique_names.csv', st.session_state.unique_classes_csv)
 
+         # Add log file
+         if "log_file_path" in st.session_state and st.session_state.log_file_path:
+            zip_file.write(st.session_state.log_file_path, f"log_{st.session_state.session_id}.log")
+
       st.session_state.zip_buffer = zip_buffer
       st.image(image_path, caption='Your Contours', width='content')
       st.success("All files have been processed and are ready for download.")
@@ -389,22 +393,3 @@ if st.button("Create class names for QuPath"):
 st.image(image="./assets/sample_names_example.png",
          caption="Example of class names for QuPath")
 st.divider()
-
-#################################
-## EXTRA 2: Download Log File ##
-#################################
-
-st.markdown("""
-            ## Extra #2 : Download Log File
-            If you encounter any issues, please download the log file and create an issue on [Github](https://github.com/CosciaLab/Qupath_to_LMD)
-            """)
-
-if st.session_state.log_file_path:
-    with open(st.session_state.log_file_path, "r") as f:
-        log_content = f.read()
-    st.download_button(
-        label="Download Log File",
-        data=log_content,
-        file_name=f"log_{st.session_state.session_id}.log",
-        mime="text/plain"
-    )
