@@ -172,8 +172,8 @@ def parse_dictionary_from_file(file_input) -> dict:
       return {}
 
    # Remove comments and strip whitespace
-   content = re.sub(r'#.*', '', content)
-   content = content.strip()
+   # content = re.sub(r'#.*', '', content)
+   # content = content.strip()
 
    if not content:
       return {}

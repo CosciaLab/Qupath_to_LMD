@@ -142,7 +142,7 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
    if missing:
       logger.error(f"Classes in geodataframe, but not in samples and wells: {missing}")
       st.error(f"Classes in geodataframe, but not in samples and wells: {missing}")
-      st.stop()
+      # st.stop()
 
    # wells inside allowable wells
    crazy_wells = set(wells) - set(allowed_wells)
@@ -213,10 +213,19 @@ def create_collection():
    the_collection = Collection(calibration_points = st.session_state.calib_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
 
+   # for i in df.index:
+   #    the_collection.new_shape(
+   #       df.at[i,'coords'],
+   #       well = st.session_state.saw[df.at[i, "classification_name"]])
+
    for i in df.index:
-      the_collection.new_shape(
-         df.at[i,'coords'],
-         well = st.session_state.saw[df.at[i, "classification_name"]])
+      classification = df.at[i, "classification_name"]
+      if classification in st.session_state.saw:
+         the_collection.new_shape(
+               df.at[i, 'coords'],
+               well=st.session_state.saw[classification]
+         )
+
    logger.debug("Added shapes to collection")
 
    image_path = "./TheCollection.png"
