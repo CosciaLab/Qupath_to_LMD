@@ -87,14 +87,12 @@ def create_dataframe_samples_wells(
       plate_string:str = "384",
       ):
    """Creates a dataframe to be displayed."""
-   logger.info("Creating dataframe for displaying samples and wells")
    if plate_string == "384":
       rows, cols = 16, 24
    elif plate_string == "96":
       rows, cols = 8, 12
 
    if st.session_state.view_mode == "default":
-      logger.info("assuming default samples for plate creation")
       row_labels = list(string.ascii_uppercase[:rows])
       col_labels = list(range(1, cols + 1))
 
@@ -105,7 +103,6 @@ def create_dataframe_samples_wells(
       df = pd.DataFrame(plate_data, index=row_labels, columns=col_labels)
 
    elif st.session_state.view_mode == "samples": 
-      logger.info("assuming geodataframe samples for plate creation")
       if st.session_state.gdf is None:
          st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
          st.stop()
@@ -132,7 +129,6 @@ def create_dataframe_samples_wells(
 
 def provide_highlighting_for_df(acceptable_wells_set:set = None):
    """Creates map to color dataframe."""
-   logger.info("Created highlight map for dataframe")
    if st.session_state.view_mode == "default":
       def highlight_selected(well_name):
          if well_name in acceptable_wells_set:

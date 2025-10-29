@@ -37,15 +37,12 @@ if 'csv_content' not in st.session_state:
    st.session_state.csv_content = None
 if 'zip_buffer' not in st.session_state:
     st.session_state.zip_buffer = None
-
 if 'plate_df' not in st.session_state:
    st.session_state.plate_df = None
 if 'plate_gen_params' not in st.session_state:
    st.session_state.plate_gen_params = None
 if 'show_saw_uploader' not in st.session_state:
    st.session_state.show_saw_uploader = False
-if 'unique_classes_csv' not in st.session_state:
-   st.session_state.unique_classes_csv = None
 
 # Configure logging
 if "log_file_path" not in st.session_state or st.session_state.log_file_path is None:
@@ -138,7 +135,6 @@ st.markdown("""
 
 st.write("You can increase plate size by dragging bottom right corner")
 
-# --- Setup the single row of inputs ---
 plate, margin, step_row, step_col = st.columns(4)
 with plate:
    plate_string = st.selectbox('Select a plate type',('384 well plate', '96 well plate'))
@@ -149,29 +145,23 @@ with step_row:
 with step_col:
    step_col_int = st.number_input('Space between columns', min_value=1, max_value=10, value=1)
 
-# ---  Parse user plate inputs ---
-try:
-   plate_type = plate_string.split(' ')[0]
-   acceptable_wells_list = utils.create_list_of_acceptable_wells(
-         plate=plate_type, margins=margin_int, step_row=step_row_int, step_col=step_col_int)
-   acceptable_wells_set = set(acceptable_wells_list)
+plate_type = plate_string.split(' ')[0]
+acceptable_wells_list = utils.create_list_of_acceptable_wells(
+   plate=plate_type, margins=margin_int, step_row=step_row_int, step_col=step_col_int)
+acceptable_wells_set = set(acceptable_wells_list)
 
-except ValueError as e:
-    st.error(f"Error Parsing plate inputs: {e}")
-    logger.error(f"Error parsing plate inputs: {e}")
+#####################################
+## Step 2.1: User inputs for plate ##
+#####################################
 
-##########################################
-## Step 3: Plot collection with samples ##
-##########################################
-
-# --- Setup single row with two buttons ---
-st.subheader(f"Visualization for {plate_type}-Well Plate")
 col1, col2, col3 = st.columns(3)
 with col1:
    if st.button("Show plate format with default wells"):
       st.session_state.view_mode = 'default'
+      logger.info("Show plate format with default wells -- ButtonPress")
 with col2:
    if st.button("Show plate format with samples from geojson"):
+      logger.info("Show plate format with samples from geojson -- ButtonPress")
       if uploaded_file is None:
          st.warning("Please upload a file first.")
       else:
@@ -192,67 +182,46 @@ plate_gen_params = {
 params_have_changed = st.session_state.get('plate_gen_params') != plate_gen_params
 df_missing = 'plate_df' not in st.session_state or st.session_state.plate_df is None
 
+##############################
+## Step 2.2 Plot dataframe ##
+##############################
 
-# --- plot dataframes ---
 if st.session_state.view_mode == 'default':
-   st.subheader(f"Visualization for {plate_type}-Well Plate (Default)")
-   try:
-      df = utils.create_dataframe_samples_wells(plate_string=plate_type)
-      mapping = utils.provide_highlighting_for_df(
-         acceptable_wells_set=acceptable_wells_set)
-      st.dataframe(df.style.map(mapping), width="stretch" )
-   except ValueError as e:
-      st.error(f"Error plotting defaults: {e}")
-      logger.error(f"Error plotting defaults: {e}")
+   df = utils.create_dataframe_samples_wells(plate_string=plate_type)
+   mapping = utils.provide_highlighting_for_df(acceptable_wells_set=acceptable_wells_set)
+   st.dataframe(df.style.map(mapping), width="stretch" )
 
 elif st.session_state.view_mode == 'samples':
-   st.subheader(f"Visualization for {plate_type}-Well Plate (Samples from GeoJSON)")
-
    if uploaded_file is None:
       st.warning("File no longer available. Please upload a file or switch to the default view.")
       st.session_state.view_mode = 'none'
    else:
-      try:
-         # Only regenerate the dataframe if parameters have changed or it doesn't exist
-         if (params_have_changed or df_missing) and st.session_state.gdf is not None:
-            st.session_state.plate_gen_params = plate_gen_params # Store the new params
-            st.session_state.plate_df = utils.create_dataframe_samples_wells(
-               randomize = randomize_toggle,
-               plate_string = plate_type,
-               acceptable_wells_list = acceptable_wells_list
-            )
+      # Only regenerate the dataframe if parameters have changed or it doesn't exist
+      if (params_have_changed or df_missing) and st.session_state.gdf is not None:
+         st.session_state.plate_gen_params = plate_gen_params # Store the new params
+         st.session_state.plate_df = utils.create_dataframe_samples_wells(
+            randomize = randomize_toggle,
+            plate_string = plate_type,
+            acceptable_wells_list = acceptable_wells_list)
+      if st.session_state.plate_df is not None:
+         mapping = utils.provide_highlighting_for_df()
+         st.dataframe(st.session_state.plate_df.style.map(mapping), width="stretch")
 
-         # Always display the current dataframe from session state
-         if st.session_state.plate_df is not None:
-            mapping = utils.provide_highlighting_for_df()
-            st.dataframe(st.session_state.plate_df.style.map(mapping), width="stretch")
-         else:
-            st.info("Generate a plate layout to see it here.")
-
-      except ValueError as e:
-         st.error(f"Error: {e}")
-         logger.error(f"Error plotting samples view: {e}")
-
-# --- New button to confirm layout ---
 if st.button("Confirm and use this plate layout"):
-    if st.session_state.view_mode == 'samples' and st.session_state.plate_df is not None:
-        # Convert dataframe to dictionary
-        saw_from_df = utils.dataframe_to_saw_dict(st.session_state.plate_df)
-
-        # Store in session state
-        st.session_state.saw = saw_from_df
-
-        # Run QC
-        core.load_and_QC_SamplesandWells(st.session_state.saw)
-        st.session_state.use_plate_wells = True # To indicate we are using a plate layout
-        st.success("Samples and wells layout confirmed, you are ready for Step 3!")
-        with st.expander("View Samples and Wells Dictionary", expanded=False):
-            st.write(st.session_state.saw) # Show the user the resulting dictionary
-    else:
-        st.warning("Please generate and view a plate layout with samples from your GeoJSON first.")
+   logger.info("Confirm and ue this plate layout -- ButtonPress")
+   if st.session_state.view_mode == 'samples' and st.session_state.plate_df is not None:
+      saw_from_df = utils.dataframe_to_saw_dict(st.session_state.plate_df)
+      st.session_state.saw = saw_from_df
+      core.load_and_QC_SamplesandWells(st.session_state.saw)
+      st.session_state.use_plate_wells = True # To indicate we are using a plate layout
+      st.success("Samples and wells layout confirmed, you are ready for Step 3!")
+      with st.expander("View Samples and Wells Dictionary", expanded=False):
+         st.write(st.session_state.saw) # Show the user the resulting dictionary
+   else:
+      st.warning("Please generate and view a plate layout with samples from your GeoJSON first.")
 
 #################################################
-### Step 3.1 : Upload Custom Samples and Wells ##
+### Step 2.3 : Upload Custom Samples and Wells ##
 #################################################
 
 # button to upload custom samples and wells
@@ -277,7 +246,7 @@ if st.session_state.show_saw_uploader:
       st.session_state.show_saw_uploader = False
 
 ###############################
-### Step 4: Process contours ##
+### Step 3: Process contours ##
 ###############################
 
 st.markdown("""
@@ -293,28 +262,16 @@ if st.button("Process files"):
       st.session_state.xml_content = xml_content
       st.session_state.csv_content = csv_content
 
-      # Create a zip file in memory
       zip_buffer = io.BytesIO()
       with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
-         # Add XML file
          zip_file.writestr(f'{Path(st.session_state.file_name).stem}.xml', xml_content)
-         # Add CSV file
          zip_file.writestr(f'{Path(st.session_state.file_name).stem}_384_wellplate.csv', csv_content)
-
-         # Add GeoJSON file
          with tempfile.NamedTemporaryFile(suffix=".geojson") as tmp_geojson:
             tmp_gdf = utils.sanitize_gdf(st.session_state.gdf)
             tmp_gdf.to_file(tmp_geojson.name, driver="GeoJSON")
             zip_file.write(tmp_geojson.name, f'{Path(st.session_state.file_name).stem}_processed.geojson')
-
-         # Add image file
          with open(image_path, "rb") as f:
             zip_file.writestr("collection.png", f.read())
-         # Add unique classes CSV if it exists
-         if st.session_state.unique_classes_csv is not None:
-            zip_file.writestr(f'{Path(st.session_state.file_name).stem}_unique_names.csv', st.session_state.unique_classes_csv)
-
-         # Add log file
          if "log_file_path" in st.session_state and st.session_state.log_file_path:
             zip_file.write(st.session_state.log_file_path, f"log_{st.session_state.session_id}.log")
 
@@ -328,13 +285,16 @@ if st.button("Process files"):
 
 if st.session_state.zip_buffer:
    st.download_button(
-      label="Download All as ZIP",
+      label="Download files",
       data=st.session_state.zip_buffer.getvalue(),
       file_name=f"{Path(st.session_state.file_name).stem}_collection.zip",
       mime="application/zip"
    )
-st.divider()
 
+st.divider()
+st.divider()
+st.divider()
+st.divider()
 
 #######################
 ####### EXTRAS ########

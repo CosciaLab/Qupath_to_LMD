@@ -213,11 +213,6 @@ def create_collection():
    the_collection = Collection(calibration_points = st.session_state.calib_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
 
-   # for i in df.index:
-   #    the_collection.new_shape(
-   #       df.at[i,'coords'],
-   #       well = st.session_state.saw[df.at[i, "classification_name"]])
-
    for i in df.index:
       classification = df.at[i, "classification_name"]
       if classification in st.session_state.saw:
@@ -225,6 +220,10 @@ def create_collection():
                df.at[i, 'coords'],
                well=st.session_state.saw[classification]
          )
+      else:
+         logger.debug(
+            f"{classification} was not found in samples and wells, it is skipped")
+
 
    logger.debug("Added shapes to collection")
 
