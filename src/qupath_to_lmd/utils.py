@@ -289,14 +289,16 @@ def update_classification_column(gdf:geopandas.GeoDataFrame) -> geopandas.GeoDat
    """
 
    def update_row_dict(row):
-      class_dict = row['classification']
-      new_name = row['classification_name']
+      if isinstance(row['classification'],dict):
+         class_dict = row['classification']
+      elif isinstance(row['classification'],str):
+         class_dict = ast.literal_eval(row['classification'])
 
-      if isinstance(class_dict, dict):
-         updated_dict = {**class_dict, 'name': new_name}
-      else:
-         updated_dict = {'name': new_name}
-      return updated_dict
+      class_dict['name'] = row['classification_name']
+
+      row['classification'] = str(class_dict)
+
+      return row['classification']
 
    gdf['classification'] = gdf.apply(update_row_dict, axis=1)
 
