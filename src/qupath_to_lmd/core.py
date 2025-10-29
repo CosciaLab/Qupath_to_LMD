@@ -11,27 +11,27 @@ from loguru import logger
 
 import qupath_to_lmd.utils as utils
 
-
 @st.cache_data
 def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
-   """Checks and load the geojson.
-
-   It digests the geojson and returns a sanitized geodataframe
-   """
+   """Checks and load the geojson."""
+   logger.info(f"Starting load_and_QC_geojson_file for path: {geojson_path}")
    #check for streamlit variables
    if st.session_state.calibs is None:
+      logger.error("Calibration points were not accessible directly in session state.")
       st.error("Calibration points were not accesible directly")
       st.stop()
 
    # 1 Digestion
    df = geopandas.read_file(geojson_path)
    logger.info(f"Geojson file loaded with shape {df.shape}")
+   logger.debug(f"Initial GeoDataFrame columns:\n{df.columns}")
    if df.empty:
       st.warning("The uploaded geojson file is empty.")
       logger.warning("The uploaded geojson file is empty.")
       st.stop()
    if "name" not in df.columns:
       st.warning("No calibration points in file")
+      logger.warning("No 'name' column found in GeoJSON, indicating missing calibration points.")
       st.stop()
 
    # describe geodataframe
@@ -55,7 +55,6 @@ def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
       [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
          df.loc[df['name'] == point_name, 'geometry'].values[0].y] 
          for point_name in st.session_state.calibs])
-
 
    st.session_state.calib_array = calib_np_array
    logger.info(f"Calib_array set to {calib_np_array}")
@@ -87,6 +86,7 @@ def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
 
    #check and remove empty classifications
    if df['classification'].isna().sum() !=0 :
+      logger.debug(f"you have {df['classification'].isna().sum()} NaNs in your classification column")
       st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
             "these are unclassified objects from Qupath, they will be ignored")
       df = df[df['classification'].notna()]
@@ -96,6 +96,7 @@ def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
 
    #check for MultiPolygon objects
    if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
+      logger.debug(f"{df[df.geometry.geom_type == 'MultiPolygon'].shape[0]} MultiPolygons found")
       st.write('MultiPolygon objects present:')
       st.table(df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']])
       st.write('these are not supported, please convert them to polygons in Qupath',
@@ -103,6 +104,7 @@ def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
       df = df[df.geometry.geom_type != 'MultiPolygon']
 
    st.success('The file QC is complete')
+   logger.success("GeoJSON file QC performed")
    return df
 
 def load_and_QC_SamplesandWells(samples_and_wells: dict):
@@ -113,10 +115,13 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
    gdf samples are in saw
    Provided wells inside normal 384 well plate
    """
+   logger.info("Checking samples and wells")
    if st.session_state.gdf is None:
+      logger.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
       st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
       st.stop()
    if st.session_state.calibs is None:
+      logger.error("Calibration points were not accesible directly")
       st.error("Calibration points were not accesible directly")
       st.stop()
 
@@ -135,15 +140,18 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
    # gdf samples in saw
    missing = set(gdf_samples) - samples
    if missing:
-      st.error(f"Missing classes from gdf: {missing}")
+      logger.error(f"Classes in geodataframe, but not in samples and wells: {missing}")
+      st.error(f"Classes in geodataframe, but not in samples and wells: {missing}")
       st.stop()
 
    # wells inside allowable wells
    crazy_wells = set(wells) - set(allowed_wells)
    if crazy_wells:
-      st.error(f"Crazy wells: {crazy_wells}")
+      logger.error(f"Wells not existing in 384wp: {crazy_wells}")
+      st.error(f"Wells not existing in 384wp: {crazy_wells}")
       st.stop()
 
+   logger.success('The samples and wells scheme QC is done!')
    st.success('The samples and wells scheme QC is done!')
 
 def make_classes_unique(classes_to_modify: list):
@@ -151,7 +159,9 @@ def make_classes_unique(classes_to_modify: list):
 
    For each row of a specified class, a unique suffix is added to its 'classification_name'.
    """
+   logger.info("Splitting specified classes into replicates")
    if 'gdf' not in st.session_state or st.session_state.gdf is None:
+      logger.error("GeoDataFrame not found. Please load a GeoJSON file first.")
       st.error("GeoDataFrame not found. Please load a GeoJSON file first.")
       st.stop()
 
@@ -177,11 +187,14 @@ def make_classes_unique(classes_to_modify: list):
 
    # Update the session state
    st.session_state.gdf = gdf
+
+   logger.success("GeoDataFrame updated with unique class names.")
    st.success("GeoDataFrame updated with unique class names.")
 
 
 def create_collection():
    """Creates XML from geojson and returns file contents."""
+   logger.info("Creating collection")
    # streamlit checks
    if st.session_state.gdf is None:
       st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
@@ -195,6 +208,7 @@ def create_collection():
 
    df = st.session_state.gdf.copy()
    df['coords'] = df.geometry.simplify(1).apply(utils.extract_coordinates)
+   logger.info("Simplified geometries")
 
    the_collection = Collection(calibration_points = st.session_state.calib_array)
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
@@ -203,9 +217,11 @@ def create_collection():
       the_collection.new_shape(
          df.at[i,'coords'],
          well = st.session_state.saw[df.at[i, "classification_name"]])
+   logger.debug("Added shapes to collection")
 
    image_path = "./TheCollection.png"
    the_collection.plot(save_name=image_path)
+   logger.info(f"{the_collection.stats()}")
    st.write(the_collection.stats())
 
    xml_content = ""
@@ -218,7 +234,8 @@ def create_collection():
    finally:
        os.remove(path)
 
-   df_wp384 = utils.sample_placement_384wp(st.session_state.saw)
+   df_wp384 = utils.sample_placement()
    csv_content = df_wp384.to_csv(index=True)
 
+   logger.success("Collection created, exporting XML and QC")
    return xml_content, csv_content, image_path

@@ -1,21 +1,15 @@
-import json
-import sys
-import uuid
-import tempfile
-import os
-from pathlib import Path
 import io
+import json
+import tempfile
+import uuid
 import zipfile
+from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 from loguru import logger
 
 import qupath_to_lmd.core as core
 import qupath_to_lmd.utils as utils
-
-logger.remove()
-logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 ####################
 ## Page settings ###
@@ -43,6 +37,7 @@ if 'csv_content' not in st.session_state:
    st.session_state.csv_content = None
 if 'zip_buffer' not in st.session_state:
     st.session_state.zip_buffer = None
+
 if 'plate_df' not in st.session_state:
    st.session_state.plate_df = None
 if 'plate_gen_params' not in st.session_state:
@@ -51,6 +46,14 @@ if 'show_saw_uploader' not in st.session_state:
    st.session_state.show_saw_uploader = False
 if 'unique_classes_csv' not in st.session_state:
    st.session_state.unique_classes_csv = None
+
+# Configure logging
+if "log_file_path" not in st.session_state or st.session_state.log_file_path is None:
+   temp_log_file = tempfile.NamedTemporaryFile(delete=False, suffix=".log")
+   st.session_state.log_file_path = temp_log_file.name
+
+logger.remove()
+logger.add(st.session_state.log_file_path, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 ####################
 ### Introduction ###
@@ -79,14 +82,17 @@ calibration_point_3 = st.text_input("Enter the name of the third calibration poi
 list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibration_point_3]
 
 if st.button("Load and check the geojson file"):
+   logger.info("Load and check geojson file button clicked")
    if uploaded_file:
       # process calibs
       st.session_state.calibs = [calibration_point_1, calibration_point_2, calibration_point_3]
       st.session_state.file_name = uploaded_file.name
+      logger.debug(f"File name: {st.session_state.file_name}")
       # process and QC geojson
       st.session_state.gdf = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
    else:
       st.warning("Please upload a geojson file.")
+      logger.warning("No geojson file uploaded")
 
 st.divider()
 
@@ -106,9 +112,12 @@ if st.session_state.gdf is not None:
    classes_to_make_unique = st.multiselect("Select classes to make unique:", options=all_classes)
 
    if st.button("Generate Unique Names"):
+      logger.info("Generate Unique Names button clicked")
       if not classes_to_make_unique:
          st.warning("Please select at least one class to make unique.")
+         logger.warning("No classes selected to make unique")
       else:
+         logger.debug(f"Classes to make unique: {classes_to_make_unique}")
          # This function modifies st.session_state.gdf
          core.make_classes_unique(classes_to_make_unique)
          st.session_state.saw = None
@@ -149,6 +158,7 @@ try:
 
 except ValueError as e:
     st.error(f"Error Parsing plate inputs: {e}")
+    logger.error(f"Error parsing plate inputs: {e}")
 
 ##########################################
 ## Step 3: Plot collection with samples ##
@@ -193,6 +203,7 @@ if st.session_state.view_mode == 'default':
       st.dataframe(df.style.map(mapping), width="stretch" )
    except ValueError as e:
       st.error(f"Error plotting defaults: {e}")
+      logger.error(f"Error plotting defaults: {e}")
 
 elif st.session_state.view_mode == 'samples':
    st.subheader(f"Visualization for {plate_type}-Well Plate (Samples from GeoJSON)")
@@ -220,6 +231,7 @@ elif st.session_state.view_mode == 'samples':
 
       except ValueError as e:
          st.error(f"Error: {e}")
+         logger.error(f"Error plotting samples view: {e}")
 
 # --- New button to confirm layout ---
 if st.button("Confirm and use this plate layout"):
@@ -233,8 +245,9 @@ if st.button("Confirm and use this plate layout"):
         # Run QC
         core.load_and_QC_SamplesandWells(st.session_state.saw)
         st.session_state.use_plate_wells = True # To indicate we are using a plate layout
-        st.success("Samples and wells layout confirmed and loaded!")
-        st.write(st.session_state.saw) # Show the user the resulting dictionary
+        st.success("Samples and wells layout confirmed, you are ready for Step 3!")
+        with st.expander("View Samples and Wells Dictionary", expanded=False):
+            st.write(st.session_state.saw) # Show the user the resulting dictionary
     else:
         st.warning("Please generate and view a plate layout with samples from your GeoJSON first.")
 
@@ -244,6 +257,7 @@ if st.button("Confirm and use this plate layout"):
 
 # button to upload custom samples and wells
 if st.button("Upload custom samples and wells dictionary, will override"):
+   logger.info("Upload custom samples and wells dictionary -- ButtonPress")
    st.session_state.show_saw_uploader = True
 
 # If the button has been clicked, show the uploader and process the file
@@ -273,6 +287,7 @@ st.markdown("""
             """)
 
 if st.button("Process files"):
+   logger.info("Process files button clicked")
    if st.session_state.gdf is not None and st.session_state.saw is not None:
       xml_content, csv_content, image_path = core.create_collection()
       st.session_state.xml_content = xml_content
@@ -302,8 +317,10 @@ if st.button("Process files"):
       st.session_state.zip_buffer = zip_buffer
       st.image(image_path, caption='Your Contours', width='content')
       st.success("All files have been processed and are ready for download.")
+      logger.info("All files processed and zipped successfully")
    else:
       st.warning("Please ensure you have loaded a GeoJSON and provided a samples-and-wells scheme.")
+      logger.warning("GeoJSON or samples-and-wells scheme not found")
 
 if st.session_state.zip_buffer:
    st.download_button(
@@ -329,7 +346,6 @@ st.divider()
 #################################
 ## EXTRA 1: Classes for QuPath ##
 #################################
-
 st.markdown("""
             ## Extra #1 : Create QuPath classes from categoricals
             Creating many QuPath classes can be tedious, and is very error prone, especially for large projects.  
@@ -373,3 +389,22 @@ if st.button("Create class names for QuPath"):
 st.image(image="./assets/sample_names_example.png",
          caption="Example of class names for QuPath")
 st.divider()
+
+#################################
+## EXTRA 2: Download Log File ##
+#################################
+
+st.markdown("""
+            ## Extra #2 : Download Log File
+            If you encounter any issues, please download the log file and create an issue on [Github](https://github.com/CosciaLab/Qupath_to_LMD)
+            """)
+
+if st.session_state.log_file_path:
+    with open(st.session_state.log_file_path, "r") as f:
+        log_content = f.read()
+    st.download_button(
+        label="Download Log File",
+        data=log_content,
+        file_name=f"log_{st.session_state.session_id}.log",
+        mime="text/plain"
+    )
