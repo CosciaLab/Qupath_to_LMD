@@ -115,6 +115,7 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
    gdf samples are in saw
    Provided wells inside normal 384 well plate
    """
+   #TODO typos of missing " end up in index error
    logger.info("Checking samples and wells")
    if st.session_state.gdf is None:
       logger.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
@@ -135,7 +136,7 @@ def load_and_QC_SamplesandWells(samples_and_wells: dict):
    if not isinstance(samples_and_wells,dict):
       raise ValueError("samples and wells is not a dict")
    if not samples_and_wells: #if empty
-      raise ValueError("dictionary is empty")
+      raise ValueError("dictionary is empty, most likely typo, please double check")
 
    # gdf samples in saw
    missing = set(gdf_samples) - samples
