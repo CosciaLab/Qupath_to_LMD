@@ -1,5 +1,6 @@
 import io
 import json
+import sys
 import tempfile
 import uuid
 import zipfile
@@ -51,6 +52,7 @@ if "log_file_path" not in st.session_state or st.session_state.log_file_path is 
 
 logger.remove()
 logger.add(st.session_state.log_file_path, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
+logger.add(sys.stdout, colorize=True, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}", level="DEBUG")
 
 ####################
 ### Introduction ###
@@ -258,6 +260,9 @@ st.markdown("""
 if st.button("Process files"):
    logger.info("Process files button clicked")
    if st.session_state.gdf is not None and st.session_state.saw is not None:
+      logger.debug(st.session_state.gdf)
+      logger.debug(st.session_state.saw)
+      logger.debug(st.session_state.calibs)
       xml_content, csv_content, image_path = core.create_collection()
       st.session_state.xml_content = xml_content
       st.session_state.csv_content = csv_content

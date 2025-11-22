@@ -201,7 +201,7 @@ def create_collection():
       st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
       st.stop()
    if st.session_state.calibs is None:
-      st.error("Calibration points were not accesible directly")
+      st.error("Calibration points are not accesible directly")
       st.stop()
    if st.session_state.saw is None:
       st.error("Samples and wells were not accesible")
@@ -211,8 +211,12 @@ def create_collection():
    df['coords'] = df.geometry.simplify(1).apply(utils.extract_coordinates)
    logger.info("Simplified geometries")
 
+   logger.debug("Calibration point array")
+   logger.debug(st.session_state.calib_array)
    the_collection = Collection(calibration_points = st.session_state.calib_array)
+   logger.debug("Created collection and added calibration points")
    the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
+   logger.debug("Added orientation transform to collection")
 
    for i in df.index:
       classification = df.at[i, "classification_name"]
@@ -224,24 +228,25 @@ def create_collection():
       else:
          logger.debug(
             f"{classification} was not found in samples and wells, it is skipped")
-
-
    logger.debug("Added shapes to collection")
 
    image_path = "./TheCollection.png"
    the_collection.plot(save_name=image_path)
-   logger.info(f"{the_collection.stats()}")
+   logger.debug("Saved QC image to tmp location")
    st.write(the_collection.stats())
 
    xml_content = ""
-   # Use a temporary file for the XML output
    fd, path = tempfile.mkstemp(suffix=".xml", text=True)
+   logger.debug("Created temporary xml file to populate and export")
    try:
        the_collection.save(path)
+       logger.debug("Populated xml with the collection")
        with os.fdopen(fd, 'r') as tmpfile:
            xml_content = tmpfile.read()
+           logger.debug("content of xml file passed to variable")
    finally:
        os.remove(path)
+       logger.debug("Deleted temp xml file")
 
    df_wp384 = utils.sample_placement()
    csv_content = df_wp384.to_csv(index=True)
