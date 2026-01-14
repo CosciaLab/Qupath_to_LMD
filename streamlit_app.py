@@ -94,6 +94,7 @@ if uploaded_file:
       c3 = st.selectbox("Select calibration point 3", calib_options, index=2 if len(calib_options)>2 else None)
 
       st.session_state.calibs = [c1, c2, c3]
+      logger.info(f"Calibration points chosen: {st.session_state.calibs}")
 
       # Perform triangle QC
       if all(st.session_state.calibs):
@@ -230,17 +231,25 @@ elif st.session_state.view_mode == 'samples':
          st.dataframe(st.session_state.plate_df.style.map(mapping), width="stretch")
 
 if st.button("Confirm and use this plate layout"):
-   logger.info("Confirm and ue this plate layout -- ButtonPress")
+   logger.info("Confirm and use this plate layout -- ButtonPress")
    if st.session_state.view_mode == 'samples' and st.session_state.plate_df is not None:
       saw_from_df = utils.dataframe_to_saw_dict(st.session_state.plate_df)
       st.session_state.saw = saw_from_df
       core.load_and_QC_SamplesandWells(st.session_state.saw)
       st.session_state.use_plate_wells = True # To indicate we are using a plate layout
       st.success("Samples and wells layout confirmed, you are ready for Step 3!")
-      with st.expander("View Samples and Wells Dictionary", expanded=False):
-         st.write(st.session_state.saw) # Show the user the resulting dictionary
    else:
       st.warning("Please generate and view a plate layout with samples from your GeoJSON first.")
+
+if st.session_state.saw is not None and st.session_state.use_plate_wells:
+   st.download_button(
+      label="Download samples and wells setup",
+      data=json.dumps(st.session_state.saw, indent=4),
+      file_name="samples_and_wells.json",
+      mime="application/json"
+   )
+   with st.expander("View Samples and Wells Dictionary", expanded=False):
+      st.write(st.session_state.saw) # Show the user the resulting dictionary
 
 #################################################
 ### Step 2.3 : Upload Custom Samples and Wells ##
@@ -291,6 +300,7 @@ if st.button("Process files"):
       with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
          zip_file.writestr(f'{Path(st.session_state.file_name).stem}.xml', xml_content)
          zip_file.writestr(f'{Path(st.session_state.file_name).stem}_384_wellplate.csv', csv_content)
+         zip_file.writestr('samples_and_wells.json', json.dumps(st.session_state.saw, indent=4))
          with tempfile.NamedTemporaryFile(suffix=".geojson") as tmp_geojson:
             tmp_gdf = utils.sanitize_gdf(st.session_state.gdf)
             tmp_gdf.to_file(tmp_geojson.name, driver="GeoJSON")
