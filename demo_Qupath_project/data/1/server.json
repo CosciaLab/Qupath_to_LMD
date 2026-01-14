@@ -5,5 +5,102 @@
   "args": [
     "--series",
     "0"
-  ]
+  ],
+  "metadata": {
+    "name": "TD_01_verysmall_mIF.ome.tif",
+    "width": 1000,
+    "height": 1000,
+    "sizeZ": 1,
+    "sizeT": 1,
+    "channelType": "DEFAULT",
+    "isRGB": false,
+    "pixelType": "UINT16",
+    "levels": [
+      {
+        "downsample": 1.0,
+        "width": 1000,
+        "height": 1000
+      }
+    ],
+    "channels": [
+      {
+        "name": "750_bg",
+        "color": -65536
+      },
+      {
+        "name": "647_bg",
+        "color": -16711936
+      },
+      {
+        "name": "555_bg",
+        "color": -16776961
+      },
+      {
+        "name": "488_bg",
+        "color": -8192
+      },
+      {
+        "name": "DAPI_bg",
+        "color": -16719648
+      },
+      {
+        "name": "Vimentin",
+        "color": -65312
+      },
+      {
+        "name": "CD3e",
+        "color": -13312
+      },
+      {
+        "name": "panCK",
+        "color": -16711698
+      },
+      {
+        "name": "CD8",
+        "color": -65298
+      },
+      {
+        "name": "DAPI_1",
+        "color": -3342592
+      },
+      {
+        "name": "COL1A1",
+        "color": -15948046
+      },
+      {
+        "name": "CD20",
+        "color": -914297
+      },
+      {
+        "name": "CD68",
+        "color": -9899508
+      },
+      {
+        "name": "Ki67",
+        "color": -15971854
+      },
+      {
+        "name": "DAPI_2",
+        "color": -914389
+      }
+    ],
+    "pixelCalibration": {
+      "pixelWidth": {
+        "value": 0.34571008852182383,
+        "unit": "µm"
+      },
+      "pixelHeight": {
+        "value": 0.34571008852182383,
+        "unit": "µm"
+      },
+      "zSpacing": {
+        "value": 1.0,
+        "unit": "z-slice"
+      },
+      "timeUnit": "SECONDS",
+      "timepoints": []
+    },
+    "preferredTileWidth": 1000,
+    "preferredTileHeight": 1000
+  }
 }

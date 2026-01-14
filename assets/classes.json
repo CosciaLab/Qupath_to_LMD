@@ -1,0 +1,1380 @@
+{
+  "pathClasses": [
+    {
+      "name": "991_Cancer_DVP_1",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_DVP_2",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_DVP_3",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_DVP_4",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_DVP_5",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_cnDVP_1",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_cnDVP_2",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_cnDVP_3",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_cnDVP_4",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_cnDVP_5",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_DVP_1",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_DVP_2",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_DVP_3",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_DVP_4",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_DVP_5",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_cnDVP_1",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_cnDVP_2",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_cnDVP_3",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_cnDVP_4",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_cnDVP_5",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_DVP_1",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_DVP_2",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_DVP_3",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_DVP_4",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_DVP_5",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_cnDVP_1",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_cnDVP_2",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_cnDVP_3",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_cnDVP_4",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_cnDVP_5",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_DVP_1",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_DVP_2",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_DVP_3",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_DVP_4",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_DVP_5",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_cnDVP_1",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_cnDVP_2",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_cnDVP_3",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_cnDVP_4",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_cnDVP_5",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_1",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_2",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_3",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_4",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_5",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_6",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_7",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_8",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_9",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_10",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_11",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_12",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_13",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_14",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_15",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_16",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_17",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_18",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_19",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_20",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_21",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_22",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_23",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_24",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_25",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_26",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_27",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_28",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_29",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_30",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_31",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_32",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_33",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_34",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_35",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_36",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_37",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_38",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_39",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_40",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_41",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_42",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_43",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_44",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_45",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_46",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_47",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_48",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_49",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_50",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_51",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_52",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_53",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_54",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_55",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_56",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_57",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_58",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_59",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_60",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_61",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_62",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_63",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_64",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_65",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_66",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_67",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_68",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_69",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_70",
+      "color": -16711936
+    },
+    {
+      "name": "991_Cancer_scDVP_71",
+      "color": -16776961
+    },
+    {
+      "name": "991_Cancer_scDVP_72",
+      "color": -65281
+    },
+    {
+      "name": "991_Cancer_scDVP_73",
+      "color": -16711681
+    },
+    {
+      "name": "991_Cancer_scDVP_74",
+      "color": -256
+    },
+    {
+      "name": "991_Cancer_scDVP_75",
+      "color": -65536
+    },
+    {
+      "name": "991_Cancer_scDVP_76",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_1",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_2",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_3",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_4",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_5",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_6",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_7",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_8",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_9",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_10",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_11",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_12",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_13",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_14",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_15",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_16",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_17",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_18",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_19",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_20",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_21",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_22",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_23",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_24",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_25",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_26",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_27",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_28",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_29",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_30",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_31",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_32",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_33",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_34",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_35",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_36",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_37",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_38",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_39",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_40",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_41",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_42",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_43",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_44",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_45",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_46",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_47",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_48",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_49",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_50",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_51",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_52",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_53",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_54",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_55",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_56",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_57",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_58",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_59",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_60",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_61",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_62",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_63",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_64",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_65",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_66",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_67",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_68",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_69",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_70",
+      "color": -256
+    },
+    {
+      "name": "991_Immune_scDVP_71",
+      "color": -65536
+    },
+    {
+      "name": "991_Immune_scDVP_72",
+      "color": -16711936
+    },
+    {
+      "name": "991_Immune_scDVP_73",
+      "color": -16776961
+    },
+    {
+      "name": "991_Immune_scDVP_74",
+      "color": -65281
+    },
+    {
+      "name": "991_Immune_scDVP_75",
+      "color": -16711681
+    },
+    {
+      "name": "991_Immune_scDVP_76",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_1",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_2",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_3",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_4",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_5",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_6",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_7",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_8",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_9",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_10",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_11",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_12",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_13",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_14",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_15",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_16",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_17",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_18",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_19",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_20",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_21",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_22",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_23",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_24",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_25",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_26",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_27",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_28",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_29",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_30",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_31",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_32",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_33",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_34",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_35",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_36",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_37",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_38",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_39",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_40",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_41",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_42",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_43",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_44",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_45",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_46",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_47",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_48",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_49",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_50",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_51",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_52",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_53",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_54",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_55",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_56",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_57",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_58",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_59",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_60",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_61",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_62",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_63",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_64",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_65",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_66",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_67",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_68",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_69",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_70",
+      "color": -65281
+    },
+    {
+      "name": "992_Cancer_scDVP_71",
+      "color": -16711681
+    },
+    {
+      "name": "992_Cancer_scDVP_72",
+      "color": -256
+    },
+    {
+      "name": "992_Cancer_scDVP_73",
+      "color": -65536
+    },
+    {
+      "name": "992_Cancer_scDVP_74",
+      "color": -16711936
+    },
+    {
+      "name": "992_Cancer_scDVP_75",
+      "color": -16776961
+    },
+    {
+      "name": "992_Cancer_scDVP_76",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_1",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_2",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_3",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_4",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_5",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_6",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_7",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_8",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_9",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_10",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_11",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_12",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_13",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_14",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_15",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_16",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_17",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_18",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_19",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_20",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_21",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_22",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_23",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_24",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_25",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_26",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_27",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_28",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_29",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_30",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_31",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_32",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_33",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_34",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_35",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_36",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_37",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_38",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_39",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_40",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_41",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_42",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_43",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_44",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_45",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_46",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_47",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_48",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_49",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_50",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_51",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_52",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_53",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_54",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_55",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_56",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_57",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_58",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_59",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_60",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_61",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_62",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_63",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_64",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_65",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_66",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_67",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_68",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_69",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_70",
+      "color": -16711936
+    },
+    {
+      "name": "992_Immune_scDVP_71",
+      "color": -16776961
+    },
+    {
+      "name": "992_Immune_scDVP_72",
+      "color": -65281
+    },
+    {
+      "name": "992_Immune_scDVP_73",
+      "color": -16711681
+    },
+    {
+      "name": "992_Immune_scDVP_74",
+      "color": -256
+    },
+    {
+      "name": "992_Immune_scDVP_75",
+      "color": -65536
+    },
+    {
+      "name": "992_Immune_scDVP_76",
+      "color": -16711936
+    }
+  ]
+}

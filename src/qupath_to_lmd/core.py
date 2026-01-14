@@ -1,0 +1,266 @@
+import ast
+import os
+import tempfile
+
+import geopandas
+import numpy
+import shapely
+import streamlit as st
+from lmd.lib import Collection
+from loguru import logger
+
+import qupath_to_lmd.utils as utils
+
+@st.cache_data
+def load_and_QC_geojson_file(geojson_path: str) -> tuple[geopandas.GeoDataFrame, dict]:
+   """Checks and load the geojson. Returns cleaned GDF and available calibration points."""
+   logger.info(f"Starting load_and_QC_geojson_file for path: {geojson_path}")
+
+   # 1 Digestion
+   df = geopandas.read_file(geojson_path)
+   logger.info(f"Geojson file loaded with shape {df.shape}")
+   logger.debug(f"Initial GeoDataFrame columns:\n{df.columns}")
+   if df.empty:
+      st.warning("The uploaded geojson file is empty.")
+      logger.warning("The uploaded geojson file is empty.")
+      st.stop()
+   if "name" not in df.columns:
+      st.warning("No 'name' column found, cannot identify calibration points.")
+      logger.warning("No 'name' column found in GeoJSON.")
+      st.stop()
+
+   # describe geodataframe
+   geometry_counts = df.geometry.geom_type.value_counts()
+   log_message = ", ".join(f"{count} {geom_type}s" for geom_type, count in geometry_counts.items())
+   logger.info(f"Geometries in DataFrame: {log_message}")
+   st.write(f"Geometries in DataFrame: {log_message}")
+
+   # Extract calibration points (Points with names)
+   points_df = df[df['geometry'].geom_type == 'Point']
+   available_points = {}
+   
+   if not points_df.empty:
+       for idx, row in points_df.iterrows():
+           name = row['name']
+           if name: # Ensure name is not None or empty
+               available_points[name] = [row['geometry'].x, row['geometry'].y]
+   
+   logger.info(f"Found {len(available_points)} potential calibration points: {list(available_points.keys())}")
+   
+   # Remove points from the main dataframe
+   df = df[df['geometry'].geom_type != 'Point']
+   logger.info("Point geometries have been removed from the main dataframe")
+
+   #check and remove empty classifications
+   if df['classification'].isna().sum() !=0 :
+      logger.debug(f"you have {df['classification'].isna().sum()} NaNs in your classification column")
+      st.write(f"you have {df['classification'].isna().sum()} NaNs in your classification column",
+            "these are unclassified objects from Qupath, they will be ignored")
+      df = df[df['classification'].notna()]
+
+   #get classification name from inside geometry properties
+   df['classification_name'] = df['classification'].apply(lambda x: ast.literal_eval(x).get('name') if isinstance(x, str) else x.get('name'))
+
+   #check for MultiPolygon objects
+   if 'MultiPolygon' in df.geometry.geom_type.value_counts().keys():
+      logger.debug(f"{df[df.geometry.geom_type == 'MultiPolygon'].shape[0]} MultiPolygons found")
+      st.write('MultiPolygon objects present:')
+      st.table(df[df.geometry.geom_type == 'MultiPolygon'][['annotation_name','classification_name']])
+      st.write('these are not supported, please convert them to polygons in Qupath',
+      'the script will continue but these objects will be ignored')
+      df = df[df.geometry.geom_type != 'MultiPolygon']
+
+   st.success('The file QC is complete')
+   logger.success("GeoJSON file QC performed")
+   return df, available_points
+
+def perform_triangle_qc(df: geopandas.GeoDataFrame, calib_points_dict: dict, selected_calib_names: list) -> numpy.ndarray:
+   """Performs the triangle intersection QC check."""
+   logger.info("Starting triangle QC check")
+   
+   # Check if selected points exist
+   for name in selected_calib_names:
+       if name not in calib_points_dict:
+           st.error(f"Selected calibration point '{name}' not found in file.")
+           st.stop()
+
+   calib_np_array = numpy.array([calib_points_dict[name] for name in selected_calib_names])
+   logger.info(f"Calib_array set to {calib_np_array}")
+
+   def polygon_intersects_triangle(polygon, triangle):
+      if isinstance(polygon, shapely.Polygon):
+         return polygon.intersects(triangle)
+      elif isinstance(polygon, shapely.LineString):
+         return polygon.intersects(triangle)
+      else:
+         return False  # for other geometry types
+
+   # how many polygons intersect the triangle made by calibs?
+   # Note: we use a copy or just calculate on the fly to avoid modifying the passed df permanently if not needed
+   # But user might want to know.
+   
+   triangle = shapely.Polygon(calib_np_array)
+   intersects = df['geometry'].apply(lambda x: polygon_intersects_triangle(x, triangle))
+   
+   num_of_polygons_and_LineString = df[df['geometry'].geom_type.isin(['Polygon', 'LineString'])].shape[0]
+   
+   if num_of_polygons_and_LineString > 0:
+       intersect_fraction = intersects.sum()/num_of_polygons_and_LineString
+       logger.info(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
+       st.write(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
+
+       if intersect_fraction < 0.25:
+          st.warning('WARNING: Less than 25% of the objects intersect with the calibration triangle')
+          logger.warning("Less than 25% of the objects intersect with the calibration triangle")
+          logger.warning("Polygons could be warped, consider changing calib points")
+   else:
+       st.warning("No Polygons or LineStrings found to check intersection.")
+
+   return calib_np_array
+
+def load_and_QC_SamplesandWells(samples_and_wells: dict):
+   """Loads and checks for common errors.
+
+   Checks for:
+   If it is empty
+   gdf samples are in saw
+   Provided wells inside normal 384 well plate
+   """
+   #TODO typos of missing " end up in index error
+   logger.info("Checking samples and wells")
+   if st.session_state.gdf is None:
+      logger.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
+      st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
+      st.stop()
+   if st.session_state.calibs is None:
+      logger.error("Calibration points were not accesible directly")
+      st.error("Calibration points were not accesible directly")
+      st.stop()
+
+   gdf_samples = st.session_state['gdf'].classification_name.unique().tolist()
+   allowed_wells = utils.create_list_of_acceptable_wells(plate="384", margins=0)
+
+   samples = samples_and_wells.keys()
+   wells = samples_and_wells.values()
+
+   # Is it empty?
+   if not isinstance(samples_and_wells,dict):
+      raise ValueError("samples and wells is not a dict")
+   if not samples_and_wells: #if empty
+      raise ValueError("dictionary is empty, most likely typo, please double check")
+
+   # gdf samples in saw
+   missing = set(gdf_samples) - samples
+   if missing:
+      logger.error(f"Classes in geodataframe, but not in samples and wells: {missing}")
+      st.error(f"Classes in geodataframe, but not in samples and wells: {missing}")
+      # st.stop()
+
+   # wells inside allowable wells
+   crazy_wells = set(wells) - set(allowed_wells)
+   if crazy_wells:
+      logger.error(f"Wells not existing in 384wp: {crazy_wells}")
+      st.error(f"Wells not existing in 384wp: {crazy_wells}")
+      st.stop()
+
+   logger.success('The samples and wells scheme QC is done!')
+   st.success('The samples and wells scheme QC is done!')
+
+def make_classes_unique(classes_to_modify: list):
+   """Modifies the GeoDataFrame in session state to make specified class names unique.
+
+   For each row of a specified class, a unique suffix is added to its 'classification_name'.
+   """
+   logger.info("Splitting specified classes into replicates")
+   if 'gdf' not in st.session_state or st.session_state.gdf is None:
+      logger.error("GeoDataFrame not found. Please load a GeoJSON file first.")
+      st.error("GeoDataFrame not found. Please load a GeoJSON file first.")
+      st.stop()
+
+   gdf = st.session_state.gdf.copy()
+
+   # Keep track of original names for the download
+   if 'original_classification_name' not in gdf.columns:
+      gdf['original_classification_name'] = gdf['classification_name']
+
+   for class_name in classes_to_modify:
+      # Find all rows that match the original class_name
+      # Important to match on the original name in case of multiple runs
+      matching_indices = gdf[gdf['original_classification_name'] == class_name].index
+
+      if not matching_indices.empty:
+         # Generate new unique names for these rows
+         for i, idx in enumerate(matching_indices):
+               new_name = f"{class_name}_{str(i+1).zfill(3)}"
+               gdf.loc[idx, 'classification_name'] = new_name
+
+   #replace old classification name inside classification dict
+   gdf = utils.update_classification_column(gdf=gdf)
+
+   # Update the session state
+   st.session_state.gdf = gdf
+
+   logger.success("GeoDataFrame updated with unique class names.")
+   st.success("GeoDataFrame updated with unique class names.")
+
+
+def create_collection():
+   """Creates XML from geojson and returns file contents."""
+   logger.info("Creating collection")
+   # streamlit checks
+   if st.session_state.gdf is None:
+      st.error("GeoDataFrame not found in session state. Please upload and process a GeoJSON file first.")
+      st.stop()
+   if st.session_state.calibs is None:
+      st.error("Calibration points are not accesible directly")
+      st.stop()
+   if st.session_state.saw is None:
+      st.error("Samples and wells were not accesible")
+      st.stop()
+
+   df = st.session_state.gdf.copy()
+   df['coords'] = df.geometry.simplify(1).apply(utils.extract_coordinates)
+   logger.info("Simplified geometries")
+
+   logger.debug("Calibration point array")
+   logger.debug(st.session_state.calib_array)
+   the_collection = Collection(calibration_points = st.session_state.calib_array)
+   logger.debug("Created collection and added calibration points")
+   the_collection.orientation_transform = numpy.array([[1,0 ], [0,-1]])
+   logger.debug("Added orientation transform to collection")
+
+   for i in df.index:
+      classification = df.at[i, "classification_name"]
+      if classification in st.session_state.saw:
+         the_collection.new_shape(
+               df.at[i, 'coords'],
+               well=st.session_state.saw[classification]
+         )
+      else:
+         logger.debug(
+            f"{classification} was not found in samples and wells, it is skipped")
+   logger.debug("Added shapes to collection")
+
+   image_path = "./TheCollection.png"
+   the_collection.plot(save_name=image_path)
+   logger.debug("Saved QC image to tmp location")
+   st.write(the_collection.stats())
+
+   xml_content = ""
+   fd, path = tempfile.mkstemp(suffix=".xml", text=True)
+   logger.debug("Created temporary xml file to populate and export")
+   try:
+       the_collection.save(path)
+       logger.debug("Populated xml with the collection")
+       with os.fdopen(fd, 'r') as tmpfile:
+           xml_content = tmpfile.read()
+           logger.debug("content of xml file passed to variable")
+   finally:
+       os.remove(path)
+       logger.debug("Deleted temp xml file")
+
+   df_wp384 = utils.sample_placement()
+   csv_content = df_wp384.to_csv(index=True)
+
+   logger.success("Collection created, exporting XML and QC")
+   return xml_content, csv_content, image_path

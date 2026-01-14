@@ -1,12 +1,508 @@
 {
   "pathClasses": [
     {
+      "name": "single_cells_demo",
+      "color": -65281
+    },
+    {
+      "name": "circles",
+      "color": -16711936
+    },
+    {
+      "name": "two_circles",
+      "color": -65536
+    },
+    {
       "name": "class_1",
       "color": -16547823
     },
     {
-      "name": "class_2",
-      "color": -16530371
+      "name": "single_cells_demo_001",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_002",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_003",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_004",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_005",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_006",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_007",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_008",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_009",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_010",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_011",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_012",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_013",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_014",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_015",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_016",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_017",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_018",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_019",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_020",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_021",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_022",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_023",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_024",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_025",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_026",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_027",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_028",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_029",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_030",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_031",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_032",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_033",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_034",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_035",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_036",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_037",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_038",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_039",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_040",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_041",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_042",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_043",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_044",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_045",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_046",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_047",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_048",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_049",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_050",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_051",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_052",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_053",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_054",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_055",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_056",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_057",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_058",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_059",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_060",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_061",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_062",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_063",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_064",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_065",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_066",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_067",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_068",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_069",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_070",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_071",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_072",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_073",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_074",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_075",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_076",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_077",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_078",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_079",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_080",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_081",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_082",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_083",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_084",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_085",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_086",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_087",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_088",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_089",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_090",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_091",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_092",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_093",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_094",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_095",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_096",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_097",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_098",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_099",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_100",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_101",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_102",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_103",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_104",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_105",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_106",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_107",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_108",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_109",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_110",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_111",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_112",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_113",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_114",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_115",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_116",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_117",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_118",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_119",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_120",
+      "color": -65281
+    },
+    {
+      "name": "single_cells_demo_121",
+      "color": -65281
+    },
+    {
+      "name": "Ignore*",
+      "color": -4934476
     }
   ]
 }

@@ -1,15 +1,60 @@
-import streamlit as st
-from pathlib import Path
+import io
 import json
-
-from loguru import logger
 import sys
-logger.remove()
-logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
+import tempfile
+import uuid
+import zipfile
+from pathlib import Path
 
-from qupath_to_lmd.utils import generate_combinations, create_list_of_acceptable_wells, create_default_samples_and_wells
-from qupath_to_lmd.geojson_utils import process_geojson_with_metadata
-from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_SamplesandWells, create_collection
+import streamlit as st
+from loguru import logger
+
+import qupath_to_lmd.core as core
+import qupath_to_lmd.utils as utils
+
+####################
+## Page settings ###
+####################
+st.set_page_config(layout="wide")
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+if 'view_mode' not in st.session_state:
+   st.session_state.view_mode = 'default'
+if 'gdf' not in st.session_state:
+   st.session_state.gdf = None
+if 'calibs' not in st.session_state:
+   st.session_state.calibs = None
+if 'calib_array' not in st.session_state:
+   st.session_state.calib_array = None
+if 'saw' not in st.session_state:
+   st.session_state.saw = None
+if "use_plate_wells" not in st.session_state:
+   st.session_state.use_plate_wells = True
+if 'file_name' not in st.session_state:
+   st.session_state.file_name = None
+if 'available_points_dict' not in st.session_state:
+   st.session_state.available_points_dict = None
+if 'xml_content' not in st.session_state:
+   st.session_state.xml_content = None
+if 'csv_content' not in st.session_state:
+   st.session_state.csv_content = None
+if 'zip_buffer' not in st.session_state:
+    st.session_state.zip_buffer = None
+if 'plate_df' not in st.session_state:
+   st.session_state.plate_df = None
+if 'plate_gen_params' not in st.session_state:
+   st.session_state.plate_gen_params = None
+if 'show_saw_uploader' not in st.session_state:
+   st.session_state.show_saw_uploader = False
+
+# Configure logging
+if "log_file_path" not in st.session_state or st.session_state.log_file_path is None:
+   temp_log_file = tempfile.NamedTemporaryFile(delete=False, suffix=".log")
+   st.session_state.log_file_path = temp_log_file.name
+
+logger.remove()
+logger.add(st.session_state.log_file_path, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
+logger.add(sys.stdout, colorize=True, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}", level="DEBUG")
 
 ####################
 ### Introduction ###
@@ -17,10 +62,10 @@ from qupath_to_lmd.st_cached import load_and_QC_geojson_file, load_and_QC_Sample
 st.markdown("""
             # Convert a GeoJSON polygons for Laser Microdissection
             ## Part of the [openDVP](https://github.com/CosciaLab/openDVP) framework
-            ### For help, post issue on [Github](https://github.com/CosciaLab/Qupath_to_LMD) with .geojson file
+            ### For help, post issue on [Github](https://github.com/CosciaLab/Qupath_to_LMD) with .geojson file and session id
             """)
+st.write(f" Session id: {st.session_state.session_id}")
 st.divider()
-
 
 ############################
 ## Step 1: Geojson upload ##
@@ -31,46 +76,204 @@ st.markdown("""
             Upload your .geojson file from qupath, order of calibration points is important
             """)
 
-uploaded_file = st.file_uploader("Choose a file", accept_multiple_files=False)
-calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="first_calib")
-calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="second_calib")
-calibration_point_3 = st.text_input("Enter the name of the third calibration point: ",  placeholder ="third_calib")
-list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibration_point_3]
+uploaded_file = st.file_uploader(label="Choose a file", type="geojson", accept_multiple_files=False)
 
-if st.button("Load and check the geojson file"):
-   if uploaded_file is not None:
-      load_and_QC_geojson_file(geojson_path=uploaded_file, list_of_calibpoint_names=list_of_calibpoint_names)
+if uploaded_file:
+   # process and QC geojson automatically if new file
+   if st.session_state.file_name != uploaded_file.name or st.session_state.gdf is None:
+      logger.info(f"New file detected: {uploaded_file.name}")
+      st.session_state.file_name = uploaded_file.name
+      # process and QC geojson
+      st.session_state.gdf, st.session_state.available_points_dict = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
+
+   if st.session_state.available_points_dict:
+      calib_options = list(st.session_state.available_points_dict.keys())
+
+      c1 = st.selectbox("Select calibration point 1", calib_options, index=0 if len(calib_options)>0 else None)
+      c2 = st.selectbox("Select calibration point 2", calib_options, index=1 if len(calib_options)>1 else None)
+      c3 = st.selectbox("Select calibration point 3", calib_options, index=2 if len(calib_options)>2 else None)
+
+      st.session_state.calibs = [c1, c2, c3]
+      logger.info(f"Calibration points chosen: {st.session_state.calibs}")
+
+      # Perform triangle QC
+      if all(st.session_state.calibs):
+         st.session_state.calib_array = core.perform_triangle_qc(
+            st.session_state.gdf,
+            st.session_state.available_points_dict,
+            st.session_state.calibs
+         )
    else:
-      st.warning("Please upload a file first.")
+      st.warning("No calibration points found in the GeoJSON file.")
+
+else:
+   if st.session_state.file_name is not None:
+      st.session_state.file_name = None
+      st.session_state.gdf = None
+      st.session_state.available_points_dict = None
+      st.session_state.calibs = None
+      st.session_state.calib_array = None
+
 st.divider()
 
+##########################################################
+## Step 1.1 (Optional): Split a class into many classes ##
+##########################################################
 
-######################################
-## Step 2: Samples and wells upload ##
-######################################
+if st.session_state.gdf is not None:
+   st.markdown("## Step 1.1 (Optional): Split a class into many classes")
+   st.markdown(
+      "For one or more classes below. For every shape belonging to a selected class, "
+      "a unique, numbered ID will be created (e.g., 'T-Cell' -> 'T-Cell_001', 'T-Cell_002'). "
+      "This is useful for single-cell collection."
+   )
+
+   all_classes = st.session_state.gdf['classification_name'].unique().tolist()
+   classes_to_make_unique = st.multiselect("Select classes to make unique:", options=all_classes)
+
+   if st.button("Generate Unique Names"):
+      logger.info("Generate Unique Names button clicked")
+      if not classes_to_make_unique:
+         st.warning("Please select at least one class to make unique.")
+         logger.warning("No classes selected to make unique")
+      else:
+         logger.debug(f"Classes to make unique: {classes_to_make_unique}")
+         # This function modifies st.session_state.gdf
+         core.make_classes_unique(classes_to_make_unique)
+         st.session_state.saw = None
+         st.session_state.plate_df = None
+         st.info("Chosen classes were split up, check below.")
+
+st.divider()
+
+########################################
+## Step 2: Choose collection settings ##
+########################################
 
 st.markdown("""
-            ## Step 2: Copy/Paste and check samples and wells scheme
-            Sample names will be checked against the uploaded geojson file.  
-            Using default is **not** possible, I am nudging users to save their samples_and_wells.  
-
-            Samples and wells have this pattern:
-            ```python  
-            {"sample_1" : "C3",  
-            "sample_2" : "C5",  
-            "sample_3" : "C7"}  
-            ```
-
-            If you have many samples and this is very laborious go to Step 5, I offer you a shortcut :)  
+            ## Step 2: Decide which plate to collect into, either 384 or 96 well plate.  
+            Decide how many wells to make unavailable as a margin (for 384wp we suggest a margin of 2).  
+            Decide how many wells to leave blank in between, for easier pipetting.  
             """)
 
-samples_and_wells_input = st.text_area("Enter the desired samples and wells scheme")
+st.write("You can increase plate size by dragging bottom right corner")
 
-if st.button("Check the samples and wells"):
-   samples_and_wells = load_and_QC_SamplesandWells(samples_and_wells_input=samples_and_wells_input, 
-                                                   geojson_path=uploaded_file, 
-                                                   list_of_calibpoint_names=list_of_calibpoint_names)
-st.divider()
+plate, margin, step_row, step_col = st.columns(4)
+with plate:
+   plate_string = st.selectbox('Select a plate type',('384 well plate', '96 well plate'))
+with margin:
+   margin_int = st.number_input('Margin (integer)', min_value=0, max_value=10, value=1)
+with step_row:
+   step_row_int = st.number_input('Space between rows', min_value=1, max_value=10, value=1)
+with step_col:
+   step_col_int = st.number_input('Space between columns', min_value=1, max_value=10, value=1)
+
+plate_type = plate_string.split(' ')[0]
+acceptable_wells_list = utils.create_list_of_acceptable_wells(
+   plate=plate_type, margins=margin_int, step_row=step_row_int, step_col=step_col_int)
+acceptable_wells_set = set(acceptable_wells_list)
+
+#####################################
+## Step 2.1: User inputs for plate ##
+#####################################
+
+col1, col2, col3 = st.columns(3)
+with col1:
+   if st.button("Show plate format with default wells"):
+      st.session_state.view_mode = 'default'
+      logger.info("Show plate format with default wells -- ButtonPress")
+with col2:
+   if st.button("Show plate format with samples from geojson"):
+      logger.info("Show plate format with samples from geojson -- ButtonPress")
+      if uploaded_file is None:
+         st.warning("Please upload a file first.")
+      else:
+         st.session_state.view_mode = 'samples'
+with col3:
+   randomize_toggle = st.toggle("Randomize samples", value=False)
+
+# --- Logic to decide if we need to regenerate the plate dataframe ---
+plate_gen_params = {
+    "plate_type": plate_type,
+    "margins": margin_int,
+    "step_row": step_row_int,
+    "step_col": step_col_int,
+    "randomize": randomize_toggle,
+}
+
+# Check if parameters have changed since the last run, or if the df is missing
+params_have_changed = st.session_state.get('plate_gen_params') != plate_gen_params
+df_missing = 'plate_df' not in st.session_state or st.session_state.plate_df is None
+
+##############################
+## Step 2.2 Plot dataframe ##
+##############################
+
+if st.session_state.view_mode == 'default':
+   df = utils.create_dataframe_samples_wells(plate_string=plate_type)
+   mapping = utils.provide_highlighting_for_df(acceptable_wells_set=acceptable_wells_set)
+   st.dataframe(df.style.map(mapping), width="stretch" )
+
+elif st.session_state.view_mode == 'samples':
+   if uploaded_file is None:
+      st.warning("File no longer available. Please upload a file or switch to the default view.")
+   else:
+      # Only regenerate the dataframe if parameters have changed or it doesn't exist
+      if (params_have_changed or df_missing) and st.session_state.gdf is not None:
+         st.session_state.plate_gen_params = plate_gen_params # Store the new params
+         st.session_state.plate_df = utils.create_dataframe_samples_wells(
+            randomize = randomize_toggle,
+            plate_string = plate_type,
+            acceptable_wells_list = acceptable_wells_list)
+      if st.session_state.plate_df is not None:
+         mapping = utils.provide_highlighting_for_df()
+         st.dataframe(st.session_state.plate_df.style.map(mapping), width="stretch")
+
+if st.button("Confirm and use this plate layout"):
+   logger.info("Confirm and use this plate layout -- ButtonPress")
+   if st.session_state.view_mode == 'samples' and st.session_state.plate_df is not None:
+      saw_from_df = utils.dataframe_to_saw_dict(st.session_state.plate_df)
+      st.session_state.saw = saw_from_df
+      core.load_and_QC_SamplesandWells(st.session_state.saw)
+      st.session_state.use_plate_wells = True # To indicate we are using a plate layout
+      st.success("Samples and wells layout confirmed, you are ready for Step 3!")
+   else:
+      st.warning("Please generate and view a plate layout with samples from your GeoJSON first.")
+
+if st.session_state.saw is not None and st.session_state.use_plate_wells:
+   st.download_button(
+      label="Download samples and wells setup",
+      data=json.dumps(st.session_state.saw, indent=4),
+      file_name="samples_and_wells.json",
+      mime="application/json"
+   )
+   with st.expander("View Samples and Wells Dictionary", expanded=False):
+      st.write(st.session_state.saw) # Show the user the resulting dictionary
+
+#################################################
+### Step 2.3 : Upload Custom Samples and Wells ##
+#################################################
+
+# button to upload custom samples and wells
+if st.button("Upload custom samples and wells dictionary, will override"):
+   logger.info("Upload custom samples and wells dictionary -- ButtonPress")
+   st.session_state.show_saw_uploader = True
+
+# If the button has been clicked, show the uploader and process the file
+if st.session_state.show_saw_uploader:
+   uploaded_saw = st.file_uploader(
+      label = "Choose a custom samples-and-wells file (.txt or .json)",
+      type = ["txt", "json"],
+      accept_multiple_files=False,
+      key="saw_uploader"
+   )
+   if uploaded_saw is not None:
+      st.session_state.saw = utils.parse_dictionary_from_file(uploaded_saw)
+      logger.debug(uploaded_saw)
+      core.load_and_QC_SamplesandWells(st.session_state.saw)
+      st.session_state.use_plate_wells = False
+      st.success("Custom samples and wells dictionary loaded and checked.")
+      st.session_state.show_saw_uploader = False
 
 ###############################
 ### Step 3: Process contours ##
@@ -82,19 +285,50 @@ st.markdown("""
             Please download the QC image, and plate scheme for future reference.  
             """)
 
-if st.button("Process geojson and create the contours"):
-   create_collection(geojson_path=uploaded_file,
-                     list_of_calibpoint_names=list_of_calibpoint_names,
-                     samples_and_wells_input=samples_and_wells_input)
-   st.success("Contours created successfully!")
-   st.download_button("Download contours file", 
-                     Path(f'./{uploaded_file.name.replace("geojson", "xml")}').read_text(), 
-                     f'./{uploaded_file.name.replace("geojson", "xml")}')
-   st.download_button("Download 384 plate scheme", 
-                     Path(f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}').read_text(),
-                     f'./{uploaded_file.name.replace("geojson", "_384_wellplate.csv")}')
-st.divider()
+if st.button("Process files"):
+   logger.info("Process files button clicked")
+   if st.session_state.gdf is not None and st.session_state.saw is not None:
+      logger.debug(st.session_state.gdf)
+      logger.debug(st.session_state.saw)
+      logger.debug(st.session_state.calibs)
+      xml_content, csv_content, image_path = core.create_collection()
+      st.session_state.xml_content = xml_content
+      st.session_state.csv_content = csv_content
 
+      zip_buffer = io.BytesIO()
+      with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+         zip_file.writestr(f'{Path(st.session_state.file_name).stem}.xml', xml_content)
+         zip_file.writestr(f'{Path(st.session_state.file_name).stem}_384_wellplate.csv', csv_content)
+         zip_file.writestr('samples_and_wells.json', json.dumps(st.session_state.saw, indent=4))
+         with tempfile.NamedTemporaryFile(suffix=".geojson") as tmp_geojson:
+            tmp_gdf = utils.sanitize_gdf(st.session_state.gdf)
+            tmp_gdf.to_file(tmp_geojson.name, driver="GeoJSON")
+            zip_file.write(tmp_geojson.name, f'{Path(st.session_state.file_name).stem}_processed.geojson')
+         with open(image_path, "rb") as f:
+            zip_file.writestr("collection.png", f.read())
+         if "log_file_path" in st.session_state and st.session_state.log_file_path:
+            zip_file.write(st.session_state.log_file_path, f"log_{st.session_state.session_id}.log")
+
+      st.session_state.zip_buffer = zip_buffer
+      st.image(image_path, caption='Your Contours', width='content')
+      st.success("All files have been processed and are ready for download.")
+      logger.info("All files processed and zipped successfully")
+   else:
+      st.warning("Please ensure you have loaded a GeoJSON and provided a samples-and-wells scheme.")
+      logger.warning("GeoJSON or samples-and-wells scheme not found")
+
+if st.session_state.zip_buffer:
+   st.download_button(
+      label="Download files",
+      data=st.session_state.zip_buffer.getvalue(),
+      file_name=f"{Path(st.session_state.file_name).stem}_collection.zip",
+      mime="application/zip"
+   )
+
+st.divider()
+st.divider()
+st.divider()
+st.divider()
 
 #######################
 ####### EXTRAS ########
@@ -103,8 +337,6 @@ st.divider()
 st.markdown("""
             # Extras to make your life easier :D
              - Create Qupath classes
-             - Create default samples and wells
-             - Color shapes with categorical
             """)
 st.divider()
 
@@ -112,12 +344,11 @@ st.divider()
 #################################
 ## EXTRA 1: Classes for QuPath ##
 #################################
-
 st.markdown("""
             ## Extra #1 : Create QuPath classes from categoricals
             Creating many QuPath classes can be tedious, and is very error prone, especially for large projects.  
             This tool takes in two lists of categoricals, and a number for replicates, and create a class for every permutation.  
-            
+
             Afterwards you must:
             1. Create a new QuPath project 
             2. Close QuPath window
@@ -139,7 +370,7 @@ list1 = [i.strip() for i in input1.split(",") if i.strip()]
 list2 = [i.strip() for i in input2.split(",") if i.strip()]
 
 if st.button("Create class names for QuPath"):
-   list_of_samples = generate_combinations(list1, list2, input3)
+   list_of_samples = utils.generate_combinations(list1, list2, input3)
    json_data = {"pathClasses": []}
    for i, name in enumerate(list_of_samples):
       json_data["pathClasses"].append({
@@ -156,71 +387,3 @@ if st.button("Create class names for QuPath"):
 st.image(image="./assets/sample_names_example.png",
          caption="Example of class names for QuPath")
 st.divider()
-
-###############################################
-## EXTRA 2: Create default samples and wells ##
-###############################################
-
-st.markdown("""
-            ## Extra 2: Create samples and wells  
-            ### To designate which samples go to which wells in the collection device
-            Every QuPath class represents one sample, therefore each class needs one designated well for collection.  
-            Default wells are spaced (C3, C5, C7) for easier pipetting, modify at your discretion.  
-            The file can be opened by any text reader Word, Notepad, etc.  
-            """)
-
-input4 = st.text_area("Enter first categorical:", placeholder="example: celltype_A, celltype_B")
-input5 = st.text_area("Enter second categorical:", placeholder="example: control, drug_treated")
-input6 = st.number_input("Enter number of reps", min_value=1, step=1, value=2)
-list3 = [i.strip() for i in input4.split(",") if i.strip()]
-list4 = [i.strip() for i in input5.split(",") if i.strip()]
-
-if st.button("Create Samples and wells scheme with default wells"):
-   spaced_list_of_acceptable_wells = create_list_of_acceptable_wells()[::2]
-   list_of_samples = generate_combinations(list3, list4, input6)
-   samples_and_wells = create_default_samples_and_wells(list_of_samples, spaced_list_of_acceptable_wells)
-   with open("samples_and_wells.json", "w") as f:
-      json.dump(samples_and_wells, f, indent=4)
-   st.download_button("Download Samples and Wells file",
-                     data=Path('./samples_and_wells.json').read_text(),
-                     file_name="samples_and_wells.txt")
-   
-st.image(image="./assets/samples_and_wells_example.png",
-         caption="Example of samples and wells scheme")
-st.divider()
-
-###############################################
-### EXTRA 3: Color contours with categorical ##
-###############################################
-
-st.markdown("""
-            ## Extra 3: Color contours with categorical  
-            This tool was born to let you check which shapes have been collected based on a simple excel sheet table.
-            It can also color the shapes based on any categorical values.
-
-            Instructions: 
-             - You must upload the .geojson file with classified annotations.
-             - You must upload a csv with two columns:
-               - Class name, this has to match the annotation classification names exactly.  
-               - Categorical column name, this can be any set of categoricals, For example: collection status. max 6 categories or colors repeat.
-            """)
-
-
-st.write("Upload geojson file you would like to color with metadata")
-geojson_file = st.file_uploader("Choose a geojson file", accept_multiple_files=False)
-
-st.write("Upload table as csv with two columns")
-metadata_file = st.file_uploader("Choose a csv file", accept_multiple_files=False)
-metadata_name_key = st.text_input("Column header with shape class names", placeholder="Class name")
-metadata_variable_key = st.text_input("Column header to color shapes with", placeholder="Categorical column name")
-
-if st.button("Process metadata and geojson, for labelled shapes"):
-   process_geojson_with_metadata(
-      path_to_geojson=geojson_file,
-      path_to_csv=metadata_file,
-      metadata_name_key=metadata_name_key,
-      metadata_variable_key=metadata_variable_key)
-   
-   st.download_button("Download lablled shapes", 
-                     Path(f"./{geojson_file.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}").read_text(),
-                     f"./{geojson_file.name.replace("geojson", metadata_variable_key + "_labelled_shapes.geojson")}")
