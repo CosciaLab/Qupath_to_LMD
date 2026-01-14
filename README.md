@@ -13,7 +13,7 @@ With more than 60 unique users, we try to help everyone collect their tissues.
 3. Classify annotations using QuPath classes
 4. Add at least 3 calibration points using point tool
 5. Export annotations as a **FeatureCollection** in the **.geojson** format
-6. Load into webapp or jupyter notebook (see below)
+6. Load into webapp
 
 ## Streamlit webapp
 
@@ -23,14 +23,17 @@ Go to [Streamlit Webapp Link](https://qupath-to-lmd-mdcberlin.streamlit.app/)
   <img src="assets/webapp_screenshot.png" alt="Open WebApp" width="600"/>
 </a>
 
+1. Upload your geojson file, and choose your calibration points
+2. Choose your plate setup
+3. Process the files and download your output files
 
-1. Upload your geojson file.  
-2. Write down your calibration points  
-3. Paste in your samples_and_wells dictionary (see below)
-4. Click Run the script, and download your output file.
+# Youtube Tutorials
 
+## Introduction to Qupath-to-LMD Version4
 
-# Youtube Tutorial 
+[![Watch the video](https://img.youtube.com/vi/K8xOIg6gNCY/0.jpg)](https://youtu.be/K8xOIg6gNCY?si=g6YqzpwnHYZa69qo)
+
+## Qupath-to-LMD v3 tutorial
 
 [![Watch the video](https://img.youtube.com/vi/jimBIqGUaXg/0.jpg)](https://www.youtube.com/watch?v=jimBIqGUaXg&t=2s)
 
@@ -50,16 +53,14 @@ This is an example:
 Each "Class_name_" is the exact name of the class of annotation found in Qupath.
 The "C3", "C5", "C7" strings determine into which well are the contours going to be collected.
 Works for both 384-well plates and 96-well plates
-Note: For 384 well plate users, in the LMD7 system, do not use rows A or B, nor columns 1 or 2. The system struggles to collect to these wells.
-
-
 
 # Citation
-Please cite the following work when using this package.
-Makhmut, A. et al. A framework for ultra-low-input spatial tissue proteomics. Cell Syst. 14, 1002-1014.e5 (2023).
 
-Please use the APA format for Github repositories:   
-Nimo, J. (2023). Qupath_to_LMD: A tool to transform QuPath annotations to LMD coordenates. GitHub. [https://github.com/CosciaLab/Qupath_to_LMD](https://github.com/CosciaLab/Qupath_to_LMD/)
+Please cite the following work when using this package:
+
+Please cite the [BioArxiv](https://www.biorxiv.org/content/10.1101/2025.07.13.662099v1):
+
+Nimo, J., Fritzsche, S., Valdes, D. S., Trinh, M., Pentimalli, T., Schallenberg, S., Klauschen, F., Herse, F., Florian, S., Rajewsky, N., & Coscia, F. (2025). OpenDVP: An experimental and computational framework for community-empowered deep visual proteomics [Preprint]. bioRxiv. https://doi.org/10.1101/2025.07.13.662099
 
 # FAQ
 
