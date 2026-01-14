@@ -12,14 +12,9 @@ from loguru import logger
 import qupath_to_lmd.utils as utils
 
 @st.cache_data
-def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
-   """Checks and load the geojson."""
+def load_and_QC_geojson_file(geojson_path: str) -> tuple[geopandas.GeoDataFrame, dict]:
+   """Checks and load the geojson. Returns cleaned GDF and available calibration points."""
    logger.info(f"Starting load_and_QC_geojson_file for path: {geojson_path}")
-   #check for streamlit variables
-   if st.session_state.calibs is None:
-      logger.error("Calibration points were not accessible directly in session state.")
-      st.error("Calibration points were not accesible directly")
-      st.stop()
 
    # 1 Digestion
    df = geopandas.read_file(geojson_path)
@@ -30,8 +25,8 @@ def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
       logger.warning("The uploaded geojson file is empty.")
       st.stop()
    if "name" not in df.columns:
-      st.warning("No calibration points in file")
-      logger.warning("No 'name' column found in GeoJSON, indicating missing calibration points.")
+      st.warning("No 'name' column found, cannot identify calibration points.")
+      logger.warning("No 'name' column found in GeoJSON.")
       st.stop()
 
    # describe geodataframe
@@ -40,49 +35,21 @@ def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
    logger.info(f"Geometries in DataFrame: {log_message}")
    st.write(f"Geometries in DataFrame: {log_message}")
 
-   #check for calibration points
-   for point_name in st.session_state.calibs:
-      if point_name not in df['name'].unique():
-         st.write(f'Your given annotation_name >>{point_name}<< is not present in the file')
-         st.write(f'These are the calib points you passed: {st.session_state.calibs}')
-         st.write(f"These are the calib points found in the geojson: {df[df['geometry'].geom_type == 'Point']['name'].values}")
-         logger.error(f'Your given annotation_name {point_name} is not present in the file')
-         logger.error(f'These are the calib points you passed: {st.session_state.calibs}')
-         logger.error(f"These are the calib points found in the geojson: {df[df['geometry'].geom_type == 'Point']['name'].values}")
-         st.stop()
-
-   calib_np_array = numpy.array(
-      [[ df.loc[df['name'] == point_name, 'geometry'].values[0].x,
-         df.loc[df['name'] == point_name, 'geometry'].values[0].y] 
-         for point_name in st.session_state.calibs])
-
-   st.session_state.calib_array = calib_np_array
-   logger.info(f"Calib_array set to {calib_np_array}")
-
-   def polygon_intersects_triangle(polygon, triangle):
-      if isinstance(polygon, shapely.Polygon):
-         return polygon.intersects(triangle)
-      elif isinstance(polygon, shapely.LineString):
-         return polygon.intersects(triangle)
-      else:
-         return False  # for other geometry types
-
-   # how many polygons intersect the triangle made by calibs?
-   df['intersects'] = df['geometry'].apply(lambda x: polygon_intersects_triangle(x, shapely.Polygon(calib_np_array)))
-   num_of_polygons_and_LineString = df[df['geometry'].geom_type.isin(['Polygon', 'LineString'])].shape[0]
-
-   intersect_fraction = df['intersects'].sum()/num_of_polygons_and_LineString
-   logger.info(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
-   st.write(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
-
-   if intersect_fraction < 0.25:
-      st.write('WARNING: Less than 25% of the objects intersect with the calibration triangle')
-      logger.warning("Less than 25% of the objects intersect with the calibration triangle")
-      logger.warning("Polygons could be warped, consider changing calib points")
-
-   #remove points
-   df = df[df['geometry'].apply(lambda geom: not isinstance(geom, shapely.geometry.Point))]
-   logger.info("Point geometries have been removed")
+   # Extract calibration points (Points with names)
+   points_df = df[df['geometry'].geom_type == 'Point']
+   available_points = {}
+   
+   if not points_df.empty:
+       for idx, row in points_df.iterrows():
+           name = row['name']
+           if name: # Ensure name is not None or empty
+               available_points[name] = [row['geometry'].x, row['geometry'].y]
+   
+   logger.info(f"Found {len(available_points)} potential calibration points: {list(available_points.keys())}")
+   
+   # Remove points from the main dataframe
+   df = df[df['geometry'].geom_type != 'Point']
+   logger.info("Point geometries have been removed from the main dataframe")
 
    #check and remove empty classifications
    if df['classification'].isna().sum() !=0 :
@@ -105,7 +72,51 @@ def load_and_QC_geojson_file(geojson_path: str) -> geopandas.GeoDataFrame:
 
    st.success('The file QC is complete')
    logger.success("GeoJSON file QC performed")
-   return df
+   return df, available_points
+
+def perform_triangle_qc(df: geopandas.GeoDataFrame, calib_points_dict: dict, selected_calib_names: list) -> numpy.ndarray:
+   """Performs the triangle intersection QC check."""
+   logger.info("Starting triangle QC check")
+   
+   # Check if selected points exist
+   for name in selected_calib_names:
+       if name not in calib_points_dict:
+           st.error(f"Selected calibration point '{name}' not found in file.")
+           st.stop()
+
+   calib_np_array = numpy.array([calib_points_dict[name] for name in selected_calib_names])
+   logger.info(f"Calib_array set to {calib_np_array}")
+
+   def polygon_intersects_triangle(polygon, triangle):
+      if isinstance(polygon, shapely.Polygon):
+         return polygon.intersects(triangle)
+      elif isinstance(polygon, shapely.LineString):
+         return polygon.intersects(triangle)
+      else:
+         return False  # for other geometry types
+
+   # how many polygons intersect the triangle made by calibs?
+   # Note: we use a copy or just calculate on the fly to avoid modifying the passed df permanently if not needed
+   # But user might want to know.
+   
+   triangle = shapely.Polygon(calib_np_array)
+   intersects = df['geometry'].apply(lambda x: polygon_intersects_triangle(x, triangle))
+   
+   num_of_polygons_and_LineString = df[df['geometry'].geom_type.isin(['Polygon', 'LineString'])].shape[0]
+   
+   if num_of_polygons_and_LineString > 0:
+       intersect_fraction = intersects.sum()/num_of_polygons_and_LineString
+       logger.info(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
+       st.write(f" {intersect_fraction*100:.2f}% of polygons are within calibration triangle")
+
+       if intersect_fraction < 0.25:
+          st.warning('WARNING: Less than 25% of the objects intersect with the calibration triangle')
+          logger.warning("Less than 25% of the objects intersect with the calibration triangle")
+          logger.warning("Polygons could be warped, consider changing calib points")
+   else:
+       st.warning("No Polygons or LineStrings found to check intersection.")
+
+   return calib_np_array
 
 def load_and_QC_SamplesandWells(samples_and_wells: dict):
    """Loads and checks for common errors.

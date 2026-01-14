@@ -32,6 +32,8 @@ if "use_plate_wells" not in st.session_state:
    st.session_state.use_plate_wells = True
 if 'file_name' not in st.session_state:
    st.session_state.file_name = None
+if 'available_points_dict' not in st.session_state:
+   st.session_state.available_points_dict = None
 if 'xml_content' not in st.session_state:
    st.session_state.xml_content = None
 if 'csv_content' not in st.session_state:
@@ -75,23 +77,41 @@ st.markdown("""
             """)
 
 uploaded_file = st.file_uploader(label="Choose a file", type="geojson", accept_multiple_files=False)
-calibration_point_1 = st.text_input("Enter the name of the first calibration point: ",  placeholder ="first_calib")
-calibration_point_2 = st.text_input("Enter the name of the second calibration point: ", placeholder ="second_calib")
-calibration_point_3 = st.text_input("Enter the name of the third calibration point: ",  placeholder ="third_calib")
-list_of_calibpoint_names = [calibration_point_1, calibration_point_2, calibration_point_3]
 
-if st.button("Load and check the geojson file"):
-   logger.info("Load and check geojson file button clicked")
-   if uploaded_file:
-      # process calibs
-      st.session_state.calibs = [calibration_point_1, calibration_point_2, calibration_point_3]
+if uploaded_file:
+   # process and QC geojson automatically if new file
+   if st.session_state.file_name != uploaded_file.name or st.session_state.gdf is None:
+      logger.info(f"New file detected: {uploaded_file.name}")
       st.session_state.file_name = uploaded_file.name
-      logger.debug(f"File name: {st.session_state.file_name}")
       # process and QC geojson
-      st.session_state.gdf = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
+      st.session_state.gdf, st.session_state.available_points_dict = core.load_and_QC_geojson_file(geojson_path=uploaded_file)
+
+   if st.session_state.available_points_dict:
+      calib_options = list(st.session_state.available_points_dict.keys())
+
+      c1 = st.selectbox("Select calibration point 1", calib_options, index=0 if len(calib_options)>0 else None)
+      c2 = st.selectbox("Select calibration point 2", calib_options, index=1 if len(calib_options)>1 else None)
+      c3 = st.selectbox("Select calibration point 3", calib_options, index=2 if len(calib_options)>2 else None)
+
+      st.session_state.calibs = [c1, c2, c3]
+
+      # Perform triangle QC
+      if all(st.session_state.calibs):
+         st.session_state.calib_array = core.perform_triangle_qc(
+            st.session_state.gdf,
+            st.session_state.available_points_dict,
+            st.session_state.calibs
+         )
    else:
-      st.warning("Please upload a geojson file.")
-      logger.warning("No geojson file uploaded")
+      st.warning("No calibration points found in the GeoJSON file.")
+
+else:
+   if st.session_state.file_name is not None:
+      st.session_state.file_name = None
+      st.session_state.gdf = None
+      st.session_state.available_points_dict = None
+      st.session_state.calibs = None
+      st.session_state.calib_array = None
 
 st.divider()
 
