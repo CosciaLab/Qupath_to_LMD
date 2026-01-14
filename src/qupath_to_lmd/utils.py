@@ -26,7 +26,7 @@ def create_list_of_acceptable_wells(
       step_row:int=1,
       step_col:int=1):
    """Creates wells according to user parameters."""
-   logger.info("Creating list of accetable wells")
+   logger.info("Creating list of acceptable wells")
    if plate not in ["384","96"]:
       raise ValueError("Plate must be either 384 or 96")
    if not isinstance(margins,int):

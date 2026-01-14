@@ -217,7 +217,6 @@ if st.session_state.view_mode == 'default':
 elif st.session_state.view_mode == 'samples':
    if uploaded_file is None:
       st.warning("File no longer available. Please upload a file or switch to the default view.")
-      st.session_state.view_mode = 'none'
    else:
       # Only regenerate the dataframe if parameters have changed or it doesn't exist
       if (params_have_changed or df_missing) and st.session_state.gdf is not None:
