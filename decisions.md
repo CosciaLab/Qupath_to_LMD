@@ -1244,3 +1244,106 @@ Packing circles inside the regions is the point of the exercise and is the next 
 it out means this one is independently clickable and cutting whole neighbourhoods is useful on its
 own. The prototype at `PY38_CirclePackingStreamlit` contains no Voronoi code — it reads an
 already-tessellated file — so that half had to be written here regardless.
+
+## 067 — circle packing: ported from the prototype, with the parts that were wrong fixed
+**Date:** 2026-09-17 · **Status:** active · **completes 066**
+**Decision:** `packing.py` fills each region with circles by rejection sampling, which is what
+Jose's prototype at `PY38_CirclePackingStreamlit/functions.py` does and is the right method here.
+Step 8 of the regions workflow offers a choice — **circles packed inside the regions** (default)
+or **the whole regions** — and the packing controls live in an `st.fragment` below the plate, so
+tuning them never invalidates wells the user already approved.
+**Why circles at all:** a merged region is one enormous irregular outline. The stage traces it for
+a long time, and there is no way to ask for *some* of it. Circles cut quickly and add up to a
+chosen area, which is the unit a proteomics experiment is actually specified in.
+**Why whole regions stays available:** it was already built and tested in `066`, it is the only
+thing possible without an image scale, and "collect all of this neighbourhood" is a real request.
+
+### Measured, on Jose's real 8 411-cell TMA core at 0.6535 µm/px
+684 regions, 3 replicates of 10 000 µm² for each of 3 classes:
+
+| | first working version | after the three fixes below |
+| --- | --- | --- |
+| wall time | 8.6 s | **0.7 s** |
+| circles kept / placed | 479 / 718 | **422 / 431** |
+| replicates reaching target | 6 of 9 | **9 of 9** |
+
+1. **Skip regions that cannot hold one smallest circle.** `buffer(-min_radius).is_empty` is exact
+   and costs 0.01 s for 141 regions. 119 of 684 regions on real tissue are in that state, and each
+   one otherwise spent the full 2 000-attempt budget finding out. Reported on screen, because the
+   remedy — a smaller minimum circle — is something only the user can choose.
+2. **Ask each region for its share of what is still outstanding.** Every region overshoots its
+   share by up to one circle; carrying only a one-sided deficit forward therefore over-packed a
+   141-region class by more than twice its target, which is where 239 discarded circles came from.
+3. **One circle of slack per replicate.** A replicate fills until it *reaches* the target, so
+   packing exactly the total left the last replicate holding only the remainder — reliably about
+   5% short while its siblings overshot. A replicate systematically smaller than the others is not
+   a comparable measurement, which is the whole point of having replicates.
+
+### Spacing is global, and what that costs
+The gap is enforced across the **whole collection**, not within a class as the prototype did.
+Regions of two classes touch by construction, so two circles either side of a boundary could
+otherwise sit a fraction of a micrometre apart; the strip between them detaches and falls into
+whichever well is cut first. The laser does not care which class a neighbouring cut belongs to.
+**The cost, stated plainly:** classes are packed in sorted order and share one collision grid, so
+changing one class's amount can change the classes sorted after it — never those before it.
+Everything is still reproducible from the recorded parameters. Judged worth it: a wrong-class
+fragment in a well is a ruined sample, while coupling is an inconvenience in a preview.
+
+### Randomness
+`numpy.random.default_rng`, never the legacy global `numpy.random.seed` the prototype used, which
+clobbers any other code drawing from `numpy.random` and is not this repo's convention
+(`selection.py` has used `default_rng` since Phase 4). **One sub-stream per class, keyed by
+`blake2b` of the class name** — not by position, so adding or removing a class leaves the others
+drawing the same candidate positions, and not by `hash()`, which Python salts per process and
+would make the same seed pack differently tomorrow. The prototype ran one stream through every
+class in turn, so nudging one class's spacing re-rolled every draw in every later class, and a
+settings-and-preview loop then shows the user changes they did not ask for and cannot attribute.
+`seed=None` is gone: a seed is always set, default 0, and recorded in `provenance.json`.
+
+### Collision detection
+A dict of buckets keyed `(x // cell, y // cell)` with `cell = 2 * max_radius + spacing`, so only
+the 3x3 neighbourhood is ever checked. The prototype rebuilt a `shapely.STRtree` from every placed
+circle **on every single attempt** — O(n² log n) over a run, and the dominant cost despite the
+comment claiming it was "blazingly fast". It also queried the tree with no predicate, so it
+compared bounding boxes and rejected placements that were legal.
+
+### The capacity estimate accounts for the gap
+`0.547 * area / (1 + spacing / (2 * mean_radius))²`. The 0.547 is measured, not assumed: randomly
+thrown circles of mixed size cover that share of a 2000x2000 px square at a zero gap. Circles
+100-500 µm² at 0.3467 µm/px, measured against the formula: 54.7%/54.7% at 0 µm, 42.9%/45.0% at 2,
+32.9%/34.7% at 5, 21.4%/23.9% at 10, 12.2%/13.4% at 20 — within 2 points everywhere and slightly
+optimistic. **The prototype's flat 0.55 ignored the gap entirely**, so at 20 µm it would have told
+a user they had 4.5x the tissue actually available. Shown before packing runs, so an impossible
+request is visible without waiting for it; what was achieved is always reported separately.
+
+### Smoothing is reported, not absorbed
+`simplify` cuts the corners off a circle, and at the default 1 px tolerance a 64-sided circle of
+radius ≤ 10 px drops to 9 vertices and **loses 10% of its area**; 2.6% at radius 20 px, 0.6% at
+100 px. At 0.6535 µm/px a 100 µm² circle has a radius of 8.6 px, so the default circle range sits
+squarely in the worst of it — on the real export the loss is 6% of everything collected. Area per
+replicate is this workflow's entire budget, so `smoothing_loss` measures it and step 8 warns above
+5%, naming both real remedies: a larger smallest circle, or a lower tolerance.
+**Rejected:** inflating each circle to compensate. It would hit the requested number, but by
+cutting a shape the user did not ask for to correct an error they cannot see. Saying what will
+happen and letting them decide is `003`.
+
+### Also dropped or changed
+- `n_permutations`, the prototype's best-of-N restarts: x5 cost for a marginal gain, and it made
+  the random stream depend on it. One loop if it is ever wanted back.
+- Areas come from `polygon.area`, not analytic `pi r²` — a buffered circle is a 64-gon and about
+  0.4% smaller than the circle it approximates, so the prototype's accounting was optimistic.
+- An empty result now carries its columns (`empty_circles`). The prototype returned a bare
+  `GeoDataFrame()`, so every caller had to remember to check before touching a column; a test
+  caught this app raising `KeyError` instead of reporting that nothing fitted.
+- A shortfall concentrates in the **last** replicates rather than being spread thinly over all of
+  them, so a class that can only half-fill its request yields whole comparable replicates plus a
+  remainder. Consistent with `budget.feasibility`'s "replicates fillable" in the cell workflow.
+
+### A `packing` golden case, driven by the demo file
+The plan for this feature proposed a synthetic square, to keep the reference bytes free of GEOS.
+Changed on the grounds that the `regions` case already depends on GEOS, so a synthetic case buys
+no new robustness, while going through the demo file covers projection, merging, the synthesised
+QuPath fields, dealing and export as well. `packing` also pins numpy's random stream — if it
+differs on its own, a recorded seed no longer reproduces its collection, which is breaking for
+anyone who has written a seed into a methods section. `tests/test_packing.py` carries the
+seed-stability guarantee independently.

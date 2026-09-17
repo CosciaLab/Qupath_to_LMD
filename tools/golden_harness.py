@@ -21,10 +21,13 @@ What it does not cover: the UI, the intentional behaviour changes around QC and 
 LineString geometries (no demo file has one), and any input shape outside the cases below.
 Add cases as the app grows.
 
-The `regions` case is the one whose bytes depend on GEOS as well as on this repo: merging
-regions of a class is a union, and a GEOS upgrade can legitimately reorder the vertices it
-returns. If that case alone differs after a dependency bump, that is what happened — check the
-geometry is equivalent before re-blessing, and say so in the commit.
+The `regions` and `packing` cases are the ones whose bytes depend on GEOS as well as on this
+repo: merging regions of a class is a union, and a GEOS upgrade can legitimately reorder the
+vertices it returns. `packing` additionally pins numpy's random stream — if it differs on its
+own, a recorded seed no longer reproduces its collection, which is a breaking change for
+anybody who wrote one into a methods section. If only those cases differ after a dependency
+bump, that is what happened: check the geometry is equivalent before re-blessing, and say so in
+the commit.
 """
 
 import os
@@ -36,8 +39,8 @@ from pathlib import Path
 # matplotlib.
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-from qupath_to_lmd import export, geojson, plate, qc, regions
-from qupath_to_lmd.model import CLASS_NAME, plan_from_class_wells, plan_from_selection
+from qupath_to_lmd import export, geojson, packing, plate, qc, regions
+from qupath_to_lmd.model import CLASS_NAME, REPLICATE, plan_from_class_wells, plan_from_selection
 
 REPO = Path(__file__).resolve().parent.parent
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
@@ -61,6 +64,13 @@ CASES = {
         "kind": "regions",
         "source": DEMO / "multiclass_cells.geojson",
         "replicates": 2,
+    },
+    # the packing path: circles this app invented, placed by a seeded random walk
+    "packing": {
+        "kind": "packing",
+        "source": DEMO / "multiclass_cells.geojson",
+        "replicates": 2,
+        "pixel_size_um": 0.6535,
     },
 }
 
@@ -129,9 +139,54 @@ def run_regions_case(
     return result.xml, result.csv
 
 
+def run_packing_case(
+    source, replicates=1, pixel_size_um=0.6535, radius_factor=3.0, plate_type="384", margin=1, seed=0
+) -> tuple[str, str]:
+    """Drive the circle-packing pipeline for one case and return its XML and CSV.
+
+    Guards the thing that would otherwise be invisible: that a given seed still places the same
+    circles in the same places. If this drifts, every collection anyone has recorded a seed for
+    stops being reproducible, and nothing in the running app would show it.
+
+    Driven from a demo file rather than a synthetic square, which the plan for this feature
+    originally proposed. A synthetic square would keep the bytes free of GEOS, but the `regions`
+    case already depends on GEOS so that buys no new robustness, and going through the real file
+    covers projection, merging, the synthesised QuPath fields, dealing and export as well.
+    `tests/test_packing.py` carries the seed-stability guarantee on its own.
+    """
+    gdf, calibration_points, _report = geojson.read_and_qc(str(source))
+    calibration_names = list(calibration_points)[:3]
+    triangle = qc.triangle_qc(gdf, calibration_points, calibration_names)
+
+    patches, _region_report = regions.project(gdf, regions.RegionParams(radius_factor=radius_factor))
+    params = packing.PackingParams(area_per_replicate_um2=2_000.0, seed=seed)
+    counts = dict.fromkeys(sorted(set(patches[CLASS_NAME])), replicates)
+    result = packing.pack(patches, counts, params, pixel_size_um)
+
+    circles = geojson.synthesize_qupath_columns(result.circles, "circle", source=gdf)
+    wells = plate.acceptable_wells(plate=plate_type, margins=margin)
+    plan, samples_and_wells = plan_from_selection(
+        gdf=circles,
+        replicate_of=circles[REPLICATE],
+        wells=wells,
+        calibration_names=calibration_names,
+        calibration_array=triangle.calibration_array,
+        source_file=Path(source).name,
+        session_id="golden",
+        pixel_size_um=pixel_size_um,
+        workflow="regions",
+    )
+    result = export.build_collection(plan, samples_and_wells=samples_and_wells, plate=plate_type)
+    return result.xml, result.csv
+
+
 def _run(kind: str = "annotations", **kwargs) -> tuple[str, str]:
     """Dispatch a case to the pipeline it exercises."""
-    return run_regions_case(**kwargs) if kind == "regions" else run_case(**kwargs)
+    if kind == "regions":
+        return run_regions_case(**kwargs)
+    if kind == "packing":
+        return run_packing_case(**kwargs)
+    return run_case(**kwargs)
 
 
 def capture() -> int:

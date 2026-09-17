@@ -51,6 +51,8 @@ src/qupath_to_lmd/
   selection.py                    SelectionMode, SelectionParams, select, grid_bins
   regions.py                      RegionParams, project, voronoi_regions, merge_by_class,
                                   close_slivers, deal_patches, tissue_hull
+  packing.py                      PackingParams, pack, capacity, packable_area,
+                                  class_generator, smoothing_loss
   plot.py                         plot_shapes — class overview, selection preview, QC image
   export.py                       build_collection, build_bundle, PathOrder,
                                   order_for_cutting, path_stats, ORIENTATION_TRANSFORM
@@ -59,13 +61,13 @@ src/qupath_to_lmd/
   ui_shared.py                    steps every workflow uses, incl. class_selection_step
   ui_legacy.py                    annotations workflow (frozen as of Phase 1)
   ui_cells.py                     cell-segmentation workflow (step 8 is an st.fragment)
-  ui_packing.py                   cellular-neighbourhood workflow
+  ui_packing.py                   cellular-neighbourhood workflow (step 8 is an st.fragment)
   === other ===
   mock_streamlit.py               patch_streamlit() — stubs st.* for notebook use
   __init__.py                     empty
 tools/
   golden_harness.py               byte-equality regression gate
-  golden/                         12 reference artefacts, 6 cases
+  golden/                         14 reference artefacts, 7 cases
 demo_Qupath_project/              real QuPath project used as test fixture
   TD_01_verysmall_mIF.geojson     9 features: 6 annotation Polygons + 3 calibration Points
   Single_cells.geojson            131 features: 121 cells + 7 annotations + 3 Points
@@ -427,8 +429,11 @@ Both workflows expose the same two, in the shared export step.
 ## Regions: the cellular-neighbourhood workflow
 
 `regions.py` turns classified cells into **regions** — contiguous areas of tissue belonging to
-one class — and `ui_packing.py` collects them. Circle packing inside the regions is the next
-step and is not built yet.
+one class — and `packing.py` fills those regions with circles. `ui_packing.py` is the workflow.
+
+Step 8 offers a choice of what to cut out of each region: **circles packed inside them**, which
+is the default and the point of the workflow, or **the whole regions**. Whole regions is the
+only option when the file gives no image scale, because every packing amount is an area in µm².
 
 The pipeline, and why each part is the way it is:
 
@@ -509,6 +514,82 @@ QuPath wrote for that class, so colours survive the round trip. Called inside
 `scipy` was declared in `pyproject.toml` and imported nowhere until now; `regions.py` uses
 `scipy.spatial.cKDTree` for nearest-neighbour spacing. No new dependency was added.
 
+### Packing circles
+
+Rejection sampling: throw a circle of random size at a random spot in a region, keep it if it
+fits and is far enough from everything already placed, stop at the target area or after
+`max_attempts` consecutive failures. Ported from `PY38_CirclePackingStreamlit/functions.py`
+with the changes in `decisions.md` 067. Measured on the real 8 411-cell export at 0.6535 µm/px,
+684 regions, 3 replicates of 10 000 µm² for each of 3 classes:
+
+| | before | after |
+| --- | --- | --- |
+| wall time | 8.6 s | **0.7 s** |
+| circles kept / placed | 479 / 718 | **422 / 431** |
+| replicates reaching target | 6 of 9 | **9 of 9** |
+
+The three fixes behind that, all of them found by running it rather than reading it:
+
+1. **Regions that cannot hold one smallest circle are skipped.** `buffer(-min_radius).is_empty`
+   is the exact test and costs 0.01 s for 141 regions. On real tissue 119 of 684 regions are in
+   that state; each one otherwise burned the whole 2 000-attempt budget discovering it.
+2. **Each region is asked for its share of what is still outstanding**, not for a fixed share
+   plus a one-sided deficit. Every region overshoots by up to one circle, and with 141 regions
+   in a class the one-sided version over-packed it by more than twice its target — which is
+   where the 239 discarded circles came from.
+3. **One circle of slack per replicate.** A replicate fills until it *reaches* the target, so
+   packing exactly the total left the last replicate with only the remainder — reliably ~5%
+   short while its siblings overshot. A replicate systematically smaller than its siblings is
+   not a comparable measurement.
+
+Spacing is enforced **across the whole collection**, not per class: regions of different classes
+touch, so two circles either side of a boundary can otherwise end up a fraction of a micrometre
+apart and the strip between them detaches into whichever well is cut first. Consequence for
+reproducibility: classes are packed in sorted order and share one collision grid, so changing
+one class's amount can change the classes sorted *after* it, never those before it. The
+per-class random sub-streams (keyed by `blake2b` of the class name, never `hash()`, which Python
+salts per process) keep the candidate *positions* stable regardless.
+
+Collision detection is a dict of buckets keyed on `(x // cell, y // cell)` with
+`cell = 2 * max_radius + spacing`, so only the 3x3 neighbourhood needs checking. The prototype
+rebuilt a `shapely.STRtree` from every placed circle on every attempt — O(n² log n) over a run
+— and queried it without a predicate, so it compared bounding boxes and rejected legal
+placements.
+
+### How much a region can actually hold
+
+`packable_area` = `0.547 * area / (1 + spacing / (2 * mean_radius))²`. The 0.547 is measured:
+randomly thrown circles of mixed size cover that share of a 2000x2000 px square with no gap.
+The correction matters more than it looks — circles 100-500 µm² at 0.3467 µm/px:
+
+| gap between circles | measured fill | formula |
+| --- | --- | --- |
+| 0 µm | 54.7% | 54.7% |
+| 2 µm | 42.9% | 45.0% |
+| 5 µm | 32.9% | 34.7% |
+| 10 µm | 21.4% | 23.9% |
+| 20 µm | 12.2% | 13.4% |
+
+Within 2 points everywhere and slightly optimistic throughout. The prototype used a flat 0.55,
+which at a 20 µm gap would promise a user 4.5x the tissue actually available.
+
+### Smoothing takes area back off
+
+`simplify` cuts the corners off a circle, and area per replicate is this workflow's whole
+budget, so the loss is reported rather than absorbed. At the default 1 px tolerance a 64-sided
+circle is reduced to:
+
+| radius | vertices after | area lost |
+| --- | --- | --- |
+| 5-10 px | 9 | **10.0%** |
+| 20-50 px | 17 | 2.6% |
+| 100 px | 33 | 0.6% |
+
+At 0.6535 µm/px a 100 µm² circle has a radius of 8.6 px, so the default circle range straddles
+the worst of this: on the real export the loss is 6% of the collected area. `smoothing_loss`
+computes it, and step 8 warns above 5% and states it as a caption below that. The remedies
+offered are the real ones — a larger smallest circle, or a lower smoothing tolerance.
+
 ## Session state keys
 
 Initialised in the block at the top of `streamlit_app.py`. Any new key belongs here too.
@@ -524,6 +605,8 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | `budgets` | list of `ClassBudget` as dicts: class, replicates, per-replicate amount |
 | `minimum_area_um2` | per-class minimum collectable area in µm²; drives the pre-measurement filter |
 | `region_params` | `RegionParams` as a dict: the radius cap that produced the current regions |
+| `packing_params` | `PackingParams` as a dict: sizes, gap, effort and seed of the last packing |
+| `replicates` | `{class_name: count}` in the regions workflow; sizes the plate |
 | `view_mode` | `'default'` \| `'samples'` — which plate table is rendered |
 | `gdf` | the working GeoDataFrame (points removed, `classification_name` added) |
 | `geojson_report` | `GeojsonReport` from the last read, re-rendered on every rerun |
@@ -713,7 +796,7 @@ yields) with these figures and instructions for running locally (`decisions.md` 
 
 ## Test suite
 
-`tests/`, run with `uv run pytest` — 193 tests in about 6 seconds. `-m "not slow"` skips the
+`tests/`, run with `uv run pytest` — 217 tests in about 7 seconds. `-m "not slow"` skips the
 golden gate for a fast loop. CI runs ruff, the suite and the harness on every push and PR
 (`.github/workflows/ci.yml`).
 
@@ -740,26 +823,29 @@ golden gate for a fast loop. CI runs ruff, the suite and the harness on every pu
 
 ## Regression harness
 
-`tools/golden_harness.py`, with the reference output in `tools/golden/` (12 files, ~230 KB).
+`tools/golden_harness.py`, with the reference output in `tools/golden/` (14 files, ~255 KB).
 
 ```
 uv run python tools/golden_harness.py check      # compare against the golden files
 uv run python tools/golden_harness.py capture    # re-bless, only when output should change
 ```
 
-Six cases, each covering a path where a change could silently move coordinates:
+Seven cases, each covering a path where a change could silently move coordinates:
 `annotations` (ordinary mini-bulk), `cells` (128 shapes with measurements),
 `cells_exploded` (one well per shape), `annotations_96` (different plate geometry),
 `multiclass_cells` (real QuPath 0.7.0 export shape), `regions` (Voronoi projection and merge,
-where every coordinate is computed rather than read from the file). Each produces an XML and a
-CSV, so 12 artefacts.
+where every coordinate is computed rather than read from the file), `packing` (circles placed by
+a seeded random walk). Each produces an XML and a CSV, so 14 artefacts.
 
 - `capture` rewrites **every** case, not only a new one, so after adding a case check
   `git diff tools/golden/` shows nothing but the new files before committing.
-- `regions` is the one case whose bytes depend on **GEOS** as well as on this repo: merging a
-  class's regions is a union, and a GEOS upgrade can legitimately reorder the vertices it
-  returns. If that case alone differs after a dependency bump, that is what happened — check
-  the geometry is equivalent before re-blessing.
+- `regions` and `packing` are the cases whose bytes depend on **GEOS** as well as on this repo:
+  merging a class's regions is a union, and a GEOS upgrade can legitimately reorder the vertices
+  it returns. If only those differ after a dependency bump, that is what happened — check the
+  geometry is equivalent before re-blessing.
+- `packing` additionally pins **numpy's random stream**. If it differs on its own, a recorded
+  seed no longer reproduces its collection, which is breaking for anyone who wrote a seed into
+  a methods section.
 
 - The committed golden files are **byte-identical to output captured from the pre-Phase-0
   code**, so the reference traces back to the version that had been in production.

@@ -6,6 +6,7 @@ collection — the hard stops, and the difference between a warning and a note.
 
 import pytest
 import streamlit
+from shapely.geometry import box as shapely_box
 
 from qupath_to_lmd import budget, geojson, plate, regions, selection, ui_cells, ui_packing, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, plan_from_class_wells, plan_from_selection
@@ -418,9 +419,9 @@ def test_a_class_with_too_few_regions_warns_and_still_continues(fake_streamlit):
         geometry=[box(0, 0, 10, 10), box(20, 0, 30, 10), box(40, 0, 50, 10)],
         crs=None,
     )
-    replicate_of = regions.deal_patches(patches, {"Tumor": 2, "Stroma": 3})
-    achieved = ui_packing._achieved_table(patches, replicate_of, pixel_size_um=None)
-    ui_packing._report_replicates({"Tumor": 2, "Stroma": 3}, replicate_of, patches, achieved)
+    replicates = {"Tumor": 2, "Stroma": 3}
+    replicate_of = regions.deal_patches(patches, replicates)
+    ui_packing._report_starved_replicates(patches, replicates, replicate_of)
 
     shown = fake_streamlit.shown("warnings")
     assert "fewer regions than replicates" in shown, (
@@ -430,4 +431,80 @@ def test_a_class_with_too_few_regions_warns_and_still_continues(fake_streamlit):
     assert "Stroma" in shown and "Tumor" not in shown, (
         f"The warning named the wrong classes. Shown: {shown!r}. Tumor has enough regions for "
         "its two replicates; only Stroma is short."
+    )
+
+
+def _packed(**overrides):
+    """A small packing result, for the reporting functions."""
+    import geopandas
+    from shapely.geometry import Point
+
+    from qupath_to_lmd import packing
+
+    patches = geopandas.GeoDataFrame(
+        {CLASS_NAME: ["Tumor"], regions.N_CELLS: [50]},
+        geometry=[shapely_box(0, 0, 400, 400)],
+        crs=None,
+    )
+    params = packing.PackingParams(**overrides)
+    return packing.pack(patches, {"Tumor": 1}, params, 1.0), params, Point
+
+
+def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_streamlit):
+    """Under-delivering silently is the one thing this app must never do.
+
+    The user may accept a partly-filled replicate, so it warns rather than blocks
+    (`decisions.md` 003).
+    """
+    result, params, _ = _packed(area_per_replicate_um2=10_000_000, max_attempts=150, seed=0)
+    ui_packing._report_packing(result, params, pixel_size_um=1.0)
+
+    shown = fake_streamlit.shown("warnings")
+    assert "could not be filled" in shown, (
+        "A replicate that fell short of its requested area was not reported, so the user would "
+        "believe the well holds the amount they asked for."
+    )
+    assert "µm²" in shown, "The shortfall was not stated as an area, so it is not actionable."
+
+
+def test_a_filled_replicate_does_not_warn(fake_streamlit):
+    """Warning on the ordinary case is how warnings stop being read."""
+    result, params, _ = _packed(area_per_replicate_um2=2_000, seed=0)
+    ui_packing._report_packing(result, params, pixel_size_um=1.0)
+    assert "could not be filled" not in fake_streamlit.shown("warnings"), (
+        f"A fully-filled replicate warned anyway: {fake_streamlit.shown('warnings')!r}"
+    )
+
+
+def test_regions_too_narrow_for_a_circle_are_reported(fake_streamlit):
+    """Those regions contribute nothing, and the fix is a smaller minimum circle size.
+
+    From a circle count alone the user cannot tell that tissue was skipped.
+    """
+    from qupath_to_lmd import packing
+
+    result = packing.PackingResult(n_regions_too_small=17)
+    ui_packing._report_packing(
+        result, packing.PackingParams(min_circle_area_um2=250), pixel_size_um=1.0
+    )
+    shown = fake_streamlit.shown("warnings")
+    assert "too narrow to hold even one circle" in shown and "250" in shown, (
+        f"Skipped regions were not reported with the size that skipped them. Shown: {shown!r}"
+    )
+
+
+def test_the_smoothing_loss_is_warned_about_when_it_is_large(fake_streamlit):
+    """Area per replicate is this workflow's whole budget, and smoothing eats into it.
+
+    Small circles lose about 10% of their area at the default 1 px tolerance, so every well
+    would hold less than the table above it says.
+    """
+    result, params, _ = _packed(
+        area_per_replicate_um2=4_000, min_circle_area_um2=100, max_circle_area_um2=150, seed=0
+    )
+    ui_packing._report_packing(result, params, pixel_size_um=1.0)
+    shown = fake_streamlit.shown("warnings") + " " + fake_streamlit.shown("captions")
+    assert "moothing" in shown, (
+        "Nothing was said about smoothing taking area off the circles, so the amounts shown are "
+        "larger than what the laser will actually collect."
     )

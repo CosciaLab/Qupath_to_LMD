@@ -510,7 +510,7 @@ cells → Voronoi territory per cell → merge by class → regions
                                                   CollectionPlan → .xml
 ```
 
-## PR 1 — `feat/voronoi-regions`
+## PR 1 — regions
 
 > **Done.** Third workflow, `regions.py`, `ui_packing.py`, a `regions` golden case.
 
@@ -518,7 +518,10 @@ Voronoi projection capped at a disc and clipped to the hull of the cell outlines
 class into one region per contiguous area, area-balanced dealing across replicates, and the
 existing plate and export path. Useful on its own: it collects whole neighbourhoods.
 
-## PR 2 — `feat/circle-packing`
+## PR 2 — folded into the same branch
+
+> **Done.** Jose: "without the circle packing the main functionality is half baked… one
+> functionality one PR." So both halves ship together on `feat/circle-packing`.
 
 Ported from the prototype at `PY38_CirclePackingStreamlit`, which is random dart-throwing with
 rejection sampling — the right algorithm here — but which starts from an already-tessellated
@@ -543,6 +546,12 @@ measured changes, each to be logged:
   would tell a user with a 20 µm gap they had 4.5× more tissue than they do.
 - `n_permutations` (best-of-N restarts) dropped: ×5 cost for a marginal gain, and it makes the
   random stream depend on it.
+
+**What the measurements turned into, once it was built** — see `decisions.md` 067 and the
+`facts.md` tables. Three bugs only running it could find: regions too narrow for any circle burned
+the whole attempt budget each (119 of 684 on the real core), a one-sided deficit over-packed a
+class by more than twice its target, and packing exactly the total left the last replicate ~5%
+short. 8.6 s and 6-of-9 replicates filled became 0.7 s and 9 of 9.
 
 **The smoothing interaction needs saying on screen.** At the default 1 px tolerance a circle of
 radius ≤ 10 px goes from 65 vertices to 9 and **loses 10% of its area**; at radius ≥ 20 px the

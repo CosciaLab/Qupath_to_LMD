@@ -61,6 +61,12 @@ well, because that is the tissue belonging to the class. Two regions of differen
 overlap. How far a region may reach is capped, so a lone cell at the edge of the tissue cannot
 claim the blank slide around it.
 
+**circle** — one of the many small discs packed inside a region to collect a set amount of it.
+A circle is a **shape**, so it is cut like any other. Sizes are given as areas in µm², because
+that is what an experiment is specified in, and the **gap** is the least tissue left between two
+cuts — enforced between circles of different classes as well, since the laser does not care which
+class a neighbouring cut belongs to.
+
 **replicate** — one repeat of a class, collected into its own well. Replicates of a class are
 drawn from across the whole tissue and interleaved with each other, so they are statistical
 repeats rather than samples of different regions.

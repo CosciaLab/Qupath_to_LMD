@@ -5,7 +5,7 @@
 QuPath-to-LMD is the easiest way to go from QuPath annotations to LMD collection!
 With more than 60 unique users, we try to help everyone collect their tissues for DVP.
 
-Three workflows: **annotations**, the standard where every classified annotation is cut; **cell segmentation**, where you ask for a number of cells or an area per replicate and the app picks the cells; and **cellular neighbourhoods**, where classified cells are turned into contiguous regions of tissue and those regions are cut.
+Three workflows: **annotations**, the standard where every classified annotation is cut; **cell segmentation**, where you ask for a number of cells or an area per replicate and the app picks the cells; and **cellular neighbourhoods**, where classified cells are turned into contiguous regions of tissue and small circles are packed inside them to collect a set amount of each.
 
 ## In QuPath
 
@@ -43,14 +43,25 @@ picked before you export. Cells below a minimum area (100 µm² by default, per 
 out, so keeping only the shapes you can actually collect.
 
 **Cellular neighbourhoods** — for when a single cell is too little tissue but you still want to
-collect by cell type. Each cell is given the tissue closest to it, touching cells of the same
-class are merged into one **region**, and the regions are what get cut. A class usually has
-several separate regions, and they are shared out between its replicates so the replicates end
-up comparable in amount. Two things worth knowing: a region covers the space *between* the
-cells as well, because that is the tissue belonging to that class, so it reaches past the
-outlines QuPath drew — you control how far with one setting. And where a region completely
-surrounds tissue of another class, the laser follows the region's outer outline, so that
-enclosed tissue is collected too; the app tells you how much before you export.
+collect by cell type. Each cell is given the tissue closest to it, and touching cells of the same
+class are merged into one **region**. Then you set how much tissue you want per replicate, in
+µm², and the app fills the regions with small circles until it reaches that amount. Circles cut
+far faster than one enormous irregular outline, and they let you ask for a measured amount rather
+than all of it. You control the circle size range, the gap left between cuts, and a seed — the
+same seed and settings always give you the same circles, so a collection can be repeated in a
+later session and reported in a methods section. Everything you set is saved in the download.
+
+Before it packs anything the app shows you how much each class can actually hold, which is well
+below its area: randomly placed circles cover about 55% of a region at best, and the gap between
+them cuts that down a lot more. Afterwards it shows what each replicate really got.
+
+Two things worth knowing. A region covers the space *between* the cells as well, because that is
+the tissue belonging to that class, so it reaches past the outlines QuPath drew — one setting
+controls how far. And smoothing shaves a little area off every circle, so if that adds up to more
+than a few percent the app says so and tells you how to avoid it.
+
+You can also collect **the whole regions** instead of circles, which is what you want if you want
+all of a neighbourhood rather than a measured amount of it.
 
 All three workflows let you set the smoothing tolerance and the cutting order, and all download
 the same bundle: the `.xml` for the LMD, the plate scheme, a QC image, your processed
