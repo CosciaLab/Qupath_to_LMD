@@ -1638,3 +1638,34 @@ identifiers.
 **Left alone on purpose:** µm/px keeps 4 decimals and percentages keep 1. Those are small
 numbers where a thousands separator means nothing and the decimal carries information — the rule
 is "no meaningless precision", not "no decimals anywhere".
+
+## 073 — both workflows start from a real experiment, and there is a changelog
+**Date:** 2026-09-17 · **Status:** active · **supersedes the default in 039, extends 072**
+Jose: "cell workflow should still have 3 replicates per class included, and each should have
+25000 in terms of area, for number of cells it should have 150 cells."
+
+### The cell workflow starts at 3 x 25 000 µm², or 3 x 150 cells
+`072` had left it at 1 replicate of *the whole surviving class*, on the reasoning that 3
+replicates of the whole class would ask for three times what exists and warn on every load.
+Jose overruled that, and he is right for a reason I had missed: **defaulting to the whole class
+silently disabled the feasibility check**. A class can always supply all of itself, so the one
+figure that tells a user whether their plan is possible read "every class can supply its budget"
+on every single load, whatever the file. A default that guarantees a green light is worse than a
+default that sometimes warns — the warning is the feature.
+On `Single_cells.geojson` the new default asks 450 cells of a 121-cell class and says so, which
+is exactly the information the step exists to give.
+**One definition, in `budget.py`**: `DEFAULT_REPLICATES`, `DEFAULT_AREA_PER_REPLICATE_UM2`,
+`DEFAULT_CELLS_PER_REPLICATE`, and `BudgetMode.default_per_replicate` which picks between the
+last two. `packing.py` imports them rather than keeping its own copies, so the two workflows
+cannot offer different amounts for the same experiment — `tests/test_budget.py` asserts they are
+the same objects.
+**Supersedes** the "default to the whole class in a single replicate" choice from Phase 3.
+
+### A changelog, written for users
+`CHANGELOG.md`, newest first, linked from `README.md`. Written in the voice of the v4.0.0 release
+notes — what changed *for you*, not what changed in the code. No commit hashes, no module names
+except where a user would type them.
+Starts at the current release with the earlier tags pointed at rather than reconstructed: v3 and
+before predate the file and inventing their contents from commit subjects would produce something
+confidently wrong. The top section is left as **Unreleased** because the version number is Jose's
+to pick when he bumps `pyproject.toml`.

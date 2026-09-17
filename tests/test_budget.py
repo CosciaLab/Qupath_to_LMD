@@ -148,3 +148,53 @@ def test_the_filter_columns_are_absent_without_a_scale(cells_gdf):
     check = budget.feasibility(table, budgets, budget.BudgetMode.CELLS)
     assert budget.FILTERED not in check.columns
     assert budget.DISPLAY_COLUMNS[budget.FILTERED] not in budget.for_display(check).columns
+
+
+def test_the_default_amount_is_a_real_experiment_not_the_whole_class():
+    """Both workflows start from 3 replicates of 25,000 µm², or 150 cells.
+
+    The old default offered everything a class held, which is never what an experiment wants and
+    silently disabled the feasibility check below it: a class can always supply all of itself, so
+    the one figure that tells a user whether their plan is possible was always green.
+    """
+    assert budget.DEFAULT_REPLICATES == 3, (
+        "Three replicates is the smallest number that supports a variance estimate; fewer "
+        "leaves a user with no way to tell signal from scatter."
+    )
+    assert budget.BudgetMode.AREA.default_per_replicate == 25_000.0
+    assert budget.BudgetMode.CELLS.default_per_replicate == 150
+
+
+def test_both_workflows_read_the_same_default():
+    """One figure, one definition. Two copies drift the moment either is changed."""
+    from qupath_to_lmd import packing
+
+    assert packing.DEFAULT_REPLICATES is budget.DEFAULT_REPLICATES
+    assert packing.DEFAULT_AREA_PER_REPLICATE_UM2 is budget.DEFAULT_AREA_PER_REPLICATE_UM2
+    assert packing.ClassPacking("Tumor").replicates == budget.DEFAULT_REPLICATES, (
+        "The regions workflow no longer starts from the shared default."
+    )
+    assert (
+        packing.ClassPacking("Tumor").area_per_replicate_um2
+        == budget.BudgetMode.AREA.default_per_replicate
+    ), "The two workflows would offer different amounts for the same experiment."
+
+
+def test_the_default_plan_is_flagged_when_a_class_cannot_supply_it(cells_gdf):
+    """The point of a concrete default: the feasibility check can now actually fire.
+
+    The single-cell demo file has 121 cells in its main class, so 3 replicates of 150 is short
+    by 329 — and the user is told before they select anything.
+    """
+    table = stats.class_statistics(cells_gdf)
+    budgets = [
+        budget.ClassBudget(name, budget.DEFAULT_REPLICATES, budget.BudgetMode.CELLS.default_per_replicate)
+        for name in table.index
+    ]
+    check = budget.feasibility(table, budgets, budget.BudgetMode.CELLS)
+
+    short = check[check[budget.SHORTFALL] > 0]
+    assert not short.empty, (
+        "A file with 121 cells was asked for 450 and no shortfall was reported, so the user "
+        "would size a plate for tissue that is not there."
+    )

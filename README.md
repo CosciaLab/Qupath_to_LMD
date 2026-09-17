@@ -115,6 +115,10 @@ uv run streamlit run streamlit_app.py
 - [`facts.md`](facts.md) records what is true about the app, [`decisions.md`](decisions.md) why it
   is that way, and [`GLOSSARY.md`](GLOSSARY.md) the vocabulary.
 
+# Changelog
+
+What changed in each release, in plain language: [CHANGELOG.md](CHANGELOG.md).
+
 # Citation
 
 Please cite the following work when using this package:

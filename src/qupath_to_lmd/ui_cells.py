@@ -85,18 +85,17 @@ def budgets_step(selected: list[str], step: str = "5") -> tuple[list[budget.Clas
     default_floor = stats.DEFAULT_MINIMUM_AREA_UM2 if pixel_size_um else 0.0
     default_floors = dict.fromkeys(selected, default_floor)
     pool, _excluded = stats.filter_by_minimum_area(gdf, default_floors, pixel_size_um)
-    table = _filtered_statistics(pool, tuple(sorted(default_floors.items())), pixel_size_um)
-    supply = table.reindex(selected)[mode.stats_column].fillna(0)
-
-    # Default to the whole class in a single replicate — the same thing the annotations
-    # workflow would do — so the starting point is neutral rather than an invented number.
+    # Start from what a DVP experiment is normally designed around rather than from the whole
+    # class. Defaulting to everything a class holds meant the feasibility check below could
+    # never fire — a class can always supply all of itself — so the one number that tells the
+    # user whether their plan is possible was silently always green (`decisions.md` 073).
     columns = {
-        budget.DISPLAY_COLUMNS[budget.REPLICATES]: 1,
-        budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: supply.round(stats.DECIMALS),
+        budget.DISPLAY_COLUMNS[budget.REPLICATES]: budget.DEFAULT_REPLICATES,
+        budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: mode.default_per_replicate,
     }
     if pixel_size_um:
         columns[MINIMUM_AREA_COLUMN] = default_floor
-    editable = pandas.DataFrame(columns, index=supply.index)
+    editable = pandas.DataFrame(columns, index=pandas.Index(selected, name=CLASS_NAME))
 
     # A key tied to the selection and mode, so changing either gives a fresh editor rather
     # than leaving rows from the previous one behind.
@@ -106,7 +105,10 @@ def budgets_step(selected: list[str], step: str = "5") -> tuple[list[budget.Clas
             budget.DISPLAY_COLUMNS[budget.REPLICATES], min_value=1, step=1, format="%d"
         ),
         budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: st.column_config.NumberColumn(
-            f"Per replicate ({mode.unit})", min_value=0.0, format=f"%.{stats.DECIMALS}f"
+            f"Per replicate ({mode.unit})",
+            min_value=0.0,
+            step=1_000.0 if mode is budget.BudgetMode.AREA else 10.0,
+            format="localized",
         ),
     }
     if pixel_size_um:
@@ -114,7 +116,7 @@ def budgets_step(selected: list[str], step: str = "5") -> tuple[list[budget.Clas
             MINIMUM_AREA_COLUMN,
             min_value=0.0,
             step=10.0,
-            format=f"%.{stats.DECIMALS}f",
+            format="localized",
             help=(
                 "Shapes smaller than this are left out before anything is counted, so every "
                 "figure below describes tissue you can actually collect. Different biologies "
@@ -201,8 +203,8 @@ def _report_feasibility(
     short = check[check[budget.SHORTFALL] > 0]
     if not short.empty:
         lines = "\n".join(
-            f"- **{name}**: asked for {row[budget.REQUIRED]:,.{stats.DECIMALS}f} {mode.unit}, "
-            f"has {row[budget.AVAILABLE]:,.{stats.DECIMALS}f} — enough for "
+            f"- **{name}**: asked for {row[budget.REQUIRED]:,.0f} {mode.unit}, "
+            f"has {row[budget.AVAILABLE]:,.0f} — enough for "
             f"{int(row[budget.ACHIEVABLE])} full replicate(s)"
             for name, row in short.iterrows()
         )
@@ -387,7 +389,7 @@ def _report_selection(result: selection.SelectionResult, mode: budget.BudgetMode
     if not short.empty:
         lines = "\n".join(
             f"- **{row[CLASS_NAME]} replicate {int(row['replicate'])}**: got "
-            f"{row['achieved']:,.{stats.DECIMALS}f} of {row['requested']:,.{stats.DECIMALS}f} {mode.unit}"
+            f"{row['achieved']:,.0f} of {row['requested']:,.0f} {mode.unit}"
             for _, row in short.iterrows()
         )
         st.warning(

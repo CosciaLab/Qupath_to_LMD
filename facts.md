@@ -472,9 +472,12 @@ the exact trap `decisions.md` 051 describes. With the collection step above the 
 fragment has to go, and the caches on the projection and the packing are what keep a full rerun
 affordable instead.
 
-Defaults: **3 replicates** of **25 000 µm²** per class. Three is the smallest number that
-supports a variance estimate, so it is what a DVP experiment is normally designed around, and
-25 000 µm² is what Jose collects per well. On his core those defaults sit at the edge for the
+Defaults: **3 replicates** of **25 000 µm²** per class — or **150 cells** where a budget counts
+cells. Defined once, in `budget.py` (`DEFAULT_REPLICATES`, `DEFAULT_AREA_PER_REPLICATE_UM2`,
+`DEFAULT_CELLS_PER_REPLICATE`, and `BudgetMode.default_per_replicate`), and read by **both**
+workflows that collect into replicates, so the figure cannot drift between them. Three is the
+smallest number that supports a variance estimate, so it is what a DVP experiment is normally
+designed around. On his core those defaults sit at the edge for the
 smallest class — `Immune cells--Tumor` holds about 76 000 µm² of packable area against 75 000
 asked for — so the shortfall warning fires on its third replicate out of the box. That is the
 capacity estimate doing its job, not a failure.
