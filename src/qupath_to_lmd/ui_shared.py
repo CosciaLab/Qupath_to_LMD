@@ -8,6 +8,7 @@ pure and take explicit arguments.
 import json
 from pathlib import Path
 
+import pandas
 import streamlit as st
 from loguru import logger
 
@@ -347,6 +348,34 @@ def _report_pixel_size(value, source, estimate, report) -> None:
         )
 
 
+# Amounts in this app run from tens to millions of µm², and no decimal in them is meaningful:
+# a tenth of a square micrometre is far below anything the laser can place. So every table of
+# amounts shows whole numbers with a thousands separator (`decisions.md` 068, 072).
+WHOLE_NUMBER = st.column_config.NumberColumn(format="localized")
+
+
+def show_amounts(table, **kwargs) -> None:
+    """Show a table of amounts: whole numbers, thousands separated.
+
+    Only the numeric columns get a number format. Handing a `NumberColumn` to a text column —
+    a class name — makes Streamlit mark every cell with "this value cannot be interpreted as a
+    number", which reads as an error in a table that is perfectly fine.
+    """
+    if table is None or len(table) == 0:
+        return
+    rounded = table.copy()
+    for column in rounded.columns:
+        if pandas.api.types.is_numeric_dtype(rounded[column]):
+            rounded[column] = rounded[column].round(0).astype("Int64")
+    config = {
+        name: WHOLE_NUMBER
+        for name in rounded.columns
+        if pandas.api.types.is_numeric_dtype(rounded[name])
+    }
+    config.update(kwargs.pop("column_config", {}) or {})
+    st.dataframe(rounded, width="stretch", column_config=config, **kwargs)
+
+
 def shape_fingerprint(gdf) -> tuple:
     """A cheap identity for the working shapes, for cache keys.
 
@@ -403,17 +432,8 @@ def class_selection_step(pixel_size_um: float | None, step: str = "4") -> list[s
             )
 
         table = _cached_statistics(gdf, shape_fingerprint(gdf), pixel_size_um)
-        display = stats.for_display(table)
-        # Columns stay numeric so the table remains sortable; the format only trims the display.
-        st.dataframe(
-            display,
-            width="stretch",
-            column_config={
-                name: st.column_config.NumberColumn(name, format=f"%.{stats.DECIMALS}f")
-                for name in display.columns
-                if name != stats.DISPLAY_COLUMNS["shapes"]
-            },
-        )
+        # Columns stay numeric so the table remains sortable; only the rendering is trimmed.
+        show_amounts(stats.for_display(table))
 
         all_classes = table.index.tolist()
         selected = st.multiselect(
@@ -817,7 +837,7 @@ def _export_parameters(step: str) -> tuple[float, export.PathOrder]:
 
     with tolerance_column:
         tolerance = st.number_input(
-            "Smoothing tolerance (pixels)",
+            "Smoothing tolerance (px)",
             min_value=0.0,
             max_value=100.0,
             value=export.DEFAULT_SIMPLIFY_TOLERANCE,

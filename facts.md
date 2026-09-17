@@ -472,6 +472,42 @@ the exact trap `decisions.md` 051 describes. With the collection step above the 
 fragment has to go, and the caches on the projection and the packing are what keep a full rerun
 affordable instead.
 
+Defaults: **3 replicates** of **25 000 µm²** per class. Three is the smallest number that
+supports a variance estimate, so it is what a DVP experiment is normally designed around, and
+25 000 µm² is what Jose collects per well. On his core those defaults sit at the edge for the
+smallest class — `Immune cells--Tumor` holds about 76 000 µm² of packable area against 75 000
+asked for — so the shortfall warning fires on its third replicate out of the box. That is the
+capacity estimate doing its job, not a failure.
+
+### The pipeline, and why each part is the way it is
+
+1. **Tessellate over every classified cell.** `shapely.voronoi_polygons(MultiPoint(centroids),
+   ordered=True, extend_to=hull.envelope)`. `ordered=True` (shapely >= 2.1) guarantees the i-th
+   polygon belongs to the i-th point, so class labels map by position — no spatial join and no
+   `-1` unbounded-region bookkeeping. Verified 121/121 on `Single_cells.geojson`.
+   `tests/test_regions.py::test_each_region_belongs_to_its_own_cell` is the guard: if that
+   contract breaks, every region carries a neighbour's class and every well holds the wrong
+   tissue.
+2. **Classes are filtered *after* tessellating**, never before. `project(..., include=[...])`
+   exists for exactly this. Dropping a class first would let its neighbours expand into the
+   space it occupied, putting one class's tissue in another class's well.
+3. **Cap each region** at a disc around its own cell, and **clip to the convex hull of the cell
+   outlines**. The interface asks for the cap as a **distance in µm**, defaulting to three times
+   `median_cell_spacing` — so "what bounds the projection?" is answered by the label rather than
+   by a tooltip (`decisions.md` 071). An uncapped Voronoi cell on the rim of the tissue is
+   unbounded, so a cut placed in it takes blank glass. The hull is of the cell **bodies**, not
+   their centroids: a rim cell's centroid sits on the centroid hull, which would clip away half
+   its own tissue. `RegionParams` still accepts `radius_factor` for callers that prefer to scale
+   it, which the harness and the tests use.
+4. **Merge by class**, `dissolve` then `explode`, one row per contiguous patch. Patches are then
+   sorted by `(class, minx, miny)` — GEOS decides what order a union returns and that order
+   picks the wells, so it is pinned rather than inherited.
+5. **Deal patches across replicates**, largest first into whichever replicate holds the least
+   area. No randomness; the same file reaches the same wells in any session.
+
+Voronoi cells, discs and the hull are all convex, so a **region is always a single Polygon** —
+MultiPolygons appear only at the merge, and the explode turns those into separate patches.
+
 ### The feedback picture
 
 `plot.plot_regions_and_circles`. Two variables, so two channels that cannot be confused:
@@ -767,10 +803,33 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
     types, which is better than a `0.0` sentinel that has to be told apart from a real entry.
   - Pixel size is therefore `step=1e-4`, `format="%.4f"`, `min_value=1e-4` — see the
     `PIXEL_SIZE_*` constants in `ui_shared.py`. Values with more than 4 decimals are rounded.
+- **How a number is shown, everywhere** (`decisions.md` 068, 072):
+  - **Amounts in µm² are whole numbers with a thousands separator.** Areas run from tens to
+    millions and a tenth of a square micrometre is far below anything the laser can place, so a
+    decimal is noise in a number the user has to read. Inputs use `format="%d"` with integer
+    bounds; tables go through `ui_shared.show_amounts`, which rounds the numeric columns, casts
+    them to `Int64` and applies `NumberColumn(format="localized")` — an integer column cannot
+    render a decimal, so one change satisfies both halves.
+  - **A `NumberColumn` only ever goes on a numeric column.** Handing one to a text column makes
+    Streamlit stamp every cell with a red "this value cannot be interpreted as a number"
+    triangle, so a table of class names and amounts reads as broken when it is fine.
+    `show_amounts` builds its config from `is_numeric_dtype`; `tests/test_ui_behaviour.py` pins
+    it, because the symptom is invisible to every check except looking at the screen.
+  - **One helper for all three workflows**, so a user switching between them meets the same
+    number the same way. Audited by rendering every amount table in all three and reading back
+    the dtypes and the column config.
+  - **The unit is in the column header**, never left to be inferred. The cell workflow's
+    feasibility and achieved tables are renamed at render time to carry `mode.unit`; the library
+    keeps its own column names, so `tests/test_budget.py` still pins the contract rather than
+    the rendering.
+  - **Display spellings are `µm²`, `px²`, `µm/px`, `px`.** `um2`/`px2` appear only in
+    identifiers. µm/px keeps 4 decimals and percentages keep 1 — those are small numbers where a
+    separator means nothing and the decimal carries information. The rule is "no meaningless
+    precision", not "no decimals anywhere".
 - `ruff` configured in `pyproject.toml`: line-length 120, target py311, double quotes,
   google docstring convention, `E501` ignored.
-- No test suite in the repo (pytest was removed in `0530833`), though `pytest` is still a
-  declared dependency.
+- The test suite lives in `tests/` and is described below; `pytest` and `pytest-cov` are in the
+  dev group.
 
 ## Known quirks and open issues
 

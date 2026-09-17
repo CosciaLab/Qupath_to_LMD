@@ -21,11 +21,6 @@ from loguru import logger
 from qupath_to_lmd import budget, export, geojson, packing, plate, plot, regions, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, REPLICATE, plan_from_selection
 
-# Areas here run from tens to millions of µm² and no decimal in them is meaningful, so tables
-# show whole numbers with a thousands separator. Integer columns cannot render a decimal, and
-# `localized` is what adds the grouping.
-WHOLE_NUMBER = st.column_config.NumberColumn(format="localized")
-
 
 class CollectMode(str, Enum):
     """What is cut out of each region."""
@@ -79,36 +74,6 @@ def _as_area(area_px2, pixel_size_um: float | None):
 def _as_distance(px: float, pixel_size_um: float | None) -> str:
     """A distance in µm where a scale is known, in pixels where it is not."""
     return f"{px * pixel_size_um:,.0f} µm" if pixel_size_um else f"{px:,.0f} px"
-
-
-def _whole_numbers(table: pandas.DataFrame) -> pandas.DataFrame:
-    """Round every float column to a whole number, so no column can render a decimal."""
-    rounded = table.copy()
-    for column in rounded.columns:
-        if pandas.api.types.is_numeric_dtype(rounded[column]):
-            rounded[column] = rounded[column].round(0).astype("Int64")
-    return rounded
-
-
-def _show_table(table: pandas.DataFrame) -> None:
-    """Show a table of amounts: whole numbers, thousands separated.
-
-    Only the numeric columns get a number format. Handing a `NumberColumn` to a text column —
-    a class name — makes Streamlit mark every cell with "this value cannot be interpreted as a
-    number", which reads as an error in a table that is perfectly fine.
-    """
-    if table.empty:
-        return
-    rounded = _whole_numbers(table)
-    st.dataframe(
-        rounded,
-        width="stretch",
-        column_config={
-            name: WHOLE_NUMBER
-            for name in rounded.columns
-            if pandas.api.types.is_numeric_dtype(rounded[name])
-        },
-    )
 
 
 @st.cache_data(show_spinner=False)
@@ -181,7 +146,7 @@ def regions_step(
             st.session_state.region_params = vars(params)
             logger.info(f"Region parameters: {vars(params)}")
 
-        _show_table(report.summary(pixel_size_um))
+        ui_shared.show_amounts(report.summary(pixel_size_um))
         st.write(
             f"**{report.n_patches:,} regions** from {report.n_cells_kept:,} cells across "
             f"{len(report.per_class)} classes."
@@ -272,7 +237,7 @@ def _request_table(report, step: str, with_circles: bool) -> list[packing.ClassP
     a row of controls somewhere else.
     """
     classes = report.per_class.index
-    columns = {REPLICATES_COLUMN: 1}
+    columns = {REPLICATES_COLUMN: packing.DEFAULT_REPLICATES}
     if with_circles:
         columns[AMOUNT_COLUMN] = int(packing.DEFAULT_AREA_PER_REPLICATE_UM2)
         columns[MIN_CIRCLE_COLUMN] = int(packing.DEFAULT_MIN_CIRCLE_AREA_UM2)
@@ -454,7 +419,7 @@ def _report_packing(result, requests) -> None:
     Below the settings and the picture: this is the detail a user reads once they have settled
     on an arrangement, not what they watch while tuning it.
     """
-    _show_table(
+    ui_shared.show_amounts(
         result.achieved.rename(
             columns={
                 CLASS_NAME: "Class",
@@ -483,7 +448,7 @@ def _report_packing(result, requests) -> None:
         st.success("Every replicate reached the amount you asked for.")
 
     with st.expander("How much each class could hold, before packing"):
-        _show_table(_capacity_for_display(result.capacity))
+        ui_shared.show_amounts(_capacity_for_display(result.capacity))
         st.caption(
             "Randomly placed circles cover about 55% of an area at best, and the gap between "
             "them cuts that down further, so what a region can hold is well below its area."
@@ -537,7 +502,7 @@ def _collect_whole(patches, requests, pixel_size_um) -> Collected:
     ).dropna(subset=["Replicate"])
 
     if not frame.empty:
-        _show_table(frame.groupby(["Class", "Replicate"]).sum(numeric_only=True))
+        ui_shared.show_amounts(frame.groupby(["Class", "Replicate"]).sum(numeric_only=True))
 
     _report_starved_replicates(patches, replicates, replicate_of)
     return Collected(

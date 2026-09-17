@@ -488,9 +488,7 @@ def test_only_number_columns_are_given_a_number_format(fake_streamlit):
     """
     import pandas
 
-    from qupath_to_lmd import ui_packing
-
-    ui_packing._show_table(
+    ui_shared.show_amounts(
         pandas.DataFrame({"Class": ["Tumor", "Immune cells"], "Collected (µm²)": [10_004.4, 9_998.1]})
     )
     assert fake_streamlit.tables, "Nothing was shown at all."

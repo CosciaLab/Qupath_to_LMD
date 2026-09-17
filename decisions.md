@@ -1596,3 +1596,45 @@ shared and `ui_cells.overview_step` drew the same picture a screen further down.
 gone.
 Step 6 keeps its picture *below* rather than beside: five per-class columns do not fit in a third
 of the page, which `070` already settled.
+
+## 072 — one way to show a number, and the defaults a DVP experiment actually uses
+**Date:** 2026-09-17 · **Status:** active · **extends 068**
+Pre-merge pass, from Jose: "please check the units and thousands separator issue across the
+entire app, for consistency. Also, please change the default number of replicates to be 3, and
+the default area per replicate to be 25000."
+
+### Defaults
+`packing.DEFAULT_REPLICATES = 3`, `DEFAULT_AREA_PER_REPLICATE_UM2 = 25_000.0`. Three replicates
+is the smallest number that supports a variance estimate, so it is what a DVP experiment is
+normally designed around; 25 000 µm² is Jose's own per-well amount. Worth knowing what that does
+on his core: `Immune cells--Tumor` has about 76 000 µm² of packable area against 3 × 25 000, so
+its third replicate falls short out of the box and the warning fires. Correct behaviour — the
+class genuinely cannot supply it — and better seen immediately than discovered at the mass spec.
+**Deliberately not changed: the cell workflow still defaults to 1 replicate.** Its per-replicate
+amount defaults to *the whole surviving class*, so 3 replicates would ask for three times what
+exists and raise a shortfall on every single load. Two workflows, two defaults, because the
+amount they start from means different things.
+
+### One helper renders every table of amounts
+`ui_shared.show_amounts`, used by all three workflows. Rounds numeric columns to whole numbers,
+casts to `Int64`, and applies `NumberColumn(format="localized")` to those columns only.
+Audited by rendering every amount table in all three workflows and reading back the dtypes and
+the column config: six tables, every numeric column whole and separated, no text column given a
+number format. Before the pass the cell workflow showed `428955.48` where the regions workflow
+showed `428,955`, which is the same complaint Jose raised about step 5 — in a workflow he had not
+been looking at.
+
+### Units are in the header, not inferred
+The cell workflow's feasibility table had **Available**, **Total requested** and **Short by** with
+no unit at all, while only **Per replicate** carried one — and its achieved table showed the
+library's own identifiers, including `area_um2` and `neighbour_also_collected`. Both are renamed
+at render time with `mode.unit` so the header says what it counts. The library keeps its column
+names; `budget.DISPLAY_COLUMNS` and `selection.WITH_NEIGHBOUR` are untouched, so
+`tests/test_budget.py` and `tests/test_stats.py` still pin the library contract rather than the
+rendering.
+One label was inconsistent app-wide: "Smoothing tolerance (pixels)" against `px` everywhere
+else. Now `px`. Display spellings are `µm²`, `px²`, `µm/px`, `px`; `um2`/`px2` survive only as
+identifiers.
+**Left alone on purpose:** µm/px keeps 4 decimals and percentages keep 1. Those are small
+numbers where a thousands separator means nothing and the decimal carries information — the rule
+is "no meaningless precision", not "no decimals anywhere".

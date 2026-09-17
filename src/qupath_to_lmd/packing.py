@@ -41,7 +41,10 @@ from qupath_to_lmd.model import CLASS_NAME, REPLICATE
 # stage traces, so this trades cutting time against how round the cut really is.
 QUAD_SEGS = 16
 
-DEFAULT_AREA_PER_REPLICATE_UM2 = 10_000.0
+# Three replicates is the smallest number that supports a variance estimate, so it is what a
+# DVP experiment is normally designed around; 25 000 µm² is the amount Jose collects per well.
+DEFAULT_REPLICATES = 3
+DEFAULT_AREA_PER_REPLICATE_UM2 = 25_000.0
 # The same floor the cell workflow uses for a collectable shape (`decisions.md` 060).
 DEFAULT_MIN_CIRCLE_AREA_UM2 = 100.0
 DEFAULT_MAX_CIRCLE_AREA_UM2 = 500.0
@@ -101,7 +104,7 @@ class ClassPacking:
     """
 
     class_name: str
-    replicates: int = 1
+    replicates: int = DEFAULT_REPLICATES
     area_per_replicate_um2: float = DEFAULT_AREA_PER_REPLICATE_UM2
     min_circle_area_um2: float = DEFAULT_MIN_CIRCLE_AREA_UM2
     max_circle_area_um2: float = DEFAULT_MAX_CIRCLE_AREA_UM2

@@ -164,14 +164,20 @@ def _report_feasibility(
     (`decisions.md` 065).
     """
     check = budget.feasibility(table, budgets, mode, excluded=excluded)
-    display = budget.for_display(check)
-    st.dataframe(
+    # The unit is named in every amount column, not only in "per replicate": a column headed
+    # "Available" tells the reader nothing about whether it counts shapes or µm².
+    display = budget.for_display(check).rename(
+        columns={
+            budget.DISPLAY_COLUMNS[column]: f"{budget.DISPLAY_COLUMNS[column]} ({mode.unit})"
+            for column in (budget.PER_REPLICATE, budget.REQUIRED, budget.AVAILABLE, budget.SHORTFALL)
+        }
+    )
+    ui_shared.show_amounts(
         display,
-        width="stretch",
         column_config={
             budget.DISPLAY_COLUMNS[budget.FILTERED_SHARE]: st.column_config.NumberColumn(
                 budget.DISPLAY_COLUMNS[budget.FILTERED_SHARE],
-                format="%.1f%%",
+                format="%d%%",
                 help=(
                     "Share of this class left out for being under its minimum area. Those "
                     "shapes are gone before anything else here is counted, so every other "
@@ -361,7 +367,21 @@ def selection_step(budgets, settings: dict, pixel_size_um: float | None, pool, s
 def _report_selection(result: selection.SelectionResult, mode: budget.BudgetMode) -> None:
     """Achieved against requested, per replicate."""
     st.write(f"**{result.n_selected:,} shapes** selected across {len(result.achieved)} replicates.")
-    st.dataframe(result.achieved.round(stats.DECIMALS), width="stretch")
+    # Renamed at render time: the frame carries the library's own column names, and
+    # `area_um2` / `neighbour_also_collected` are identifiers, not something to show a user.
+    ui_shared.show_amounts(
+        result.achieved.rename(
+            columns={
+                CLASS_NAME: "Class",
+                "replicate": "Replicate",
+                "shapes": "Shapes",
+                "area_um2": "Area (µm²)",
+                "requested": f"Asked for ({mode.unit})",
+                "achieved": f"Collected ({mode.unit})",
+                selection.WITH_NEIGHBOUR: "With a collected neighbour",
+            }
+        )
+    )
 
     short = result.shortfalls
     if not short.empty:
