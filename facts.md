@@ -42,26 +42,30 @@ src/qupath_to_lmd/
   model.py                        CollectionPlan, canonical column names, provenance
   geojson.py                      read_and_qc, explode_classes, extract_coordinates,
                                   rewrite_classification, sanitize_for_qupath,
+                                  synthesize_qupath_columns, classification_values,
                                   implied_pixel_size, drop_unused_columns
   plate.py                        plate shapes, acceptable_wells, layouts, saw parse/convert
   qc.py                           triangle_qc, validate_saw, compare_pixel_size (reports)
   stats.py                        class_statistics, for_display, reference_pixel_sizes
   budget.py                       BudgetMode, ClassBudget, feasibility, total_groups
   selection.py                    SelectionMode, SelectionParams, select, grid_bins
+  regions.py                      RegionParams, project, voronoi_regions, merge_by_class,
+                                  close_slivers, deal_patches, tissue_hull
   plot.py                         plot_shapes — class overview, selection preview, QC image
   export.py                       build_collection, build_bundle, PathOrder,
                                   order_for_cutting, path_stats, ORIENTATION_TRANSFORM
   extras.py                       QuPath classes.json generation
   === UI layer: Streamlit, owns session_state ===
-  ui_shared.py                    steps both workflows use
+  ui_shared.py                    steps every workflow uses, incl. class_selection_step
   ui_legacy.py                    annotations workflow (frozen as of Phase 1)
   ui_cells.py                     cell-segmentation workflow (step 8 is an st.fragment)
+  ui_packing.py                   cellular-neighbourhood workflow
   === other ===
   mock_streamlit.py               patch_streamlit() — stubs st.* for notebook use
   __init__.py                     empty
 tools/
   golden_harness.py               byte-equality regression gate
-  golden/                         10 reference artefacts, 5 cases
+  golden/                         12 reference artefacts, 6 cases
 demo_Qupath_project/              real QuPath project used as test fixture
   TD_01_verysmall_mIF.geojson     9 features: 6 annotation Polygons + 3 calibration Points
   Single_cells.geojson            131 features: 121 cells + 7 annotations + 3 Points
@@ -420,6 +424,91 @@ Both workflows expose the same two, in the shared export step.
   solver returning anything other than a permutation is logged and ignored rather than allowed
   to drop or duplicate shapes.
 
+## Regions: the cellular-neighbourhood workflow
+
+`regions.py` turns classified cells into **regions** — contiguous areas of tissue belonging to
+one class — and `ui_packing.py` collects them. Circle packing inside the regions is the next
+step and is not built yet.
+
+The pipeline, and why each part is the way it is:
+
+1. **Tessellate over every classified cell.** `shapely.voronoi_polygons(MultiPoint(centroids),
+   ordered=True, extend_to=hull.envelope)`. `ordered=True` (shapely ≥ 2.1) guarantees the i-th
+   polygon belongs to the i-th point, so class labels map by position — no spatial join and no
+   `-1` unbounded-region bookkeeping. Verified 121/121 on `Single_cells.geojson`.
+   `tests/test_regions.py::test_each_region_belongs_to_its_own_cell` is the guard: if that
+   contract breaks, every region carries a neighbour's class and every well holds the wrong
+   tissue.
+2. **Classes are filtered *after* tessellating**, never before. `project(..., include=[...])`
+   exists for exactly this. Dropping a class first would let its neighbours expand into the
+   space it occupied, putting one class's tissue in another class's well.
+3. **Cap each region** at a disc of radius `R` around its own cell, `R = radius_factor ×
+   median nearest-neighbour distance` (default factor 3), and **clip to the convex hull of the
+   cell outlines**. An uncapped Voronoi cell on the rim of the tissue is unbounded, so a cut
+   placed in it takes blank glass. The hull is of the cell **bodies**, not their centroids: a
+   rim cell's centroid sits on the centroid hull, which would clip away half its own tissue.
+4. **Merge by class**, `dissolve` then `explode`, one row per contiguous patch. Patches are
+   then sorted by `(class, minx, miny)` — GEOS decides what order a union returns and that
+   order picks the wells, so it is pinned rather than inherited.
+5. **Deal patches across replicates**, largest first into whichever replicate holds the least
+   area. No randomness; the same file reaches the same wells in any session.
+
+Voronoi cells, discs and the hull are all convex, so a **region is always a single Polygon** —
+MultiPolygons appear only at the merge, and the explode turns those into separate patches.
+
+### Pinhole slivers
+
+`CAP_QUAD_SEGS = 16` makes the radius cap a 64-sided polygon, while Voronoi edges are exact. So
+where three capped regions meet they leave a gap of a pixel or two owned by no region, and
+merging turns those into interior rings. `close_slivers` fills any interior ring smaller than
+**the smallest region of the whole tessellation** — a real hole is another cell's territory, so
+it cannot be smaller than that, which makes the threshold a property of the data rather than a
+tuned constant. Measured:
+
+| file | radius factor | smallest region | hole areas |
+| --- | --- | --- | --- |
+| `multiclass_cells` | 1.0 | 298 px² | 0.0, 1.0 — slivers |
+| `multiclass_cells` | 0.5 / 2 / 3 | 149–361 px² | none |
+| `Single_cells` | 1.0 | 702 px² | 0.0, 0.0, 0.0, 8.4 — slivers |
+| `Single_cells` | 3.0 | 702 px² | 2635.5 — real |
+| synthetic grid, one class enclosed | 3.0 | 48 px² | 100.0 — real |
+
+The two groups do not overlap. The threshold is taken over **all** regions, not only the kept
+ones, because a hole may be the region of a class the user left out and that class can hold
+smaller regions than any kept one.
+
+### What the export path cannot represent
+
+`geojson.extract_coordinates` returns `geometry.exterior.coords`, so **a hole is cut through**.
+Where a region completely surrounds another class, that enclosed tissue lands in the same well.
+Reported with its area in µm², warned not blocked.
+
+A region also **reaches past the cell outlines QuPath drew**. This is the dilation case
+`decisions.md` 013 and ROADMAP round-one open question 3 both left open, with the commitment
+that the app would say so on screen if it ever arrived. Step 5 explains it in prose rather than
+warning, because it is how the workflow works rather than an anomaly.
+
+### Synthesised shapes
+
+Regions have no QuPath object behind them, but `sanitize_for_qupath` and the plan frame both
+need `id`, `objectType` and `classification`. `geojson.synthesize_qupath_columns` adds them:
+positional ids (`region-000001`), `objectType="annotation"`, and the `classification` value
+QuPath wrote for that class, so colours survive the round trip. Called inside
+`ui_packing._cached_projection`, so every later step already holds an exportable frame.
+
+### Measured cost
+
+| cells | voronoi + cap + clip | dissolve + explode |
+| --- | --- | --- |
+| 20 000 | 0.79 s | 0.65 s |
+| 100 000 | hull alone 0.09 s | — |
+
+`tissue_hull` uses `shapely.convex_hull` on a geometry collection rather than
+`union_all().convex_hull`: identical answer, **0.09 s against 9.1 s** at 100 000 cells.
+
+`scipy` was declared in `pyproject.toml` and imported nowhere until now; `regions.py` uses
+`scipy.spatial.cKDTree` for nearest-neighbour spacing. No new dependency was added.
+
 ## Session state keys
 
 Initialised in the block at the top of `streamlit_app.py`. Any new key belongs here too.
@@ -428,12 +517,13 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | --- | --- |
 | `session_id` | uuid4 string, shown to the user for bug reports, names the log in the zip |
 | `log_file_path` | temp `.log` path; loguru sink, shipped inside the download zip |
-| `workflow` | `'legacy'` \| `'cells'` — which workflow the router dispatched to |
+| `workflow` | `'legacy'` \| `'cells'` \| `'regions'` — which workflow the router dispatched to |
 | `pixel_size_um` | µm per pixel, entered by the user; `None` until they do |
 | `selected_classes` | classes the cell workflow will collect; `None` means not chosen yet |
 | `budget_mode` | `'cells'` \| `'area'` — what the per-replicate amount counts |
 | `budgets` | list of `ClassBudget` as dicts: class, replicates, per-replicate amount |
 | `minimum_area_um2` | per-class minimum collectable area in µm²; drives the pre-measurement filter |
+| `region_params` | `RegionParams` as a dict: the radius cap that produced the current regions |
 | `view_mode` | `'default'` \| `'samples'` — which plate table is rendered |
 | `gdf` | the working GeoDataFrame (points removed, `classification_name` added) |
 | `geojson_report` | `GeojsonReport` from the last read, re-rendered on every rerun |
@@ -623,7 +713,7 @@ yields) with these figures and instructions for running locally (`decisions.md` 
 
 ## Test suite
 
-`tests/`, run with `uv run pytest` — 119 tests in about 5 seconds. `-m "not slow"` skips the
+`tests/`, run with `uv run pytest` — 193 tests in about 6 seconds. `-m "not slow"` skips the
 golden gate for a fast loop. CI runs ruff, the suite and the harness on every push and PR
 (`.github/workflows/ci.yml`).
 
@@ -650,23 +740,31 @@ golden gate for a fast loop. CI runs ruff, the suite and the harness on every pu
 
 ## Regression harness
 
-`tools/golden_harness.py`, with the reference output in `tools/golden/` (8 files, ~220 KB).
+`tools/golden_harness.py`, with the reference output in `tools/golden/` (12 files, ~230 KB).
 
 ```
 uv run python tools/golden_harness.py check      # compare against the golden files
 uv run python tools/golden_harness.py capture    # re-bless, only when output should change
 ```
 
-Five cases, each covering a path where a change could silently move coordinates:
+Six cases, each covering a path where a change could silently move coordinates:
 `annotations` (ordinary mini-bulk), `cells` (128 shapes with measurements),
 `cells_exploded` (one well per shape), `annotations_96` (different plate geometry),
-`multiclass_cells` (real QuPath 0.7.0 export shape). Each produces an XML and a CSV, so
-10 artefacts.
+`multiclass_cells` (real QuPath 0.7.0 export shape), `regions` (Voronoi projection and merge,
+where every coordinate is computed rather than read from the file). Each produces an XML and a
+CSV, so 12 artefacts.
+
+- `capture` rewrites **every** case, not only a new one, so after adding a case check
+  `git diff tools/golden/` shows nothing but the new files before committing.
+- `regions` is the one case whose bytes depend on **GEOS** as well as on this repo: merging a
+  class's regions is a union, and a GEOS upgrade can legitimately reorder the vertices it
+  returns. If that case alone differs after a dependency bump, that is what happened — check
+  the geometry is equivalent before re-blessing.
 
 - The committed golden files are **byte-identical to output captured from the pre-Phase-0
   code**, so the reference traces back to the version that had been in production.
 - Verified to fail as well as pass: replacing `export.ORIENTATION_TRANSFORM` with the
-  identity matrix (a broken Y flip) makes all four XML comparisons differ and `check` exit 1.
+  identity matrix (a broken Y flip) makes every XML comparison differ and `check` exit 1.
 - It sets `MPLBACKEND=Agg` itself, so it needs no special invocation.
 - What it does **not** cover: the UI, the QC/warning behaviour, LineString geometries (no
   demo file has one), and any input outside the four cases. It also proves "unchanged", not

@@ -487,3 +487,68 @@ for correctness — a dropdown cannot produce a typo or a class that does not ex
 4. **Does the estimated pixel size need an audit trail** beyond `provenance.json` — e.g. stated on
    the QC image — given PR 3 makes it the default rather than something the user typed?
 5. **Dilation** is still unanswered from round one, and still shapes what "adjacent" means.
+
+---
+
+# 7. Round three — cellular neighbourhoods and circle packing
+
+Planned 2026-09-17, from Jose's brief. New scope rather than a deferred phase, so it gets its
+own round. Decisions behind it: `decisions.md` 066.
+
+**The experiment it serves.** Collecting by cell type, but as mini-bulk rather than cell by
+cell. A single cell is too little tissue; a whole class outlined by hand is one enormous
+irregular cut the LMD would trace for hours. So: derive the tissue belonging to each class from
+the cells themselves, then fill it with many small circles that cut fast and add up to a chosen
+area per replicate.
+
+```
+cells → Voronoi territory per cell → merge by class → regions
+                                                        │
+                                          PR 1: cut the regions
+                                          PR 2: pack circles into them
+                                                        ▼
+                                                  CollectionPlan → .xml
+```
+
+## PR 1 — `feat/voronoi-regions`
+
+> **Done.** Third workflow, `regions.py`, `ui_packing.py`, a `regions` golden case.
+
+Voronoi projection capped at a disc and clipped to the hull of the cell outlines, merge by
+class into one region per contiguous area, area-balanced dealing across replicates, and the
+existing plate and export path. Useful on its own: it collects whole neighbourhoods.
+
+## PR 2 — `feat/circle-packing`
+
+Ported from the prototype at `PY38_CirclePackingStreamlit`, which is random dart-throwing with
+rejection sampling — the right algorithm here — but which starts from an already-tessellated
+file, has no LMD export, and is not reproducible across sessions. The port is not a copy;
+measured changes, each to be logged:
+
+- `numpy.random.default_rng` rather than the legacy global `numpy.random.seed`, with **one
+  sub-stream per class** — in the prototype the stream is consumed sequentially across classes,
+  so changing one class's spacing silently reshuffles every later class, which makes a
+  feedback loop misleading.
+- **Grid-hashed collision detection** in place of rebuilding a `shapely.STRtree` on every dart.
+  That rebuild is O(n² log n) and is the dominant cost; the replacement is also *more correct*,
+  because `STRtree.query` with no predicate is bounding-box only and rejects legal placements.
+  Measured: 0.04 s for 148 circles, 0.09 s to saturation at 691.
+- Pack **per region** with `shapely.prepare`, distributing a class's target area across its
+  regions in proportion to area, rather than against a class-wide union.
+- Areas from `polygon.area`, not analytic `πr²` — a buffered circle is a polygon and the
+  prototype's accounting is ~0.4% optimistic.
+- **A spacing-aware capacity estimate.** The prototype's flat 0.55 packing density ignores the
+  gap between circles. Measured on a 2000×2000 px square at 0.3467 µm/px, circles 100–500 µm²:
+  54.7% fill at a 0 µm gap, 42.9% at 2, 32.9% at 5, 21.4% at 10, **12.2% at 20**. A flat 0.55
+  would tell a user with a 20 µm gap they had 4.5× more tissue than they do.
+- `n_permutations` (best-of-N restarts) dropped: ×5 cost for a marginal gain, and it makes the
+  random stream depend on it.
+
+**The smoothing interaction needs saying on screen.** At the default 1 px tolerance a circle of
+radius ≤ 10 px goes from 65 vertices to 9 and **loses 10% of its area**; at radius ≥ 20 px the
+loss is 2.6%. Area per replicate is this workflow's entire budget, so the achieved figure has
+to describe the geometry that will actually be cut.
+
+The feedback loop is the point: area per replicate, min and max circle area, the gap between
+circles and the seed all live in one `st.fragment` below the plate, so none of them invalidates
+the wells the user already approved and the preview redraws without re-running steps 1–7.

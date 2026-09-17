@@ -1166,3 +1166,81 @@ almost nothing in it.
 the pool and `feasibility` then raised `KeyError` on `stats.at[...]` — a traceback instead of the
 app, one keystroke away in an editable column. A class absent from the pool now reads as zero
 available, 100% too small.
+
+## 066 — a third workflow: cells become regions, and regions get cut
+**Date:** 2026-09-17 · **Status:** active
+**Decision:** cellular neighbourhoods become a **third option on the workflow step**, in a new
+`ui_packing.py`, rather than a mode inside the cell workflow. A new `regions.py` gives each cell
+the space closest to it, caps and clips it, merges touching cells of the same class into regions,
+and deals those across replicates. `plan_from_selection` gains a `workflow` argument; nothing else
+in the shared path changed, and all 10 pre-existing golden artefacts stayed byte-identical.
+**Why a third workflow rather than a mode:** Jose asked that this path "not disturb users who do
+not care for it". The cell workflow's steps 4–7 exist to *choose among the cells that are there* —
+minimum area, spread versus random, the adjacency preference, the selection fragment. None of them
+means anything when the thing being cut is derived tissue rather than a cell. A mode would have put
+a branch through four steps including the cached fragment, on the path that carries the most
+tests, to reuse controls that would then all have to be hidden. A third radio option reuses upload,
+calibration, class selection, the plate and the export — which is what `ui_shared` is for — and
+leaves the two existing workflows untouched by construction.
+
+### The classes are filtered after tessellating, never before
+A region is the territory nearest its cell. Drop a class *before* tessellating and its neighbours
+expand into the space it occupied, so a well labelled `Tumor` holds immune tissue. `project` takes
+`include=` for this reason instead of being handed a pre-filtered frame, and
+`test_an_unwanted_class_still_holds_its_own_territory` is the guard.
+
+### Regions are capped at a disc and clipped to the hull of the cell bodies
+**Alternatives considered.** openDVP's `adata_to_voronoi` drops unbounded regions and then drops
+everything above the 98th area percentile; clipping to a tissue-outline annotation is the most
+faithful but only works when the user drew and exported one, and can produce MultiPolygons.
+Chosen instead: `voronoi ∩ disc(R) ∩ hull`, with `R = 3 × median nearest-neighbour distance` and
+editable. It needs nothing extra from QuPath, it bounds every region *locally* rather than by a
+global percentile, and all three pieces are convex — so a region is always a single Polygon and
+the MultiPolygon problem never arises before the merge.
+**The hull is of the cell bodies, not their centroids.** A test caught this: a rim cell's centroid
+sits exactly *on* the centroid hull, so clipping to it cut away half of that cell's own tissue.
+`shapely.convex_hull` over a geometry collection gives the same answer as
+`union_all().convex_hull` for **0.09 s against 9.1 s** at 100 000 cells.
+
+### shapely, not scipy, for the tessellation
+`shapely.voronoi_polygons(..., ordered=True)` (shapely ≥ 2.1, already pinned) guarantees the i-th
+polygon belongs to the i-th point, so classes map by position. openDVP and the prototype's upstream
+notebooks both use `scipy.spatial.Voronoi`, which needs `point_region` indirection and explicit
+`-1` unbounded-region rejection, and which loses the rim cells rather than bounding them. No new
+dependency either way: `scipy` was already declared and unimported, and `regions.py` now uses
+`scipy.spatial.cKDTree` for the neighbour spacing.
+
+### Pinhole slivers are filled, and the threshold comes from the data
+The radius cap is a 64-sided polygon while Voronoi edges are exact, so where three capped regions
+meet they leave a gap of a pixel or two that belongs to no region; merging turns those into
+interior rings. Left alone, an ordinary run raises "2 regions completely surround tissue of another
+class, totalling 1 px²" — a warning about nothing, on the same screen as a warning that can mean
+real contamination. `close_slivers` fills any ring smaller than **the smallest region of the whole
+tessellation**: a genuine hole is another cell's territory, so it cannot be smaller than that.
+Measured — slivers 0–8 px² against smallest regions of 48–702 px² across the demo files, no
+overlap. The threshold is taken over *all* regions rather than the kept ones, because a hole may be
+the region of an excluded class and that class can hold smaller regions than any kept one.
+**Rejected:** a fixed pixel threshold, which would need retuning per file and per radius factor.
+
+### Holes are warned about; the dilation is explained
+Where a region genuinely surrounds another class, `extract_coordinates` takes the outer outline
+only, so the enclosed tissue is cut into the same well. Warned, with the area in µm², never
+blocked — the user may want exactly that, and this is `003`.
+Separately, a region reaches past the cell outlines QuPath drew. **This is the dilation case `013`
+and ROADMAP round-one open question 3 left open**, both of which promised the app would say so on
+screen if it ever arrived. It is stated in the step's own text rather than in a warning box,
+because it is how the workflow works rather than an anomaly, and a box on every single run is how
+`064` says a warning stops being read.
+
+### Dealing regions across replicates is deterministic and area-balanced
+Largest region first into whichever replicate holds the least area so far. Replicates of a class
+have to be comparable amounts, and dealing in order would give replicate 1 every large region. No
+RNG at all here, so the same file reaches the same wells in a later session — which is what makes
+the collection reportable in a methods section. Where a class has fewer regions than replicates
+the extra replicates stay empty, keep their wells, and are named on screen.
+
+### Circle packing is not in this change
+Packing circles inside the regions is the point of the exercise and is the next branch. Splitting
+it out means this one is independently clickable and cutting whole neighbourhoods is useful on its
+own. The prototype at `PY38_CirclePackingStreamlit` contains no Voronoi code — it reads an
+already-tessellated file — so that half had to be written here regardless.
