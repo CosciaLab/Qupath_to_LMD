@@ -83,14 +83,18 @@ class RegionReport:
     per_class: pandas.DataFrame = field(default_factory=pandas.DataFrame)
 
     def summary(self, pixel_size_um: float | None = None) -> pandas.DataFrame:
-        """Per class: cells, patches and area, for showing instead of a paragraph."""
+        """Per class: cells, regions and area, for showing instead of a paragraph.
+
+        Left unrounded: the UI layer decides how to display a number, and these run from tens to
+        millions of µm² where no decimal is meaningful.
+        """
         if self.per_class.empty:
             return self.per_class
         table = self.per_class.copy()
-        if pixel_size_um:
-            table["Total area (µm²)"] = (table.pop("area_px2") * pixel_size_um**2).round(2)
-        else:
-            table["Total area (px²)"] = table.pop("area_px2").round(0)
+        area = table.pop("area_px2")
+        table["Total area (µm²)" if pixel_size_um else "Total area (px²)"] = (
+            area * pixel_size_um**2 if pixel_size_um else area
+        )
         return table.rename(columns={"cells": "Cells", "patches": "Regions"})
 
 

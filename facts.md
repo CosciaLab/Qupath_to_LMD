@@ -61,7 +61,7 @@ src/qupath_to_lmd/
   ui_shared.py                    steps every workflow uses, incl. class_selection_step
   ui_legacy.py                    annotations workflow (frozen as of Phase 1)
   ui_cells.py                     cell-segmentation workflow (step 8 is an st.fragment)
-  ui_packing.py                   cellular-neighbourhood workflow (step 8 is an st.fragment)
+  ui_packing.py                   cellular-neighbourhood workflow
   === other ===
   mock_streamlit.py               patch_streamlit() — stubs st.* for notebook use
   __init__.py                     empty
@@ -431,9 +431,21 @@ Both workflows expose the same two, in the shared export step.
 `regions.py` turns classified cells into **regions** — contiguous areas of tissue belonging to
 one class — and `packing.py` fills those regions with circles. `ui_packing.py` is the workflow.
 
-Step 8 offers a choice of what to cut out of each region: **circles packed inside them**, which
+**Step order: 4 classes, 5 regions, 6 what-to-collect, 7 plate, 8 export.** The collection step
+comes *before* the plate on purpose — how much tissue per replicate and how many replicates are
+exactly what the plate has to accommodate, so deciding them first means the plate is shown once,
+already correct, instead of being redrawn under the user while they tune circle settings
+(`decisions.md` 068). Step 6 is where the user loops.
+
+Step 6 offers a choice of what to cut out of each region: **circles packed inside them**, which
 is the default and the point of the workflow, or **the whole regions**. Whole regions is the
 only option when the file gives no image scale, because every packing amount is an area in µm².
+
+**No `st.fragment` here**, unlike the cell workflow. A fragment only reruns itself, so nothing
+below it re-executes — which would leave the plate and the export showing a stale collection,
+the exact trap `decisions.md` 051 describes. With the collection step above the plate the
+fragment has to go, and the caches on the projection and the packing are what keep a full rerun
+affordable instead.
 
 The pipeline, and why each part is the way it is:
 
@@ -485,8 +497,14 @@ smaller regions than any kept one.
 ### What the export path cannot represent
 
 `geojson.extract_coordinates` returns `geometry.exterior.coords`, so **a hole is cut through**.
-Where a region completely surrounds another class, that enclosed tissue lands in the same well.
-Reported with its area in µm², warned not blocked.
+Where a region completely surrounds another class, that enclosed tissue lands in the same well if
+whole regions are being collected. Circles are never packed into a hole — `patch.contains`
+respects interior rings.
+
+**This is not warned about**, at Jose's direction: on his real core 21 of 684 regions enclose
+another class and in practice it does not affect a collection (`decisions.md` 068). The geometry
+still does it, and `RegionReport` still counts `n_patches_with_holes` and `hole_area_px2` into the
+log, so the figures are there if the judgement ever changes.
 
 A region also **reaches past the cell outlines QuPath drew**. This is the dilation case
 `decisions.md` 013 and ROADMAP round-one open question 3 both left open, with the commitment
@@ -796,7 +814,7 @@ yields) with these figures and instructions for running locally (`decisions.md` 
 
 ## Test suite
 
-`tests/`, run with `uv run pytest` — 217 tests in about 7 seconds. `-m "not slow"` skips the
+`tests/`, run with `uv run pytest` — 213 tests in about 7 seconds. `-m "not slow"` skips the
 golden gate for a fast loop. CI runs ruff, the suite and the harness on every push and PR
 (`.github/workflows/ci.yml`).
 

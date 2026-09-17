@@ -61,6 +61,15 @@ CIRCLE_AREA = "area_um2"
 CIRCLE_COLUMNS = ("geometry", CLASS_NAME, REPLICATE, CIRCLE_AREA)
 
 
+# What the achieved table always carries, so a caller can name a column without checking first.
+ACHIEVED_COLUMNS = (CLASS_NAME, "replicate", "circles", CIRCLE_AREA, "requested", "achieved")
+
+
+def empty_achieved() -> pandas.DataFrame:
+    """An empty achieved table that still has its columns, for the same reason as below."""
+    return pandas.DataFrame({name: [] for name in ACHIEVED_COLUMNS})
+
+
 def empty_circles() -> geopandas.GeoDataFrame:
     """An empty circles frame that still has its columns.
 
@@ -119,7 +128,7 @@ class PackingResult:
     """The circles, and how they compare with what was asked for."""
 
     circles: geopandas.GeoDataFrame = field(default_factory=empty_circles)
-    achieved: pandas.DataFrame = field(default_factory=pandas.DataFrame)
+    achieved: pandas.DataFrame = field(default_factory=empty_achieved)
     capacity: pandas.DataFrame = field(default_factory=pandas.DataFrame)
     n_discarded: int = 0
     n_regions_too_small: int = 0
@@ -393,7 +402,7 @@ def pack(
     )
     result = PackingResult(
         circles=circles_gdf,
-        achieved=pandas.DataFrame(rows),
+        achieved=pandas.DataFrame(rows) if rows else empty_achieved(),
         capacity=capacity(patches, replicates, params, pixel_size_um),
         n_discarded=n_discarded,
         n_regions_too_small=n_regions_skipped,

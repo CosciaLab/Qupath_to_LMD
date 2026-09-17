@@ -60,6 +60,9 @@ the tissue belonging to that class, so it reaches past the outlines QuPath drew 
 controls how far. And smoothing shaves a little area off every circle, so if that adds up to more
 than a few percent the app says so and tells you how to avoid it.
 
+You set all of this *before* the plate, so by the time you get to the plate the number of wells
+is already settled.
+
 You can also collect **the whole regions** instead of circles, which is what you want if you want
 all of a neighbourhood rather than a measured amount of it.
 

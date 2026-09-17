@@ -558,6 +558,6 @@ radius ≤ 10 px goes from 65 vertices to 9 and **loses 10% of its area**; at ra
 loss is 2.6%. Area per replicate is this workflow's entire budget, so the achieved figure has
 to describe the geometry that will actually be cut.
 
-The feedback loop is the point: area per replicate, min and max circle area, the gap between
-circles and the seed all live in one `st.fragment` below the plate, so none of them invalidates
-the wells the user already approved and the preview redraws without re-running steps 1–7.
+The feedback loop is the point: circle sizes, the gap, the seed, the area per replicate and the
+replicate count all live in one step, and the projection and packing caches are what let it
+redraw without re-tessellating.

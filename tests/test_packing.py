@@ -343,11 +343,17 @@ def test_an_empty_result_still_has_its_columns():
     empty = packing.PackingResult()
     for column in packing.CIRCLE_COLUMNS:
         assert column in empty.circles.columns, (
-            f"An empty packing result is missing {column!r}, so reporting it raises rather than "
-            "telling the user nothing fitted."
+            f"An empty packing result is missing circle column {column!r}, so reporting it "
+            "raises rather than telling the user nothing fitted."
+        )
+    for column in packing.ACHIEVED_COLUMNS:
+        assert column in empty.achieved.columns, (
+            f"An empty packing result is missing achieved column {column!r}. The report renames "
+            "and drops columns by name, so a missing one is a KeyError in front of the user."
         )
     assert empty.n_circles == 0
     assert float(empty.circles[packing.CIRCLE_AREA].sum()) == 0.0
+    assert empty.shortfalls.empty
 
 
 def test_a_region_narrower_than_any_circle_reports_rather_than_raises():

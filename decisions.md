@@ -1347,3 +1347,61 @@ QuPath fields, dealing and export as well. `packing` also pins numpy's random st
 differs on its own, a recorded seed no longer reproduces its collection, which is breaking for
 anyone who has written a seed into a methods section. `tests/test_packing.py` carries the
 seed-stability guarantee independently.
+
+## 068 — the collection step moves above the plate, and µm² loses its decimals
+**Date:** 2026-09-17 · **Status:** active · **refines 066 and 067**
+All four from Jose, reviewing the first working version of the regions workflow.
+
+### The collection step comes before the plate
+**Was:** 4 classes, 5 regions, 6 replicates, 7 plate, 8 what-to-collect and export.
+**Now:** 4 classes, 5 regions, 6 what-to-collect, 7 plate, 8 export.
+Jose: "Let users decide on how much area, and how many samples, before they see the plate… Here
+is where users will loop through parameters to reach the settings they want."
+**Why he is right:** the amount per replicate and the replicate count are exactly what the plate
+has to accommodate. Deciding them first means the plate is shown once, already correct, instead
+of being redrawn under the user on every keystroke while they are still thinking about circle
+sizes rather than wells. The circle settings and the amount now sit together in one step, in his
+order — circle parameters, then the amount, then the number of replicates.
+**Consequence: the `st.fragment` had to go.** A fragment reruns only itself, so nothing below it
+re-executes; with the plate and export below the loop, they would sit there showing a stale
+collection — the exact trap `051` describes. The caches on the projection and the packing are
+what make a full rerun affordable instead, which is what they were added for.
+
+### The enclosed-class warning is removed
+`066` warned when a region completely surrounds tissue of another class, on the grounds that the
+export path follows a shape's outer outline only and would collect the enclosed tissue too.
+Jose: "Surrounded tissue is not an issue, please remove that warning."
+**Removed.** It fired on 21 of 684 regions on his real core, so it was appearing on an ordinary
+run, and by `064` a warning that always appears is one that gets ignored when it matters. It was
+also misleading in the default mode: circles are never packed into a hole, because
+`patch.contains` respects interior rings. The geometry still behaves this way and
+`RegionReport` still counts it into the log, so the numbers are there if the judgement changes.
+**Supersedes** the hole-warning half of `066`; the dilation explanation in that entry stays.
+
+### Amounts in µm² are whole numbers
+Jose: "sometimes we will get millions of um^2, it should not need me to count the number of
+digits to understand the number… remove any decimals from any um2 parameter, these are noise."
+Inputs use `format="%d"` with integer bounds. Tables are cast to `Int64` and rendered with
+`st.column_config.NumberColumn(format="localized")` — an integer column cannot show a decimal,
+and `localized` is what adds the thousands separator, so one change satisfies both halves.
+`regions.RegionReport.summary` stopped rounding at all: deciding how to display a number is the
+UI layer's job, and the library rounding it to two decimals was the reason the UI could not.
+**Still showing decimals, deliberately not changed:** the per-class table in step 4, because
+`ui_shared.class_selection_step` and `stats.for_display` are shared with the cell workflow and
+`DECIMALS = 2` is asserted by `tests/test_stats.py`. Flagged to Jose rather than changed here
+(rule 9).
+
+### The "Effort" control is removed
+Jose: "I do not understand what the Effort parameter is for." It exposed `max_attempts`, the
+number of consecutive failed placements before a region is called full — a property of how the
+rejection sampler gives up, not a decision about the experiment. It stays in `PackingParams` at
+its default of 2000 because the algorithm needs a stopping rule, and it is still recorded in
+`provenance.json`, but nothing asks the user about it. A control nobody can interpret is worse
+than no control: it invites fiddling with something that has no experimental meaning.
+
+### Added while in there
+A metrics row above the achieved table, borrowed from the shape of Jose's own prototype: tissue
+in the regions, how much is being collected and what share of the whole that is, the number of
+circles, and the mean circle diameter. It answers "is this a sensible collection?" at a glance,
+which the per-replicate table alone does not. The share is `delta_color="off"` so it does not
+read as a change.

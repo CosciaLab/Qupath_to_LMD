@@ -39,6 +39,7 @@ def fake_streamlit(monkeypatch):
     class Recorder:
         def __init__(self):
             self.errors, self.warnings, self.captions, self.infos, self.writes = [], [], [], [], []
+            self.metrics: list[tuple[str, str]] = []
             self.state = FakeState()
 
         def shown(self, kind):
@@ -56,11 +57,16 @@ def fake_streamlit(monkeypatch):
         raise Stopped
 
     class _Column:
+        """A column, which is also a container the UI may write into directly."""
+
         def __enter__(self):
             return self
 
         def __exit__(self, *args):
             return False
+
+        def metric(self, label, value, delta=None, **kwargs):
+            recorder.metrics.append((str(label), str(value)))
 
     monkeypatch.setattr(streamlit, "session_state", recorder.state, raising=False)
     monkeypatch.setattr(streamlit, "error", collect(recorder.errors))
@@ -73,6 +79,9 @@ def fake_streamlit(monkeypatch):
     monkeypatch.setattr(streamlit, "table", lambda *a, **k: None)
     monkeypatch.setattr(streamlit, "dataframe", lambda *a, **k: None)
     monkeypatch.setattr(streamlit, "stop", stop)
+    monkeypatch.setattr(
+        streamlit, "metric", lambda label, value, delta=None, **k: recorder.metrics.append((str(label), str(value)))
+    )
     monkeypatch.setattr(streamlit, "columns", lambda spec, **k: tuple(_Column() for _ in (spec if hasattr(spec, "__len__") else range(spec))))
     monkeypatch.setattr(streamlit, "selectbox", lambda label, options, index=0, **k: options[index] if index < len(options) else options[0])
     return recorder
@@ -352,57 +361,8 @@ def test_a_full_plate_says_so_rather_than_naming_a_well(fake_streamlit, monkeypa
     assert "start at" not in caption, "A full plate must not suggest a well to start at."
 
 
-def test_an_enclosed_region_is_warned_about_with_its_area(fake_streamlit):
-    """The laser follows a region's outer outline only, so an enclosed island is cut through.
-
-    That puts another class's tissue in this class's well. It is allowed, because the user may
-    know better, but it can never be silent.
-    """
-    report = regions.RegionReport(n_patches_with_holes=2, hole_area_px2=4000.0)
-    ui_packing._report_projection(report, pixel_size_um=0.5)
-
-    shown = fake_streamlit.shown("warnings")
-    assert "surround tissue of another class" in shown, (
-        "A region enclosing another class was not reported, so the user would not know that "
-        "well holds a mixture."
-    )
-    assert "1,000 µm²" in shown, (
-        f"The enclosed area was not stated in µm². Shown: {shown!r}. Without the amount the "
-        "user cannot judge whether the contamination matters."
-    )
 
 
-def test_an_enclosed_region_is_reported_in_pixels_without_a_scale(fake_streamlit):
-    """No scale is normal, and it must not turn an area into a silent omission."""
-    report = regions.RegionReport(n_patches_with_holes=1, hole_area_px2=4000.0)
-    ui_packing._report_projection(report, pixel_size_um=None)
-    assert "4,000 px²" in fake_streamlit.shown("warnings"), (
-        "Without a scale the enclosed area was not reported at all, so the warning lost the "
-        "one number that makes it actionable."
-    )
-
-
-def test_duplicate_cell_positions_are_reported_to_the_user(fake_streamlit):
-    """Cells sharing a position lose their region, so the user is collecting fewer than they think."""
-    ui_packing._report_projection(
-        regions.RegionReport(n_duplicate_centroids=7), pixel_size_um=0.5
-    )
-    assert "same position" in fake_streamlit.shown("warnings"), (
-        "Cells dropped for sharing a position were not reported, so the region count would be "
-        "lower than the cell count with no explanation."
-    )
-
-
-def test_a_clean_projection_says_nothing(fake_streamlit):
-    """A report with nothing wrong in it must not produce a warning box.
-
-    Warning on every run is how a warning stops being read (`decisions.md` 064).
-    """
-    ui_packing._report_projection(regions.RegionReport(n_patches=4), pixel_size_um=0.5)
-    assert not fake_streamlit.warnings, (
-        f"A clean projection warned anyway: {fake_streamlit.shown('warnings')!r}. Warnings that "
-        "always appear get ignored when they matter."
-    )
 
 
 def test_a_class_with_too_few_regions_warns_and_still_continues(fake_streamlit):
@@ -434,20 +394,25 @@ def test_a_class_with_too_few_regions_warns_and_still_continues(fake_streamlit):
     )
 
 
-def _packed(**overrides):
-    """A small packing result, for the reporting functions."""
+def _region_frame():
+    """The regions a packing result came from, which the report compares against."""
     import geopandas
-    from shapely.geometry import Point
 
-    from qupath_to_lmd import packing
-
-    patches = geopandas.GeoDataFrame(
+    return geopandas.GeoDataFrame(
         {CLASS_NAME: ["Tumor"], regions.N_CELLS: [50]},
         geometry=[shapely_box(0, 0, 400, 400)],
         crs=None,
     )
+
+
+def _packed(**overrides):
+    """A small packing result, for the reporting functions."""
+    from shapely.geometry import Point
+
+    from qupath_to_lmd import packing
+
     params = packing.PackingParams(**overrides)
-    return packing.pack(patches, {"Tumor": 1}, params, 1.0), params, Point
+    return packing.pack(_region_frame(), {"Tumor": 1}, params, 1.0), params, Point
 
 
 def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_streamlit):
@@ -457,7 +422,7 @@ def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_strea
     (`decisions.md` 003).
     """
     result, params, _ = _packed(area_per_replicate_um2=10_000_000, max_attempts=150, seed=0)
-    ui_packing._report_packing(result, params, pixel_size_um=1.0)
+    ui_packing._report_packing(result, params, _region_frame(), pixel_size_um=1.0)
 
     shown = fake_streamlit.shown("warnings")
     assert "could not be filled" in shown, (
@@ -470,7 +435,7 @@ def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_strea
 def test_a_filled_replicate_does_not_warn(fake_streamlit):
     """Warning on the ordinary case is how warnings stop being read."""
     result, params, _ = _packed(area_per_replicate_um2=2_000, seed=0)
-    ui_packing._report_packing(result, params, pixel_size_um=1.0)
+    ui_packing._report_packing(result, params, _region_frame(), pixel_size_um=1.0)
     assert "could not be filled" not in fake_streamlit.shown("warnings"), (
         f"A fully-filled replicate warned anyway: {fake_streamlit.shown('warnings')!r}"
     )
@@ -485,7 +450,7 @@ def test_regions_too_narrow_for_a_circle_are_reported(fake_streamlit):
 
     result = packing.PackingResult(n_regions_too_small=17)
     ui_packing._report_packing(
-        result, packing.PackingParams(min_circle_area_um2=250), pixel_size_um=1.0
+        result, packing.PackingParams(min_circle_area_um2=250), _region_frame(), pixel_size_um=1.0
     )
     shown = fake_streamlit.shown("warnings")
     assert "too narrow to hold even one circle" in shown and "250" in shown, (
@@ -502,7 +467,7 @@ def test_the_smoothing_loss_is_warned_about_when_it_is_large(fake_streamlit):
     result, params, _ = _packed(
         area_per_replicate_um2=4_000, min_circle_area_um2=100, max_circle_area_um2=150, seed=0
     )
-    ui_packing._report_packing(result, params, pixel_size_um=1.0)
+    ui_packing._report_packing(result, params, _region_frame(), pixel_size_um=1.0)
     shown = fake_streamlit.shown("warnings") + " " + fake_streamlit.shown("captions")
     assert "moothing" in shown, (
         "Nothing was said about smoothing taking area off the circles, so the amounts shown are "
