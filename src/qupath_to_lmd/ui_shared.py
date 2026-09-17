@@ -346,6 +346,91 @@ def _report_pixel_size(value, source, estimate, report) -> None:
         )
 
 
+def shape_fingerprint(gdf) -> tuple:
+    """A cheap identity for the working shapes, for cache keys.
+
+    Cannot be the filename alone: exploding a class rewrites the class names in place. Cannot
+    hash the frame itself either — Streamlit would walk 150 000 rows on every rerun, which is
+    what the cache is meant to avoid.
+    """
+    return (
+        st.session_state.get("file_name"),
+        len(gdf),
+        tuple(sorted(gdf[CLASS_NAME].dropna().unique())),
+    )
+
+
+@st.cache_data(show_spinner=False)
+def _cached_statistics(_gdf, cache_key: tuple, pixel_size_um: float | None):
+    """Per-class statistics, cached so a rerun does not recompute them (twice)."""
+    return stats.class_statistics(_gdf, pixel_size_um=pixel_size_um)
+
+
+def class_selection_step(pixel_size_um: float | None, step: str = "4") -> list[str]:
+    """Show what each class holds, then let the user choose which ones to collect.
+
+    Shared by the cell and regions workflows: both start by asking which biology to collect,
+    and a user switching between them should not meet two different tables.
+    """
+    gdf = st.session_state.gdf
+
+    st.markdown(f"## Step {step}: Choose which classes to collect")
+    _, source = resolve_pixel_size()
+    if pixel_size_um and source == "estimated":
+        st.markdown(
+            f"Areas are computed from the shapes themselves at **{pixel_size_um:.4f} µm/px**, "
+            "estimated from this file's own QuPath measurements. You can change the scale in "
+            "the next step if it is wrong."
+        )
+    elif pixel_size_um:
+        st.markdown(
+            f"Areas are computed from the shapes themselves at **{pixel_size_um:.4f} µm/px**, "
+            "the scale you entered."
+        )
+    else:
+        st.markdown(
+            "This file carries no measurements to estimate an image scale from, so amounts are "
+            "in numbers of shapes. That is all you need to collect a number of cells; enter a "
+            "scale in the next step to work in areas."
+        )
+
+    table = _cached_statistics(gdf, shape_fingerprint(gdf), pixel_size_um)
+    display = stats.for_display(table)
+    # Columns stay numeric so the table remains sortable; the format only trims the display.
+    st.dataframe(
+        display,
+        width="stretch",
+        column_config={
+            name: st.column_config.NumberColumn(name, format=f"%.{stats.DECIMALS}f")
+            for name in display.columns
+            if name != stats.DISPLAY_COLUMNS["shapes"]
+        },
+    )
+
+    all_classes = table.index.tolist()
+    selected = st.multiselect(
+        "Classes to collect",
+        options=all_classes,
+        default=st.session_state.selected_classes or all_classes,
+        help="Everything after this step works only on the classes you keep here.",
+    )
+
+    if selected != st.session_state.selected_classes:
+        st.session_state.selected_classes = selected
+        logger.info(f"Classes selected: {selected}")
+
+    if not selected:
+        st.warning("No classes selected, so there is nothing to collect yet.")
+        return []
+
+    kept = table.loc[selected]
+    summary = f"**{int(kept['shapes'].sum()):,} shapes** across {len(selected)} classes"
+    if "area_total_um2" in kept.columns:
+        summary += f", totalling **{kept['area_total_um2'].sum():,.{stats.DECIMALS}f} µm²** of tissue"
+    st.write(summary + ".")
+    return selected
+
+
 def plate_settings_step(step: str = "5") -> dict:
     """Plate type, margin and spacing. Returns the settings and the usable wells."""
     st.markdown(f"""

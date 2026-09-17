@@ -235,14 +235,14 @@ def test_the_shape_fingerprint_changes_when_classes_are_exploded(fake_streamlit,
     """Caches key off this. A filename alone would serve a stale selection after exploding,
     because exploding rewrites the class names in place."""
     fake_streamlit.state.file_name = "a.geojson"
-    before = ui_cells._shape_fingerprint(cells_gdf)
-    after = ui_cells._shape_fingerprint(geojson.explode_classes(cells_gdf, ["single_cells_demo"]))
+    before = ui_shared.shape_fingerprint(cells_gdf)
+    after = ui_shared.shape_fingerprint(geojson.explode_classes(cells_gdf, ["single_cells_demo"]))
     assert before != after, (
         "Exploding a class did not change the cache fingerprint, so a cached selection from "
         "before the explode would be reused."
     )
     fake_streamlit.state.file_name = "b.geojson"
-    assert ui_cells._shape_fingerprint(cells_gdf) != before, "A different file gave the same fingerprint."
+    assert ui_shared.shape_fingerprint(cells_gdf) != before, "A different file gave the same fingerprint."
 
 
 def test_the_scale_is_estimated_when_the_file_allows_it(fake_streamlit):
