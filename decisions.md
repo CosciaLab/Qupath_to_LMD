@@ -1669,3 +1669,58 @@ Starts at the current release with the earlier tags pointed at rather than recon
 before predate the file and inventing their contents from commit subjects would produce something
 confidently wrong. The top section is left as **Unreleased** because the version number is Jose's
 to pick when he bumps `pyproject.toml`.
+
+## 074 — close cuts share a well, the projection skips what it can, and the map is legible
+**Date:** 2026-09-17 · **Status:** active · **refines 067, 070 and 071**
+Three notes from Jose after running the merged version on the community cloud.
+
+### "cells of the same color touching each other in different groups, this is not intuitive"
+He was right, and it was not the bug it looked like. The gap **is** enforced exactly — measured
+over 984 circles on his core, zero pairs closer than the 5 µm asked for, closest 5.02 µm. Two
+things were true at once:
+- A 5 µm gap is about **3 screen pixels** on a whole-core view, and the replicate ring is 1.5 pt.
+  Circles a gap apart genuinely look touching.
+- **46 pairs of same-class circles a gap apart were going into different wells.** Two cuts that
+  close can shed the strip between them; into the same well that is harmless because the
+  material pools there anyway, into different wells it is cross-replicate contamination. The look
+  was the symptom, the well assignment was the problem.
+**Fix:** `_deal_circles` deals **clusters** of near-touching circles rather than individual
+circles — union-find over an `STRtree` `dwithin` query. `CLUSTER_GAP_FACTOR = 1.5` chosen by
+measurement, not taste: 1.0 still left 46 such pairs, 1.5 leaves none, and 5.0 leaves none but
+spreads the achieved areas 8.1% instead of 1.7% because clusters grow to 15 circles and a cluster
+is dealt whole. Same-class cross-well proximity: **46 to 0**.
+**What it cannot fix, so it is reported:** a class and its replicates own their own wells by
+definition, so two cuts either side of a *class* boundary always land in different wells.
+`n_near_another_class` counts them and step 6 says so — 68 circles on his core. Only a wider gap
+moves those apart, which is the honest answer.
+**Golden re-blessed**, `packing` only, and verified before doing it rather than after: all 42
+circles the old reference cut are still cut, one previously-discarded circle is now used, 9
+circles changed well, and the placement geometry is identical. The 12 other artefacts are
+untouched.
+
+### "somewhat slow with the core, I can imagine a larger image failing"
+Profiled rather than guessed. At 60 000 cells the cap intersection cost 0.67 s and the hull clip
+0.38 s — and **only 1.6% of cells need either**, because in dense tissue a Voronoi cell is far
+smaller than the cap and only the rim reaches the hull. Testing first costs 0.006 s and 0.03 s.
+`_cap_and_clip` now does that. Real core **0.48 s to 0.34 s**; 150 000 cells 10.8 s to 8.4 s.
+The cap test is exact, not a heuristic: the farthest point of a convex region from a fixed point
+is an extreme point, a cell is contained in its bounding box, and a box is convex — so four
+corner distances decide it. A test compares against doing every intersection, by area and
+symmetric difference rather than `equals`, because an intersected cell comes back rebuilt by GEOS
+and can lose a collinear vertex a skipped cell keeps — no difference in tissue, at most one
+redundant point in a cut path.
+**The floor is the merge**: 2.2 s of the 3.0 s at 60 000 cells, one GEOS union per class.
+`union_all` + `get_parts` measured 2.185 s against `dissolve` + `explode` at 2.204 s, so there is
+nothing to win by rewriting it. Above roughly 60 000 cells this step is simply slow, and
+`_report_scale` already warns from 40 000 (`051`). Saying so is better than implying a fix
+exists.
+
+### "The visualization is too light... remove the calibration points they are distracting"
+Regions are now drawn from the **full-strength** class palette at alpha 0.85 rather than the
+tinted fill at 0.45 — at 0.45 the tissue map was barely there, which was the point of having it.
+Circles keep the tinted fill, so a dark replicate ring still reads on them and the two layers
+separate by lightness without needing a third palette. The legend swatches follow the regions,
+since that is what dominates the picture.
+The calibration triangle is gone from both region pictures. It served calibration QC, which step
+3 already reports as a percentage, and over a dense tissue map it is noise. It stays on step 4's
+input drawing, where distortion risk is the thing being judged.

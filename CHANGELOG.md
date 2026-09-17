@@ -42,6 +42,17 @@ Two things the app now says out loud, because neither is recoverable from the `.
 - Smoothing shaves a little area off every circle. If that adds up to more than a few percent
   the app says so, and how to avoid it.
 
+### Fixes after the first run on real data
+
+- **Cuts that sit close together now go into the same well.** Two cuts a hair apart can shed the
+  tissue between them; into one well that is harmless, into two it is contamination between
+  replicates. Where that is unavoidable — across a boundary between two classes, which always go
+  to separate wells — the app now tells you how many cuts are affected.
+- **The tissue map is readable.** Regions are drawn at full strength instead of washed out, and
+  the calibration triangle no longer sits on top of them.
+- **Projecting regions is about a third faster**, and the app skips work it can prove it does not
+  need. A whole-slide file is still slow; you are warned before you wait.
+
 ### Everywhere
 
 - **You can see your input.** Step 4 now draws every shape in the file beside the class table,

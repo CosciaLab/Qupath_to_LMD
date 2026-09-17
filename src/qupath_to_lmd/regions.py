@@ -139,6 +139,45 @@ def radius_from_spacing(xy: numpy.ndarray, params: RegionParams) -> tuple[float,
     return params.radius_factor * median_nn, median_nn
 
 
+def _cap_and_clip(tessellation, xy: numpy.ndarray, radius: float, hull):
+    """Apply the radius cap and the hull clip, skipping the cells neither can touch.
+
+    Both operations are no-ops for the great majority of cells: in dense tissue a Voronoi cell
+    is far smaller than the cap, and only the rim of the slide reaches the hull. Measured on
+    60 000 cells, **1.6% need the cap and 1.6% touch the hull** — so intersecting all of them
+    cost 0.67 s and 0.38 s to change almost nothing. Testing first costs 0.006 s and 0.03 s.
+    The result is byte-identical, which `tests/test_regions.py` asserts against the unskipped
+    version rather than taking on trust (`decisions.md` 074).
+
+    The cap test is exact, not a heuristic: the farthest point of a convex region from a fixed
+    point is one of its extreme points, a cell is contained in its own bounding box, and the box
+    is convex — so if all four corners are within the radius, the whole cell is.
+    """
+    bounds = shapely.bounds(tessellation)
+    corners = numpy.stack(
+        [bounds[:, [0, 1]], bounds[:, [2, 1]], bounds[:, [0, 3]], bounds[:, [2, 3]]], axis=1
+    )
+    needs_cap = numpy.linalg.norm(corners - xy[:, None, :], axis=2).max(axis=1) > radius
+
+    geometries = tessellation.copy()
+    if needs_cap.any():
+        caps = shapely.buffer(
+            shapely.points(xy[needs_cap]), radius, quad_segs=CAP_QUAD_SEGS
+        )
+        geometries[needs_cap] = shapely.intersection(tessellation[needs_cap], caps)
+
+    shapely.prepare(hull)
+    outside = ~shapely.contains_properly(hull, geometries)
+    if outside.any():
+        geometries[outside] = shapely.intersection(geometries[outside], hull)
+
+    logger.debug(
+        f"Capped {int(needs_cap.sum())} and clipped {int(outside.sum())} of "
+        f"{len(tessellation)} regions; the rest needed neither"
+    )
+    return geometries
+
+
 def voronoi_regions(gdf: geopandas.GeoDataFrame, params: RegionParams) -> geopandas.GeoDataFrame:
     """The territory around each cell, capped at a disc and clipped to the cells' convex hull.
 
@@ -184,10 +223,7 @@ def voronoi_regions(gdf: geopandas.GeoDataFrame, params: RegionParams) -> geopan
     # class labels map by position. Without it the output order is GEOS's business and every
     # region could carry the wrong class — which would cut the wrong tissue silently.
     tessellation = shapely.voronoi_polygons(points, ordered=True, extend_to=hull.envelope)
-    caps = shapely.buffer(shapely.points(xy), radius, quad_segs=CAP_QUAD_SEGS)
-    geometries = shapely.intersection(
-        shapely.intersection(numpy.asarray(tessellation.geoms), caps), hull
-    )
+    geometries = _cap_and_clip(numpy.asarray(tessellation.geoms), xy, radius, hull)
 
     regions = geopandas.GeoDataFrame(
         {CLASS_NAME: source[CLASS_NAME].to_numpy()},

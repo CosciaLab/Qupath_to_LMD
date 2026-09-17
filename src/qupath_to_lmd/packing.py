@@ -60,6 +60,13 @@ DEFAULT_MAX_ATTEMPTS = 2000
 # (`decisions.md` 067).
 RANDOM_PACKING_FILL = 0.547
 
+# Circles within this multiple of the gap are dealt to the same replicate. Chosen by measuring
+# it: on the real core 1.0x still left 46 pairs of same-class circles in different wells within
+# 1.5x the gap, and 1.5x leaves none. Going wider costs replicate balance for nothing — at 5x
+# the achieved areas spread 8.1% instead of 1.7%, because clusters grow to 15 circles and a
+# cluster is dealt whole (`decisions.md` 074).
+CLUSTER_GAP_FACTOR = 1.5
+
 CIRCLE_AREA = "area_um2"
 
 CIRCLE_COLUMNS = ("geometry", CLASS_NAME, REPLICATE, CIRCLE_AREA)
@@ -168,6 +175,7 @@ class PackingResult:
     capacity: pandas.DataFrame = field(default_factory=pandas.DataFrame)
     n_discarded: int = 0
     n_regions_too_small: int = 0
+    n_near_another_class: int = 0
 
     @property
     def n_circles(self) -> int:
@@ -424,7 +432,7 @@ def pack(
         n_regions_skipped += skipped
 
         dealt, leftover = _deal_circles(
-            circles, wanted, item.area_per_replicate_um2 / um2_per_px2, generator
+            circles, wanted, item.area_per_replicate_um2 / um2_per_px2, spacing_px, generator
         )
         n_discarded += leftover
 
@@ -458,6 +466,9 @@ def pack(
     )
     result = PackingResult(
         circles=circles_gdf,
+        n_near_another_class=_count_near_another_class(
+            circles_gdf, max((item.spacing_um for item in requests), default=0.0) / pixel_size_um
+        ),
         achieved=pandas.DataFrame(rows) if rows else empty_achieved(),
         capacity=capacity(patches, requests, pixel_size_um),
         n_discarded=n_discarded,
@@ -558,8 +569,55 @@ def _pack_class(
     return placed, n_skipped
 
 
+def _clusters(circles: list, spacing_px: float) -> list[list[int]]:
+    """Group circles that sit at the minimum gap from each other.
+
+    Two cuts a gap apart are as close as the settings allow, and the strip between them can
+    detach. If they go into **different** wells that is cross-replicate contamination; if they
+    go into the same well it is harmless, because the material pools there anyway. So a cluster
+    of near-touching circles is dealt as one unit rather than split.
+
+    Without this, circles were dealt individually from a shuffled pool and neighbours landed in
+    different replicates by chance — on the demo core, same-class circles 5.11 µm apart in
+    different wells (`decisions.md` 074). It also looks wrong, which is how it was noticed:
+    two touching discs with different outlines.
+
+    Clusters are tiny — a handful of pairs out of hundreds of circles — so dealing them whole
+    costs almost nothing in how precisely a replicate hits its target.
+    """
+    if not circles:
+        return []
+    geometries = numpy.array([geometry for geometry, _area in circles], dtype=object)
+    tree = shapely.STRtree(geometries)
+    left, right = tree.query(
+        geometries, predicate="dwithin", distance=spacing_px * CLUSTER_GAP_FACTOR
+    )
+
+    parent = list(range(len(circles)))
+
+    def find(item: int) -> int:
+        while parent[item] != item:
+            parent[item] = parent[parent[item]]
+            item = parent[item]
+        return item
+
+    for first, second in zip(left, right, strict=True):
+        a, b = find(int(first)), find(int(second))
+        if a != b:
+            parent[max(a, b)] = min(a, b)
+
+    grouped: dict[int, list[int]] = {}
+    for index in range(len(circles)):
+        grouped.setdefault(find(index), []).append(index)
+    return [grouped[key] for key in sorted(grouped)]
+
+
 def _deal_circles(
-    circles: list, replicates: int, target_px2: float, generator: numpy.random.Generator
+    circles: list,
+    replicates: int,
+    target_px2: float,
+    spacing_px: float,
+    generator: numpy.random.Generator,
 ) -> tuple[dict, int]:
     """Fill each replicate in turn from a shuffled pool, and say how many were left over.
 
@@ -567,13 +625,17 @@ def _deal_circles(
     region happened to be packed first — otherwise replicate 1 would be one corner of the
     tissue and the replicates would not be comparable.
 
+    The unit dealt is a **cluster** of circles that sit at the minimum gap, not a single
+    circle, so two cuts close enough to share material also share a well.
+
     Returns:
         The circles per replicate, and how many were placed but not needed.
     """
     if not circles:
         return {}, 0
 
-    order = generator.permutation(len(circles))
+    clusters = _clusters(circles, spacing_px)
+    order = generator.permutation(len(clusters))
     dealt: dict[int, list] = {}
     replicate = 1
     filled = 0.0
@@ -582,15 +644,42 @@ def _deal_circles(
     for position in order:
         if replicate > replicates:
             break
-        circle = circles[position]
-        dealt.setdefault(replicate, []).append(circle)
-        filled += circle[1]
-        used += 1
+        members = [circles[index] for index in clusters[position]]
+        dealt.setdefault(replicate, []).extend(members)
+        filled += sum(area for _geometry, area in members)
+        used += len(members)
         if filled >= target_px2:
             replicate += 1
             filled = 0.0
 
+    logger.debug(
+        f"Dealt {len(clusters)} clusters covering {len(circles)} circles across {replicates} "
+        "replicates"
+    )
     return dealt, len(circles) - used
+
+
+def _count_near_another_class(circles: geopandas.GeoDataFrame, spacing_px: float) -> int:
+    """How many circles sit within the gap of a circle from a **different** class.
+
+    This one cannot be dealt away. A class and its replicates own their own wells by
+    definition, so two cuts either side of a class boundary always go to different wells — only
+    a wider gap moves them apart. Reported rather than prevented, and counted at the same
+    `CLUSTER_GAP_FACTOR` used to keep same-class circles together, so the two figures mean the
+    same thing.
+    """
+    if circles.empty or spacing_px <= 0:
+        return 0
+    geometries = circles.geometry.to_numpy()
+    classes = circles[CLASS_NAME].to_numpy()
+    tree = shapely.STRtree(geometries)
+    left, right = tree.query(
+        geometries, predicate="dwithin", distance=spacing_px * CLUSTER_GAP_FACTOR
+    )
+    involved = {
+        int(a) for a, b in zip(left, right, strict=True) if a != b and classes[a] != classes[b]
+    }
+    return len(involved)
 
 
 def smoothing_loss(circles: geopandas.GeoDataFrame, tolerance_px: float) -> tuple[float, float]:
