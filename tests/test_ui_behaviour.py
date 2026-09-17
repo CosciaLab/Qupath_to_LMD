@@ -6,8 +6,9 @@ collection — the hard stops, and the difference between a warning and a note.
 
 import pytest
 import streamlit
+from shapely.geometry import box as shapely_box
 
-from qupath_to_lmd import budget, geojson, plate, selection, ui_cells, ui_shared
+from qupath_to_lmd import budget, geojson, plate, regions, selection, ui_cells, ui_packing, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, plan_from_class_wells, plan_from_selection
 
 
@@ -38,6 +39,8 @@ def fake_streamlit(monkeypatch):
     class Recorder:
         def __init__(self):
             self.errors, self.warnings, self.captions, self.infos, self.writes = [], [], [], [], []
+            self.metrics: list[tuple[str, str]] = []
+            self.tables: list[tuple[object, dict]] = []
             self.state = FakeState()
 
         def shown(self, kind):
@@ -55,11 +58,16 @@ def fake_streamlit(monkeypatch):
         raise Stopped
 
     class _Column:
+        """A column, which is also a container the UI may write into directly."""
+
         def __enter__(self):
             return self
 
         def __exit__(self, *args):
             return False
+
+        def metric(self, label, value, delta=None, **kwargs):
+            recorder.metrics.append((str(label), str(value)))
 
     monkeypatch.setattr(streamlit, "session_state", recorder.state, raising=False)
     monkeypatch.setattr(streamlit, "error", collect(recorder.errors))
@@ -70,8 +78,15 @@ def fake_streamlit(monkeypatch):
     monkeypatch.setattr(streamlit, "markdown", lambda *a, **k: None)
     monkeypatch.setattr(streamlit, "success", lambda *a, **k: None)
     monkeypatch.setattr(streamlit, "table", lambda *a, **k: None)
-    monkeypatch.setattr(streamlit, "dataframe", lambda *a, **k: None)
+    monkeypatch.setattr(
+        streamlit,
+        "dataframe",
+        lambda data=None, **k: recorder.tables.append((data, k.get("column_config") or {})),
+    )
     monkeypatch.setattr(streamlit, "stop", stop)
+    monkeypatch.setattr(
+        streamlit, "metric", lambda label, value, delta=None, **k: recorder.metrics.append((str(label), str(value)))
+    )
     monkeypatch.setattr(streamlit, "columns", lambda spec, **k: tuple(_Column() for _ in (spec if hasattr(spec, "__len__") else range(spec))))
     monkeypatch.setattr(streamlit, "selectbox", lambda label, options, index=0, **k: options[index] if index < len(options) else options[0])
     return recorder
@@ -235,14 +250,14 @@ def test_the_shape_fingerprint_changes_when_classes_are_exploded(fake_streamlit,
     """Caches key off this. A filename alone would serve a stale selection after exploding,
     because exploding rewrites the class names in place."""
     fake_streamlit.state.file_name = "a.geojson"
-    before = ui_cells._shape_fingerprint(cells_gdf)
-    after = ui_cells._shape_fingerprint(geojson.explode_classes(cells_gdf, ["single_cells_demo"]))
+    before = ui_shared.shape_fingerprint(cells_gdf)
+    after = ui_shared.shape_fingerprint(geojson.explode_classes(cells_gdf, ["single_cells_demo"]))
     assert before != after, (
         "Exploding a class did not change the cache fingerprint, so a cached selection from "
         "before the explode would be reused."
     )
     fake_streamlit.state.file_name = "b.geojson"
-    assert ui_cells._shape_fingerprint(cells_gdf) != before, "A different file gave the same fingerprint."
+    assert ui_shared.shape_fingerprint(cells_gdf) != before, "A different file gave the same fingerprint."
 
 
 def test_the_scale_is_estimated_when_the_file_allows_it(fake_streamlit):
@@ -349,3 +364,144 @@ def test_a_full_plate_says_so_rather_than_naming_a_well(fake_streamlit, monkeypa
     caption = " ".join(captions)
     assert "full" in caption, f"A plate with no free wells should say so; caption was {caption!r}"
     assert "start at" not in caption, "A full plate must not suggest a well to start at."
+
+
+
+
+
+
+def test_a_class_with_too_few_regions_warns_and_still_continues(fake_streamlit):
+    """Asking for more replicates than a class has regions cannot be satisfied.
+
+    Warned rather than blocked: the empty replicates keep their wells, so the plate still
+    matches what the user asked for and they can decide.
+    """
+    import geopandas
+    from shapely.geometry import box
+
+    patches = geopandas.GeoDataFrame(
+        {CLASS_NAME: ["Tumor", "Tumor", "Stroma"], regions.N_CELLS: [5, 4, 3]},
+        geometry=[box(0, 0, 10, 10), box(20, 0, 30, 10), box(40, 0, 50, 10)],
+        crs=None,
+    )
+    replicates = {"Tumor": 2, "Stroma": 3}
+    replicate_of = regions.deal_patches(patches, replicates)
+    ui_packing._report_starved_replicates(patches, replicates, replicate_of)
+
+    shown = fake_streamlit.shown("warnings")
+    assert "fewer regions than replicates" in shown, (
+        "A class that cannot fill its replicates was not reported, so two of its wells would "
+        "arrive empty with no warning."
+    )
+    assert "Stroma" in shown and "Tumor" not in shown, (
+        f"The warning named the wrong classes. Shown: {shown!r}. Tumor has enough regions for "
+        "its two replicates; only Stroma is short."
+    )
+
+
+def _region_frame():
+    """The regions a packing result came from, which the report compares against."""
+    import geopandas
+
+    return geopandas.GeoDataFrame(
+        {CLASS_NAME: ["Tumor"], regions.N_CELLS: [50]},
+        geometry=[shapely_box(0, 0, 400, 400)],
+        crs=None,
+    )
+
+
+def _packed(area=10_000.0, seed=0, max_attempts=None, **circle):
+    """A small packing result, for the reporting functions."""
+    from qupath_to_lmd import packing
+
+    params = packing.PackingParams(
+        seed=seed, **({"max_attempts": max_attempts} if max_attempts else {})
+    )
+    requests = [packing.ClassPacking("Tumor", 1, area, **circle)]
+    return packing.pack(_region_frame(), requests, params, 1.0), params, requests
+
+
+def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_streamlit):
+    """Under-delivering silently is the one thing this app must never do.
+
+    The user may accept a partly-filled replicate, so it warns rather than blocks
+    (`decisions.md` 003).
+    """
+    result, _params, requests = _packed(area=10_000_000, max_attempts=150)
+    ui_packing._report_packing(result, requests)
+
+    shown = fake_streamlit.shown("warnings")
+    assert "could not be filled" in shown, (
+        "A replicate that fell short of its requested area was not reported, so the user would "
+        "believe the well holds the amount they asked for."
+    )
+    assert "µm²" in shown, "The shortfall was not stated as an area, so it is not actionable."
+
+
+def test_a_filled_replicate_does_not_warn(fake_streamlit):
+    """Warning on the ordinary case is how warnings stop being read."""
+    result, _params, requests = _packed(area=2_000)
+    ui_packing._report_packing(result, requests)
+    assert "could not be filled" not in fake_streamlit.shown("warnings"), (
+        f"A fully-filled replicate warned anyway: {fake_streamlit.shown('warnings')!r}"
+    )
+
+
+def test_regions_too_narrow_for_a_circle_are_reported(fake_streamlit):
+    """Those regions contribute nothing, and the fix is a smaller minimum circle size.
+
+    From a circle count alone the user cannot tell that tissue was skipped.
+    """
+    from qupath_to_lmd import packing
+
+    result = packing.PackingResult(n_regions_too_small=17)
+    ui_packing._report_packing(result, [packing.ClassPacking("Tumor", 1, 100.0)])
+    shown = fake_streamlit.shown("warnings")
+    assert "too narrow to hold even one circle" in shown and "17" in shown, (
+        f"Skipped regions were not reported with their count. Shown: {shown!r}"
+    )
+
+
+def test_the_smoothing_loss_is_warned_about_when_it_is_large(fake_streamlit):
+    """Area per replicate is this workflow's whole budget, and smoothing eats into it.
+
+    Small circles lose about 10% of their area at the default 1 px tolerance, so every well
+    would hold less than the table above it says.
+    """
+    result, _params, requests = _packed(
+        area=4_000, min_circle_area_um2=100, max_circle_area_um2=150
+    )
+    ui_packing._report_packing(result, requests)
+    shown = fake_streamlit.shown("warnings") + " " + fake_streamlit.shown("captions")
+    assert "moothing" in shown, (
+        "Nothing was said about smoothing taking area off the circles, so the amounts shown are "
+        "larger than what the laser will actually collect."
+    )
+
+
+def test_only_number_columns_are_given_a_number_format(fake_streamlit):
+    """A `NumberColumn` on a text column marks every cell with a red warning triangle.
+
+    Streamlit renders "this value cannot be interpreted as a number" over the class names, which
+    reads as an error in a table that is perfectly fine — so the config is built from the
+    numeric columns only.
+    """
+    import pandas
+
+    ui_shared.show_amounts(
+        pandas.DataFrame({"Class": ["Tumor", "Immune cells"], "Collected (µm²)": [10_004.4, 9_998.1]})
+    )
+    assert fake_streamlit.tables, "Nothing was shown at all."
+    data, config = fake_streamlit.tables[-1]
+
+    assert "Class" not in config, (
+        "The class-name column was given a number format, so Streamlit flags every class name "
+        "as not being a number."
+    )
+    assert "Collected (µm²)" in config, (
+        "The amount column lost its format, so it shows a long float tail with no separator."
+    )
+    assert data["Collected (µm²)"].tolist() == [10_004, 9_998], (
+        f"Amounts came out as {data['Collected (µm²)'].tolist()}; they should be whole numbers, "
+        "since a fraction of a square micrometre is noise in a number the user has to read."
+    )

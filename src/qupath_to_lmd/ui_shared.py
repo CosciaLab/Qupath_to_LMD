@@ -8,10 +8,11 @@ pure and take explicit arguments.
 import json
 from pathlib import Path
 
+import pandas
 import streamlit as st
 from loguru import logger
 
-from qupath_to_lmd import export, extras, geojson, plate, qc, stats
+from qupath_to_lmd import export, extras, geojson, plate, plot, qc, stats
 from qupath_to_lmd.model import CLASS_NAME
 
 # The rendered number input carries `step` as an HTML attribute and browsers snap entries
@@ -44,6 +45,7 @@ HOSTED_MEMORY_CEILING_MB = 2_700
 WORKFLOWS = {
     "legacy": "Annotations — one class is one sample is one well",
     "cells": "Cell segmentation — pick classes, replicates and how much to collect",
+    "regions": "Cellular neighbourhoods — merge cells into regions, then pack circles",
 }
 
 
@@ -344,6 +346,145 @@ def _report_pixel_size(value, source, estimate, report) -> None:
             "shapes. That usually means the export mixes images, or was rescaled — worth "
             "checking before relying on any area."
         )
+
+
+# Amounts in this app run from tens to millions of µm², and no decimal in them is meaningful:
+# a tenth of a square micrometre is far below anything the laser can place. So every table of
+# amounts shows whole numbers with a thousands separator (`decisions.md` 068, 072).
+WHOLE_NUMBER = st.column_config.NumberColumn(format="localized")
+
+
+def show_amounts(table, **kwargs) -> None:
+    """Show a table of amounts: whole numbers, thousands separated.
+
+    Only the numeric columns get a number format. Handing a `NumberColumn` to a text column —
+    a class name — makes Streamlit mark every cell with "this value cannot be interpreted as a
+    number", which reads as an error in a table that is perfectly fine.
+    """
+    if table is None or len(table) == 0:
+        return
+    rounded = table.copy()
+    for column in rounded.columns:
+        if pandas.api.types.is_numeric_dtype(rounded[column]):
+            rounded[column] = rounded[column].round(0).astype("Int64")
+    config = {
+        name: WHOLE_NUMBER
+        for name in rounded.columns
+        if pandas.api.types.is_numeric_dtype(rounded[name])
+    }
+    config.update(kwargs.pop("column_config", {}) or {})
+    st.dataframe(rounded, width="stretch", column_config=config, **kwargs)
+
+
+def shape_fingerprint(gdf) -> tuple:
+    """A cheap identity for the working shapes, for cache keys.
+
+    Cannot be the filename alone: exploding a class rewrites the class names in place. Cannot
+    hash the frame itself either — Streamlit would walk 150 000 rows on every rerun, which is
+    what the cache is meant to avoid.
+    """
+    return (
+        st.session_state.get("file_name"),
+        len(gdf),
+        tuple(sorted(gdf[CLASS_NAME].dropna().unique())),
+    )
+
+
+@st.cache_data(show_spinner=False)
+def _cached_statistics(_gdf, cache_key: tuple, pixel_size_um: float | None):
+    """Per-class statistics, cached so a rerun does not recompute them (twice)."""
+    return stats.class_statistics(_gdf, pixel_size_um=pixel_size_um)
+
+
+def class_selection_step(pixel_size_um: float | None, step: str = "4") -> list[str]:
+    """Show what each class holds and what it looks like, then let the user choose.
+
+    Shared by the cell and regions workflows: both start by asking which biology to collect, and
+    a user switching between them should not meet two different tables.
+
+    The table and the picture sit side by side because they answer the same question from two
+    directions — how much is there, and is it where I expect. Seeing the input drawn also
+    confirms the file is the one the user meant to upload, which nothing else in the app does
+    (`decisions.md` 071).
+    """
+    gdf = st.session_state.gdf
+
+    st.markdown(f"## Step {step}: Choose which classes to collect")
+
+    numbers, picture = st.columns([1, 2], gap="medium")
+
+    with numbers:
+        _, source = resolve_pixel_size()
+        if pixel_size_um and source == "estimated":
+            st.markdown(
+                f"Areas are measured from the shapes at **{pixel_size_um:.4f} µm/px**, estimated "
+                "from this file's own QuPath measurements. You can change the scale later."
+            )
+        elif pixel_size_um:
+            st.markdown(
+                f"Areas are measured from the shapes at **{pixel_size_um:.4f} µm/px**, the scale "
+                "you entered."
+            )
+        else:
+            st.markdown(
+                "This file carries no measurements to estimate an image scale from, so amounts "
+                "are in numbers of shapes. Enter a scale later to work in areas."
+            )
+
+        table = _cached_statistics(gdf, shape_fingerprint(gdf), pixel_size_um)
+        # Columns stay numeric so the table remains sortable; only the rendering is trimmed.
+        show_amounts(stats.for_display(table))
+
+        all_classes = table.index.tolist()
+        selected = st.multiselect(
+            "Classes to collect",
+            options=all_classes,
+            default=st.session_state.selected_classes or all_classes,
+            help="Everything after this step works only on the classes you keep here.",
+        )
+
+        if selected != st.session_state.selected_classes:
+            st.session_state.selected_classes = selected
+            logger.info(f"Classes selected: {selected}")
+
+        if selected:
+            kept = table.loc[selected]
+            summary = f"**{int(kept['shapes'].sum()):,} shapes** across {len(selected)} classes"
+            if "area_total_um2" in kept.columns:
+                summary += f", totalling **{kept['area_total_um2'].sum():,.0f} µm²** of tissue"
+            st.write(summary + ".")
+        else:
+            st.warning("No classes selected, so there is nothing to collect yet.")
+
+    with picture:
+        _draw_input(gdf, selected)
+
+    return selected
+
+
+def _draw_input(gdf, selected: list[str]) -> None:
+    """Draw everything in the file, colouring what is kept and greying out the rest.
+
+    Showing what was left out, rather than only what was taken, is what lets a user notice they
+    have excluded something by mistake — or that they uploaded the wrong export.
+    """
+    with st.spinner("Drawing shapes..."):
+        figure = plot.plot_shapes(
+            gdf,
+            included=selected,
+            calibration_array=st.session_state.calib_array,
+            title=f"{len(gdf):,} shapes in this file",
+        )
+    st.pyplot(figure, width="stretch")
+    if len(gdf) > plot.SHAPE_LIMIT:
+        st.caption(
+            f"Over {plot.SHAPE_LIMIT:,} shapes, so each one is drawn as a dot rather than its "
+            "outline. The outlines are still what gets cut."
+        )
+    st.caption(
+        "Greyed-out shapes are the classes you left out. Dashed triangle and crosses are your "
+        "calibration points; shapes far outside it are the ones at risk of distortion."
+    )
 
 
 def plate_settings_step(step: str = "5") -> dict:
@@ -696,7 +837,7 @@ def _export_parameters(step: str) -> tuple[float, export.PathOrder]:
 
     with tolerance_column:
         tolerance = st.number_input(
-            "Smoothing tolerance (pixels)",
+            "Smoothing tolerance (px)",
             min_value=0.0,
             max_value=100.0,
             value=export.DEFAULT_SIMPLIFY_TOLERANCE,

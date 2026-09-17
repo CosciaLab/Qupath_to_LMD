@@ -5,7 +5,7 @@
 QuPath-to-LMD is the easiest way to go from QuPath annotations to LMD collection!
 With more than 60 unique users, we try to help everyone collect their tissues for DVP.
 
-Two workflows: **annotations**, the standard where every classified annotation is cut, and **cell segmentation**, where you ask for a number of cells or an area per replicate and the app picks the cells.
+Three workflows: **annotations**, the standard where every classified annotation is cut; **cell segmentation**, where you ask for a number of cells or an area per replicate and the app picks the cells; and **cellular neighbourhoods**, where classified cells are turned into contiguous regions of tissue and small circles are packed inside them to collect a set amount of each.
 
 ## In QuPath
 
@@ -26,7 +26,7 @@ Go to [Streamlit Webapp Link](https://qupath-to-lmd.streamlit.app/)
 </a>
 
 1. Upload your geojson file, and choose your calibration points
-2. Choose a workflow: annotations or cell segmentation
+2. Choose a workflow: annotations, cell segmentation, or cellular neighbourhoods
 3. Set up the plate
 4. Process the files and download your output files
 
@@ -42,9 +42,40 @@ avoid cells touching another cell you are collecting, and shows you exactly whic
 picked before you export. Cells below a minimum area (100 µm² by default, per class) are left
 out, so keeping only the shapes you can actually collect.
 
-Both workflows let you set the smoothing tolerance and the cutting order, and both download the
-same bundle: the `.xml` for the LMD, the plate scheme, a QC image, your processed `.geojson`,
-and a log.
+**Cellular neighbourhoods** — for when a single cell is too little tissue but you still want to
+collect by cell type. Each cell is given the tissue nearest to it — up to a distance you set,
+which is what stops a cell at the edge of the tissue claiming the empty slide around it — and
+touching cells of the same class are merged into one **region**. Then, in one table with a row per class, you set how many replicates
+you want, how much tissue goes into each one, the size range of the circles and the gap to leave
+between cuts — and the app fills the regions with circles until it reaches that amount. Those
+settings are per class because a sparse, stringy class needs smaller circles than a solid one
+before anything fits at all. Circles cut
+far faster than one enormous irregular outline, and they let you ask for a measured amount rather
+than all of it. You control the circle size range, the gap left between cuts, and a seed — the
+same seed and settings always give you the same circles, so a collection can be repeated in a
+later session and reported in a methods section. Everything you set is saved in the download.
+
+The table sits directly above a live picture of what you are about to cut, so you can see the
+effect of every change without hunting for it: a pale fill is the class, for the regions and the
+circles alike, and a dark outline tells you which replicate a circle belongs to. The app also
+shows how much each class can actually hold, which is well below its area — randomly placed
+circles cover about 55% of a region at best, and the gap between them cuts that down a lot more —
+and afterwards what each replicate really got.
+
+Two things worth knowing. A region covers the space *between* the cells as well, because that is
+the tissue belonging to that class, so it reaches past the outlines QuPath drew — one setting
+controls how far. And smoothing shaves a little area off every circle, so if that adds up to more
+than a few percent the app says so and tells you how to avoid it.
+
+You set all of this *before* the plate, so by the time you get to the plate the number of wells
+is already settled.
+
+You can also collect **the whole regions** instead of circles, which is what you want if you want
+all of a neighbourhood rather than a measured amount of it.
+
+All three workflows let you set the smoothing tolerance and the cutting order, and all download
+the same bundle: the `.xml` for the LMD, the plate scheme, a QC image, your processed
+`.geojson`, and a log.
 
 ### The cell segmentation workflow, end to end
 
@@ -83,6 +114,10 @@ uv run streamlit run streamlit_app.py
   `requirements.txt`.
 - [`facts.md`](facts.md) records what is true about the app, [`decisions.md`](decisions.md) why it
   is that way, and [`GLOSSARY.md`](GLOSSARY.md) the vocabulary.
+
+# Changelog
+
+What changed in each release, in plain language: [CHANGELOG.md](CHANGELOG.md).
 
 # Citation
 

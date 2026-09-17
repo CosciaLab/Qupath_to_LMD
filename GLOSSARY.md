@@ -48,6 +48,24 @@ the seam the two workflows share:
 | annotations | one class |
 | annotations, with a class exploded | one shape |
 | cell segmentation | one class and replicate, e.g. `Tumor_r2` |
+| cellular neighbourhoods | one class and replicate, e.g. `Tumor_r2` |
+
+**region** — one contiguous area of tissue belonging to a single class, built by giving each
+cell the space closest to it and merging touching cells of the same class. A region is a
+**shape**, so it is cut like any other; the word exists because it is not a cell and not
+something anyone drew in QuPath. A class usually holds several separate regions, and each is
+counted, assigned and cut on its own.
+
+A region **reaches past the cell outlines QuPath drew** — it covers the space between cells as
+well, because that is the tissue belonging to the class. Two regions of different classes never
+overlap. How far a region may reach is capped, so a lone cell at the edge of the tissue cannot
+claim the blank slide around it.
+
+**circle** — one of the many small discs packed inside a region to collect a set amount of it.
+A circle is a **shape**, so it is cut like any other. Sizes are given as areas in µm², because
+that is what an experiment is specified in, and the **gap** is the least tissue left between two
+cuts — enforced between circles of different classes as well, since the laser does not care which
+class a neighbouring cut belongs to.
 
 **replicate** — one repeat of a class, collected into its own well. Replicates of a class are
 drawn from across the whole tissue and interleaved with each other, so they are statistical

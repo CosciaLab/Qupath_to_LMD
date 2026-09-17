@@ -1166,3 +1166,506 @@ almost nothing in it.
 the pool and `feasibility` then raised `KeyError` on `stats.at[...]` — a traceback instead of the
 app, one keystroke away in an editable column. A class absent from the pool now reads as zero
 available, 100% too small.
+
+## 066 — a third workflow: cells become regions, and regions get cut
+**Date:** 2026-09-17 · **Status:** active
+**Decision:** cellular neighbourhoods become a **third option on the workflow step**, in a new
+`ui_packing.py`, rather than a mode inside the cell workflow. A new `regions.py` gives each cell
+the space closest to it, caps and clips it, merges touching cells of the same class into regions,
+and deals those across replicates. `plan_from_selection` gains a `workflow` argument; nothing else
+in the shared path changed, and all 10 pre-existing golden artefacts stayed byte-identical.
+**Why a third workflow rather than a mode:** Jose asked that this path "not disturb users who do
+not care for it". The cell workflow's steps 4–7 exist to *choose among the cells that are there* —
+minimum area, spread versus random, the adjacency preference, the selection fragment. None of them
+means anything when the thing being cut is derived tissue rather than a cell. A mode would have put
+a branch through four steps including the cached fragment, on the path that carries the most
+tests, to reuse controls that would then all have to be hidden. A third radio option reuses upload,
+calibration, class selection, the plate and the export — which is what `ui_shared` is for — and
+leaves the two existing workflows untouched by construction.
+
+### The classes are filtered after tessellating, never before
+A region is the territory nearest its cell. Drop a class *before* tessellating and its neighbours
+expand into the space it occupied, so a well labelled `Tumor` holds immune tissue. `project` takes
+`include=` for this reason instead of being handed a pre-filtered frame, and
+`test_an_unwanted_class_still_holds_its_own_territory` is the guard.
+
+### Regions are capped at a disc and clipped to the hull of the cell bodies
+**Alternatives considered.** openDVP's `adata_to_voronoi` drops unbounded regions and then drops
+everything above the 98th area percentile; clipping to a tissue-outline annotation is the most
+faithful but only works when the user drew and exported one, and can produce MultiPolygons.
+Chosen instead: `voronoi ∩ disc(R) ∩ hull`, with `R = 3 × median nearest-neighbour distance` and
+editable. It needs nothing extra from QuPath, it bounds every region *locally* rather than by a
+global percentile, and all three pieces are convex — so a region is always a single Polygon and
+the MultiPolygon problem never arises before the merge.
+**The hull is of the cell bodies, not their centroids.** A test caught this: a rim cell's centroid
+sits exactly *on* the centroid hull, so clipping to it cut away half of that cell's own tissue.
+`shapely.convex_hull` over a geometry collection gives the same answer as
+`union_all().convex_hull` for **0.09 s against 9.1 s** at 100 000 cells.
+
+### shapely, not scipy, for the tessellation
+`shapely.voronoi_polygons(..., ordered=True)` (shapely ≥ 2.1, already pinned) guarantees the i-th
+polygon belongs to the i-th point, so classes map by position. openDVP and the prototype's upstream
+notebooks both use `scipy.spatial.Voronoi`, which needs `point_region` indirection and explicit
+`-1` unbounded-region rejection, and which loses the rim cells rather than bounding them. No new
+dependency either way: `scipy` was already declared and unimported, and `regions.py` now uses
+`scipy.spatial.cKDTree` for the neighbour spacing.
+
+### Pinhole slivers are filled, and the threshold comes from the data
+The radius cap is a 64-sided polygon while Voronoi edges are exact, so where three capped regions
+meet they leave a gap of a pixel or two that belongs to no region; merging turns those into
+interior rings. Left alone, an ordinary run raises "2 regions completely surround tissue of another
+class, totalling 1 px²" — a warning about nothing, on the same screen as a warning that can mean
+real contamination. `close_slivers` fills any ring smaller than **the smallest region of the whole
+tessellation**: a genuine hole is another cell's territory, so it cannot be smaller than that.
+Measured — slivers 0–8 px² against smallest regions of 48–702 px² across the demo files, no
+overlap. The threshold is taken over *all* regions rather than the kept ones, because a hole may be
+the region of an excluded class and that class can hold smaller regions than any kept one.
+**Rejected:** a fixed pixel threshold, which would need retuning per file and per radius factor.
+
+### Holes are warned about; the dilation is explained
+Where a region genuinely surrounds another class, `extract_coordinates` takes the outer outline
+only, so the enclosed tissue is cut into the same well. Warned, with the area in µm², never
+blocked — the user may want exactly that, and this is `003`.
+Separately, a region reaches past the cell outlines QuPath drew. **This is the dilation case `013`
+and ROADMAP round-one open question 3 left open**, both of which promised the app would say so on
+screen if it ever arrived. It is stated in the step's own text rather than in a warning box,
+because it is how the workflow works rather than an anomaly, and a box on every single run is how
+`064` says a warning stops being read.
+
+### Dealing regions across replicates is deterministic and area-balanced
+Largest region first into whichever replicate holds the least area so far. Replicates of a class
+have to be comparable amounts, and dealing in order would give replicate 1 every large region. No
+RNG at all here, so the same file reaches the same wells in a later session — which is what makes
+the collection reportable in a methods section. Where a class has fewer regions than replicates
+the extra replicates stay empty, keep their wells, and are named on screen.
+
+### Circle packing is not in this change
+Packing circles inside the regions is the point of the exercise and is the next branch. Splitting
+it out means this one is independently clickable and cutting whole neighbourhoods is useful on its
+own. The prototype at `PY38_CirclePackingStreamlit` contains no Voronoi code — it reads an
+already-tessellated file — so that half had to be written here regardless.
+
+## 067 — circle packing: ported from the prototype, with the parts that were wrong fixed
+**Date:** 2026-09-17 · **Status:** active · **completes 066**
+**Decision:** `packing.py` fills each region with circles by rejection sampling, which is what
+Jose's prototype at `PY38_CirclePackingStreamlit/functions.py` does and is the right method here.
+Step 8 of the regions workflow offers a choice — **circles packed inside the regions** (default)
+or **the whole regions** — and the packing controls live in an `st.fragment` below the plate, so
+tuning them never invalidates wells the user already approved.
+**Why circles at all:** a merged region is one enormous irregular outline. The stage traces it for
+a long time, and there is no way to ask for *some* of it. Circles cut quickly and add up to a
+chosen area, which is the unit a proteomics experiment is actually specified in.
+**Why whole regions stays available:** it was already built and tested in `066`, it is the only
+thing possible without an image scale, and "collect all of this neighbourhood" is a real request.
+
+### Measured, on Jose's real 8 411-cell TMA core at 0.6535 µm/px
+684 regions, 3 replicates of 10 000 µm² for each of 3 classes:
+
+| | first working version | after the three fixes below |
+| --- | --- | --- |
+| wall time | 8.6 s | **0.7 s** |
+| circles kept / placed | 479 / 718 | **422 / 431** |
+| replicates reaching target | 6 of 9 | **9 of 9** |
+
+1. **Skip regions that cannot hold one smallest circle.** `buffer(-min_radius).is_empty` is exact
+   and costs 0.01 s for 141 regions. 119 of 684 regions on real tissue are in that state, and each
+   one otherwise spent the full 2 000-attempt budget finding out. Reported on screen, because the
+   remedy — a smaller minimum circle — is something only the user can choose.
+2. **Ask each region for its share of what is still outstanding.** Every region overshoots its
+   share by up to one circle; carrying only a one-sided deficit forward therefore over-packed a
+   141-region class by more than twice its target, which is where 239 discarded circles came from.
+3. **One circle of slack per replicate.** A replicate fills until it *reaches* the target, so
+   packing exactly the total left the last replicate holding only the remainder — reliably about
+   5% short while its siblings overshot. A replicate systematically smaller than the others is not
+   a comparable measurement, which is the whole point of having replicates.
+
+### Spacing is global, and what that costs
+The gap is enforced across the **whole collection**, not within a class as the prototype did.
+Regions of two classes touch by construction, so two circles either side of a boundary could
+otherwise sit a fraction of a micrometre apart; the strip between them detaches and falls into
+whichever well is cut first. The laser does not care which class a neighbouring cut belongs to.
+**The cost, stated plainly:** classes are packed in sorted order and share one collision grid, so
+changing one class's amount can change the classes sorted after it — never those before it.
+Everything is still reproducible from the recorded parameters. Judged worth it: a wrong-class
+fragment in a well is a ruined sample, while coupling is an inconvenience in a preview.
+
+### Randomness
+`numpy.random.default_rng`, never the legacy global `numpy.random.seed` the prototype used, which
+clobbers any other code drawing from `numpy.random` and is not this repo's convention
+(`selection.py` has used `default_rng` since Phase 4). **One sub-stream per class, keyed by
+`blake2b` of the class name** — not by position, so adding or removing a class leaves the others
+drawing the same candidate positions, and not by `hash()`, which Python salts per process and
+would make the same seed pack differently tomorrow. The prototype ran one stream through every
+class in turn, so nudging one class's spacing re-rolled every draw in every later class, and a
+settings-and-preview loop then shows the user changes they did not ask for and cannot attribute.
+`seed=None` is gone: a seed is always set, default 0, and recorded in `provenance.json`.
+
+### Collision detection
+A dict of buckets keyed `(x // cell, y // cell)` with `cell = 2 * max_radius + spacing`, so only
+the 3x3 neighbourhood is ever checked. The prototype rebuilt a `shapely.STRtree` from every placed
+circle **on every single attempt** — O(n² log n) over a run, and the dominant cost despite the
+comment claiming it was "blazingly fast". It also queried the tree with no predicate, so it
+compared bounding boxes and rejected placements that were legal.
+
+### The capacity estimate accounts for the gap
+`0.547 * area / (1 + spacing / (2 * mean_radius))²`. The 0.547 is measured, not assumed: randomly
+thrown circles of mixed size cover that share of a 2000x2000 px square at a zero gap. Circles
+100-500 µm² at 0.3467 µm/px, measured against the formula: 54.7%/54.7% at 0 µm, 42.9%/45.0% at 2,
+32.9%/34.7% at 5, 21.4%/23.9% at 10, 12.2%/13.4% at 20 — within 2 points everywhere and slightly
+optimistic. **The prototype's flat 0.55 ignored the gap entirely**, so at 20 µm it would have told
+a user they had 4.5x the tissue actually available. Shown before packing runs, so an impossible
+request is visible without waiting for it; what was achieved is always reported separately.
+
+### Smoothing is reported, not absorbed
+`simplify` cuts the corners off a circle, and at the default 1 px tolerance a 64-sided circle of
+radius ≤ 10 px drops to 9 vertices and **loses 10% of its area**; 2.6% at radius 20 px, 0.6% at
+100 px. At 0.6535 µm/px a 100 µm² circle has a radius of 8.6 px, so the default circle range sits
+squarely in the worst of it — on the real export the loss is 6% of everything collected. Area per
+replicate is this workflow's entire budget, so `smoothing_loss` measures it and step 8 warns above
+5%, naming both real remedies: a larger smallest circle, or a lower tolerance.
+**Rejected:** inflating each circle to compensate. It would hit the requested number, but by
+cutting a shape the user did not ask for to correct an error they cannot see. Saying what will
+happen and letting them decide is `003`.
+
+### Also dropped or changed
+- `n_permutations`, the prototype's best-of-N restarts: x5 cost for a marginal gain, and it made
+  the random stream depend on it. One loop if it is ever wanted back.
+- Areas come from `polygon.area`, not analytic `pi r²` — a buffered circle is a 64-gon and about
+  0.4% smaller than the circle it approximates, so the prototype's accounting was optimistic.
+- An empty result now carries its columns (`empty_circles`). The prototype returned a bare
+  `GeoDataFrame()`, so every caller had to remember to check before touching a column; a test
+  caught this app raising `KeyError` instead of reporting that nothing fitted.
+- A shortfall concentrates in the **last** replicates rather than being spread thinly over all of
+  them, so a class that can only half-fill its request yields whole comparable replicates plus a
+  remainder. Consistent with `budget.feasibility`'s "replicates fillable" in the cell workflow.
+
+### A `packing` golden case, driven by the demo file
+The plan for this feature proposed a synthetic square, to keep the reference bytes free of GEOS.
+Changed on the grounds that the `regions` case already depends on GEOS, so a synthetic case buys
+no new robustness, while going through the demo file covers projection, merging, the synthesised
+QuPath fields, dealing and export as well. `packing` also pins numpy's random stream — if it
+differs on its own, a recorded seed no longer reproduces its collection, which is breaking for
+anyone who has written a seed into a methods section. `tests/test_packing.py` carries the
+seed-stability guarantee independently.
+
+## 068 — the collection step moves above the plate, and µm² loses its decimals
+**Date:** 2026-09-17 · **Status:** active · **refines 066 and 067**
+All four from Jose, reviewing the first working version of the regions workflow.
+
+### The collection step comes before the plate
+**Was:** 4 classes, 5 regions, 6 replicates, 7 plate, 8 what-to-collect and export.
+**Now:** 4 classes, 5 regions, 6 what-to-collect, 7 plate, 8 export.
+Jose: "Let users decide on how much area, and how many samples, before they see the plate… Here
+is where users will loop through parameters to reach the settings they want."
+**Why he is right:** the amount per replicate and the replicate count are exactly what the plate
+has to accommodate. Deciding them first means the plate is shown once, already correct, instead
+of being redrawn under the user on every keystroke while they are still thinking about circle
+sizes rather than wells. The circle settings and the amount now sit together in one step, in his
+order — circle parameters, then the amount, then the number of replicates.
+**Consequence: the `st.fragment` had to go.** A fragment reruns only itself, so nothing below it
+re-executes; with the plate and export below the loop, they would sit there showing a stale
+collection — the exact trap `051` describes. The caches on the projection and the packing are
+what make a full rerun affordable instead, which is what they were added for.
+
+### The enclosed-class warning is removed
+`066` warned when a region completely surrounds tissue of another class, on the grounds that the
+export path follows a shape's outer outline only and would collect the enclosed tissue too.
+Jose: "Surrounded tissue is not an issue, please remove that warning."
+**Removed.** It fired on 21 of 684 regions on his real core, so it was appearing on an ordinary
+run, and by `064` a warning that always appears is one that gets ignored when it matters. It was
+also misleading in the default mode: circles are never packed into a hole, because
+`patch.contains` respects interior rings. The geometry still behaves this way and
+`RegionReport` still counts it into the log, so the numbers are there if the judgement changes.
+**Supersedes** the hole-warning half of `066`; the dilation explanation in that entry stays.
+
+### Amounts in µm² are whole numbers
+Jose: "sometimes we will get millions of um^2, it should not need me to count the number of
+digits to understand the number… remove any decimals from any um2 parameter, these are noise."
+Inputs use `format="%d"` with integer bounds. Tables are cast to `Int64` and rendered with
+`st.column_config.NumberColumn(format="localized")` — an integer column cannot show a decimal,
+and `localized` is what adds the thousands separator, so one change satisfies both halves.
+`regions.RegionReport.summary` stopped rounding at all: deciding how to display a number is the
+UI layer's job, and the library rounding it to two decimals was the reason the UI could not.
+**Still showing decimals, deliberately not changed:** the per-class table in step 4, because
+`ui_shared.class_selection_step` and `stats.for_display` are shared with the cell workflow and
+`DECIMALS = 2` is asserted by `tests/test_stats.py`. Flagged to Jose rather than changed here
+(rule 9).
+
+### The "Effort" control is removed
+Jose: "I do not understand what the Effort parameter is for." It exposed `max_attempts`, the
+number of consecutive failed placements before a region is called full — a property of how the
+rejection sampler gives up, not a decision about the experiment. It stays in `PackingParams` at
+its default of 2000 because the algorithm needs a stopping rule, and it is still recorded in
+`provenance.json`, but nothing asks the user about it. A control nobody can interpret is worse
+than no control: it invites fiddling with something that has no experimental meaning.
+
+### Added while in there
+A metrics row above the achieved table, borrowed from the shape of Jose's own prototype: tissue
+in the regions, how much is being collected and what share of the whole that is, the number of
+circles, and the mean circle diameter. It answers "is this a sensible collection?" at a glance,
+which the per-replicate table alone does not. The share is `delta_color="off"` so it does not
+read as a change.
+
+## 069 — step 6 is a side-by-side loop, and the amount is per class
+**Date:** 2026-09-17 · **Status:** active · **refines 067 and 068**
+Jose: "Step 6 needs better visual feedback loop, currently I have to scroll up and down too
+much."
+
+### Inputs at a third of the width, the picture at two thirds
+`st.columns([1, 2])`. Every control the user touches is in the narrow left column — what to
+collect, the image scale, the circle sizes, the gap, the seed, and the per-class table. The
+picture is in the wide right column, with the four summary metrics under it. The per-replicate
+table, the capacity expander and the warnings sit below, full width: they are what a user reads
+once they have settled on an arrangement, not what they watch while tuning it.
+**Why it matters more than it sounds:** this is the only step in the app where the user changes a
+number specifically to see what it does to the geometry. With the controls above the picture,
+every adjustment cost a scroll down to look and a scroll up to change — so in practice nobody
+tunes, they accept the first result.
+
+### The amount per replicate is per class, in the same table as the replicates
+Jose: "There should be one table, where users define the number of replicates, and the area per
+replicate for each class."
+`PackingParams` lost `area_per_replicate_um2`; `pack` and `capacity` now take
+`list[budget.ClassBudget]`. **`ClassBudget` is reused, not reinvented** — `class_name`,
+`replicates`, `per_replicate` is exactly its shape, it already has `.required`, and
+`budget.group_keys` then sizes the plate with no new code. The cell workflow has used it since
+Phase 3, so the two workflows now describe an amount the same way.
+**Why per class is right:** on Jose's real core `Tumor` and `Immune cells` hold about 900 000 µm²
+each while `Immune cells--Tumor` holds 220 000. One global amount forced the same target on all
+three, so the user could not ask each class for what it could actually give. A class asked for
+zero still appears in the report at zero, because a row vanishing looks like a failure rather
+than a choice.
+
+### Two variables, two channels
+Jose: "you should plot the circles with the colors of each class, not replicate. The outline of
+the circle should be colored with tab20, and that should mean the replicate number."
+`plot.plot_regions_and_circles`: **fill is the class**, for the regions and the circles alike, so
+a circle is visibly part of the tissue it came from; **outline is the replicate**, from tab20.
+Two legends, both outside the axes, because one combined key would not say which channel carries
+which meaning.
+**tab20 deliberately, and deliberately not the class palette.** The classes keep Okabe-Ito, which
+stays legible for the common forms of colour blindness but only has seven entries; tab20 has
+twenty, which is what makes more than a handful of replicates tellable apart. One picture carries
+both scales, so they must not be mistakable for each other.
+**One thing measurement forced:** both palettes contain an orange, and at full opacity an orange
+circle of an orange class hid its own replicate ring — the ring being the only thing carrying the
+replicate. Fill dropped to alpha 0.7 and the ring to 1.5 pt, checked by rendering the real core
+at full extent and at working zoom. `replicate_colors` keys tab20 by replicate *number* rather
+than by position, so replicate 2 keeps its colour when a class with fewer replicates is added;
+keyed by position, a user comparing two screenshots would read a change that never happened.
+Drawing costs 0.02 s for 684 regions and 422 circles, so it redraws on every keystroke for free.
+
+### Refreshing
+Jose: "should refresh after the table has been updated by user." `st.data_editor` already reruns
+the script on an edit, and the projection and packing caches make that rerun cheap, so the
+picture is rebuilt from the edited table with nothing extra. This is the second reason the
+`st.fragment` removed in `068` had to go: a fragment would have redrawn the picture but left the
+plate and export below it stale.
+
+### Session state
+`replicates` became `region_budgets`, holding a list of `ClassBudget` as dicts rather than a
+`{class: count}` map. Not folded into the cell workflow's existing `budgets` key: the two
+workflows would then overwrite each other's on a switch, and one key silently meaning two things
+is how `059` says a vocabulary rots.
+
+## 070 — the merge was right, the picture was wrong; and packing goes per class
+**Date:** 2026-09-17 · **Status:** active · **refines 066, 067 and 069**
+Jose, on the first side-by-side version: "There seems to be issues with plotting the
+neighborhoods, in some places two different colors overlay… The visualization right now tells me
+the merging is not working."
+
+### The merge was correct and is now asserted
+Checked rather than argued, over the 684 regions of the real core: the largest **area** shared by
+any two regions is **0.000000 µm²**; the 18 same-class pairs that intersect at all do so at
+`Point`/`MultiPoint` only, which is what separate components of a union legitimately do; the 1 177
+different-class pairs intersect along `LineString`/`MultiLineString`, i.e. shared boundaries,
+which is exactly right. `tests/test_regions.py::test_no_two_regions_share_any_tissue` holds it.
+And yes, the pipeline is what Jose described: Voronoi of the cell centroids, capped and clipped,
+then `dissolve` by class and `explode` into one row per contiguous area.
+
+### What he was actually seeing was a plotting bug, and a large one
+`polygon_paths` draws compound paths over the exterior **and every interior** ring. The first
+version drew `exterior.coords` alone, which on one region painted **207 000 µm² of Immune cells
+straight over the Tumor inside it**. A picture that shows one class covering another is indeed
+evidence of a broken merge — it just was not this merge.
+**The part that would have bitten silently:** a compound path only reads an interior ring as a
+hole if it winds *against* the exterior, GEOS promises nothing about which way a ring came out,
+and on this data the unoriented rings rendered filled. `orient(polygon, sign=1.0)` fixes it, and
+the test renders the figure and reads the pixel in the hole, because nothing short of drawing it
+proves the winding is right.
+
+### Jose's two Voronoi caveats, and what the app does about them
+- **"empty spaces within the tissue are labelled improperly."** True of plain Voronoi: a lumen or
+  a tear is nearest to *some* cell, so it gets handed to it. The **radius cap is the mechanism** —
+  a gap wider than twice the cap is left unassigned, which at the default factor of 3 on the real
+  core means anything wider than about 58 µm. Nothing in the centroids distinguishes "empty" from
+  "sparse", so this has to stay a dial rather than a judgement the app makes; what the app owes
+  the user is that the dial exists, says what it does, and shows the result.
+- **"the edges of tissue would extend to infinity."** Also true, and handled by the same cap plus
+  the clip to the convex hull of the cell outlines. `066` recorded that choice.
+
+### Colours: measured, not chosen by eye
+Jose: "Colors are weird, please choose a set of colors for class and circle colors, and a
+different set for outlines."
+Two full-hue palettes cannot do this. Across every fill-outline pair with Okabe-Ito fills and
+tab20 outlines, the tightest WCAG contrast is **1.00** — the same colour — which is precisely why
+an orange circle of an orange class hid its own ring. So the channels differ in **lightness** as
+well as hue: fills tinted toward white, outlines shaded toward black. Scanning both factors
+against the contrast of every pair and the RGB separation of every pair of outlines gave
+`CLASS_FILL_TINT = 0.55` with tab10 shaded 0.25 — contrast **1.78** everywhere, outlines
+**0.198** apart. tab10 rather than tab20 because shading compresses a palette and tab20's twenty
+entries become indistinguishable once darkened; ten replicates already exceeds what a plate is
+for, and it cycles. `class_colors` remains the one source of truth for a class's hue, with
+`class_fill_colors` tinting it, so a class looks like itself in every picture. Both floors are
+asserted in `tests/test_plot.py`, so a future palette change cannot quietly break legibility.
+
+### Circle parameters are per class
+Jose: "we should add class-specific circle packing parameters… build that table were users input
+how many replicates, and how much area, and add the parameters to that table."
+New `packing.ClassPacking` carries everything one class asks for — replicates, µm² per replicate,
+smallest and largest circle, gap. `PackingParams` keeps only what genuinely cannot differ per
+class: the seed and the attempt budget. `.as_budget()` converts to `ClassBudget` so
+`budget.group_keys` still owns the `class_rN` rule — one naming rule, one place.
+**Why it is right, not just asked for:** a sparse, stringy class needs smaller circles than a
+solid one before anything fits at all. With one global range the user had to pick whichever class
+was worst off and impose it on every class. On the real core 119 of 684 regions hold no circle at
+100 µm²; that number is a property of one class's geometry, and now so is the remedy.
+**One new rule this forces:** two classes can ask for different gaps, and a pair of circles either
+side of a class boundary has to satisfy **both** — so the collision test takes the *wider* of the
+two. Taking the narrower would silently override whichever class asked for more room. The buckets
+therefore store each circle's own gap alongside its radius.
+**Verified faithful:** all 14 golden artefacts stayed byte-identical through this refactor,
+because every class received what the global parameters used to impose.
+
+### Layout: the table, then the picture
+`069` put the inputs in a 1/3 column beside the picture. With five per-class columns that no
+longer fits, and Jose asked for the picture below the table anyway. Now: the mode radio, then the
+scale and seed, then the full-width table, then the metrics, then the picture. Still one screen
+from first input to feedback, which was the point of `069`.
+
+### Still to do, not in this change
+Jose: "I like this UI, and should be generalized to the segmentation-based workflow as well."
+Agreed and noted in ROADMAP. Not done here: the cell workflow has its own per-class editor, its
+own minimum-area filter and a `st.fragment` whose shape depends on the plate being above it, so
+converting it is its own piece of work with its own manual pass — and this branch is already one
+feature's worth of diff.
+
+## 071 — a picture beside every table, and the reach asked for in µm
+**Date:** 2026-09-17 · **Status:** active · **refines 069 and 070**
+Five notes from Jose on the working version. He kept the design and cut what was not earning
+its place.
+
+### The metrics row is removed
+"I think the number below the user input for the circle packing and replicates is unnecessary."
+Tissue in the regions, being collected, circles to cut, mean circle across — added in `068`,
+gone now. They sat **between** the settings and the picture and pushed the two apart, which is
+the one thing step 6 is arranged to avoid (`069`). Every figure they carried is either in the
+per-replicate table below or derivable from it. A summary that costs the reader the thing it is
+summarising is a bad trade.
+
+### A NumberColumn only goes on a numeric column
+"the Class column has a red triangle that states 'this value cannot be interpreted as a number'."
+`_show_table` was handing `st.column_config.NumberColumn` to every column including the class
+names, so Streamlit stamped each one with a warning triangle and a table that was perfectly fine
+read as an error. Config is now built from `is_numeric_dtype` only. Pinned by a test, because
+the symptom is invisible to every check except looking at the screen.
+
+### The reach is a distance, not a multiplier
+"For Step 5, what does it mean 'How far a region may reach from its cell'? what is the limit for
+the voronoi projection? this needs better explaining (not longer)."
+He is right that it needed explaining, and right that the answer is not more words. The control
+was a dimensionless multiple of cell spacing, which is a unit nobody thinks in. It is now
+**"Maximum reach from each cell (µm)"**, defaulting to three times `median_cell_spacing` — so the
+label states what the limit is and the caption below states its consequence: *gaps wider than
+twice this are left uncollected*. The one genuinely unintuitive thing about a Voronoi projection
+is now the first thing the control says.
+`RegionParams` keeps `radius_factor` for callers that prefer to scale it; the UI passes
+`max_radius_px`.
+
+### A picture beside the numbers, in steps 4 and 5 too
+"the preview for Step 5 is rather large, consider the 1/3 tabular info and 2/3 preview idea.
+Same with Step 4, it should preview the segmented classified cells (in that way ensuring they
+know what their input was)."
+Both now `st.columns([1, 2])`. Step 4's picture is the more valuable of the two and it is new in
+kind: it is the **only place the app shows a user what they actually uploaded**. Every other
+check is a number, and a number cannot tell you the export was the wrong slide. Classes the user
+keeps are coloured and the rest are greyed, so an accidental exclusion is visible as well.
+**It lives in `class_selection_step`, so the cell workflow gets it too** — which is the first
+instalment of the generalisation Jose asked for in `070`, done here because the step is already
+shared and `ui_cells.overview_step` drew the same picture a screen further down. That function is
+gone.
+Step 6 keeps its picture *below* rather than beside: five per-class columns do not fit in a third
+of the page, which `070` already settled.
+
+## 072 — one way to show a number, and the defaults a DVP experiment actually uses
+**Date:** 2026-09-17 · **Status:** active · **extends 068**
+Pre-merge pass, from Jose: "please check the units and thousands separator issue across the
+entire app, for consistency. Also, please change the default number of replicates to be 3, and
+the default area per replicate to be 25000."
+
+### Defaults
+`packing.DEFAULT_REPLICATES = 3`, `DEFAULT_AREA_PER_REPLICATE_UM2 = 25_000.0`. Three replicates
+is the smallest number that supports a variance estimate, so it is what a DVP experiment is
+normally designed around; 25 000 µm² is Jose's own per-well amount. Worth knowing what that does
+on his core: `Immune cells--Tumor` has about 76 000 µm² of packable area against 3 × 25 000, so
+its third replicate falls short out of the box and the warning fires. Correct behaviour — the
+class genuinely cannot supply it — and better seen immediately than discovered at the mass spec.
+**Deliberately not changed: the cell workflow still defaults to 1 replicate.** Its per-replicate
+amount defaults to *the whole surviving class*, so 3 replicates would ask for three times what
+exists and raise a shortfall on every single load. Two workflows, two defaults, because the
+amount they start from means different things.
+
+### One helper renders every table of amounts
+`ui_shared.show_amounts`, used by all three workflows. Rounds numeric columns to whole numbers,
+casts to `Int64`, and applies `NumberColumn(format="localized")` to those columns only.
+Audited by rendering every amount table in all three workflows and reading back the dtypes and
+the column config: six tables, every numeric column whole and separated, no text column given a
+number format. Before the pass the cell workflow showed `428955.48` where the regions workflow
+showed `428,955`, which is the same complaint Jose raised about step 5 — in a workflow he had not
+been looking at.
+
+### Units are in the header, not inferred
+The cell workflow's feasibility table had **Available**, **Total requested** and **Short by** with
+no unit at all, while only **Per replicate** carried one — and its achieved table showed the
+library's own identifiers, including `area_um2` and `neighbour_also_collected`. Both are renamed
+at render time with `mode.unit` so the header says what it counts. The library keeps its column
+names; `budget.DISPLAY_COLUMNS` and `selection.WITH_NEIGHBOUR` are untouched, so
+`tests/test_budget.py` and `tests/test_stats.py` still pin the library contract rather than the
+rendering.
+One label was inconsistent app-wide: "Smoothing tolerance (pixels)" against `px` everywhere
+else. Now `px`. Display spellings are `µm²`, `px²`, `µm/px`, `px`; `um2`/`px2` survive only as
+identifiers.
+**Left alone on purpose:** µm/px keeps 4 decimals and percentages keep 1. Those are small
+numbers where a thousands separator means nothing and the decimal carries information — the rule
+is "no meaningless precision", not "no decimals anywhere".
+
+## 073 — both workflows start from a real experiment, and there is a changelog
+**Date:** 2026-09-17 · **Status:** active · **supersedes the default in 039, extends 072**
+Jose: "cell workflow should still have 3 replicates per class included, and each should have
+25000 in terms of area, for number of cells it should have 150 cells."
+
+### The cell workflow starts at 3 x 25 000 µm², or 3 x 150 cells
+`072` had left it at 1 replicate of *the whole surviving class*, on the reasoning that 3
+replicates of the whole class would ask for three times what exists and warn on every load.
+Jose overruled that, and he is right for a reason I had missed: **defaulting to the whole class
+silently disabled the feasibility check**. A class can always supply all of itself, so the one
+figure that tells a user whether their plan is possible read "every class can supply its budget"
+on every single load, whatever the file. A default that guarantees a green light is worse than a
+default that sometimes warns — the warning is the feature.
+On `Single_cells.geojson` the new default asks 450 cells of a 121-cell class and says so, which
+is exactly the information the step exists to give.
+**One definition, in `budget.py`**: `DEFAULT_REPLICATES`, `DEFAULT_AREA_PER_REPLICATE_UM2`,
+`DEFAULT_CELLS_PER_REPLICATE`, and `BudgetMode.default_per_replicate` which picks between the
+last two. `packing.py` imports them rather than keeping its own copies, so the two workflows
+cannot offer different amounts for the same experiment — `tests/test_budget.py` asserts they are
+the same objects.
+**Supersedes** the "default to the whole class in a single replicate" choice from Phase 3.
+
+### A changelog, written for users
+`CHANGELOG.md`, newest first, linked from `README.md`. Written in the voice of the v4.0.0 release
+notes — what changed *for you*, not what changed in the code. No commit hashes, no module names
+except where a user would type them.
+Starts at the current release with the earlier tags pointed at rather than reconstructed: v3 and
+before predate the file and inventing their contents from commit subjects would produce something
+confidently wrong. The top section is left as **Unreleased** because the version number is Jose's
+to pick when he bumps `pyproject.toml`.

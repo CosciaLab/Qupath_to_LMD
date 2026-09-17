@@ -157,8 +157,13 @@ def plan_from_selection(
     session_id: str | None = None,
     pixel_size_um: float | None = None,
     params: dict[str, Any] | None = None,
+    workflow: str = "cells",
 ) -> tuple[CollectionPlan, dict[str, str]]:
     """Build a plan for the cell workflow: one class-and-replicate per well.
+
+    Also serves the regions workflow, which reaches the same shape of answer by a different
+    route — one class-and-replicate per well, where a row is a region or a packed circle rather
+    than a cell.
 
     Args:
         gdf: the QC'd shapes.
@@ -173,6 +178,7 @@ def plan_from_selection(
         session_id: for the log inside the bundle.
         pixel_size_um: recorded in provenance; may be None.
         params: everything else that determined the output.
+        workflow: recorded in provenance, so a bundle says which route produced it.
 
     Returns:
         The plan, and the group-to-well mapping the export path also needs.
@@ -206,7 +212,7 @@ def plan_from_selection(
         shapes=shapes,
         calibration_names=list(calibration_names),
         calibration_array=calibration_array,
-        workflow="cells",
+        workflow=workflow,
         source_file=source_file,
         session_id=session_id,
         pixel_size_um=pixel_size_um,

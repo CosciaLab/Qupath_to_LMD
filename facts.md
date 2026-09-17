@@ -42,26 +42,35 @@ src/qupath_to_lmd/
   model.py                        CollectionPlan, canonical column names, provenance
   geojson.py                      read_and_qc, explode_classes, extract_coordinates,
                                   rewrite_classification, sanitize_for_qupath,
+                                  synthesize_qupath_columns, classification_values,
                                   implied_pixel_size, drop_unused_columns
   plate.py                        plate shapes, acceptable_wells, layouts, saw parse/convert
   qc.py                           triangle_qc, validate_saw, compare_pixel_size (reports)
   stats.py                        class_statistics, for_display, reference_pixel_sizes
   budget.py                       BudgetMode, ClassBudget, feasibility, total_groups
   selection.py                    SelectionMode, SelectionParams, select, grid_bins
-  plot.py                         plot_shapes — class overview, selection preview, QC image
+  regions.py                      RegionParams, project, voronoi_regions, merge_by_class,
+                                  close_slivers, deal_patches, tissue_hull,
+                                  median_cell_spacing
+  packing.py                      ClassPacking, PackingParams, pack, capacity,
+                                  packable_area, class_generator, smoothing_loss
+  plot.py                         plot_shapes — class overview, selection preview, QC image;
+                                  plot_regions_and_circles — the regions feedback picture
   export.py                       build_collection, build_bundle, PathOrder,
                                   order_for_cutting, path_stats, ORIENTATION_TRANSFORM
   extras.py                       QuPath classes.json generation
   === UI layer: Streamlit, owns session_state ===
-  ui_shared.py                    steps both workflows use
+  ui_shared.py                    steps every workflow uses, incl. class_selection_step
+                                  (which draws the input beside its own table)
   ui_legacy.py                    annotations workflow (frozen as of Phase 1)
   ui_cells.py                     cell-segmentation workflow (step 8 is an st.fragment)
+  ui_packing.py                   cellular-neighbourhood workflow
   === other ===
   mock_streamlit.py               patch_streamlit() — stubs st.* for notebook use
   __init__.py                     empty
 tools/
   golden_harness.py               byte-equality regression gate
-  golden/                         10 reference artefacts, 5 cases
+  golden/                         14 reference artefacts, 7 cases
 demo_Qupath_project/              real QuPath project used as test fixture
   TD_01_verysmall_mIF.geojson     9 features: 6 annotation Polygons + 3 calibration Points
   Single_cells.geojson            131 features: 121 cells + 7 annotations + 3 Points
@@ -420,6 +429,295 @@ Both workflows expose the same two, in the shared export step.
   solver returning anything other than a permutation is logged and ignored rather than allowed
   to drop or duplicate shapes.
 
+## Regions: the cellular-neighbourhood workflow
+
+`regions.py` turns classified cells into **regions** — contiguous areas of tissue belonging to
+one class — and `packing.py` fills those regions with circles. `ui_packing.py` is the workflow.
+
+**Step order: 4 classes, 5 regions, 6 what-to-collect, 7 plate, 8 export.** The collection step
+comes *before* the plate on purpose — how much tissue per replicate and how many replicates are
+exactly what the plate has to accommodate, so deciding them first means the plate is shown once,
+already correct, instead of being redrawn under the user while they tune circle settings
+(`decisions.md` 068). Step 6 is where the user loops.
+
+Step 6 offers a choice of what to cut out of each region: **circles packed inside them**, which
+is the default and the point of the workflow, or **the whole regions**. Whole regions is the
+only option when the file gives no image scale, because every packing amount is an area in µm².
+
+**Steps 4, 5 and 6 are all `st.columns([1, 2])`** — numbers on the left, a picture of what they
+produce on the right. Step 4 draws every shape in the file, coloured where the class is kept and
+grey where it is not, which is the only place the app shows a user what they actually uploaded.
+Step 5 draws the regions. Step 6's table is too wide for a third of the page, so its picture goes
+directly below instead (`decisions.md` 071).
+
+`class_selection_step` owns step 4's picture, so the cell workflow gets it too; `ui_cells`
+no longer has its own `overview_step`.
+
+**Step 6 is one table, then the picture.** Every number the user sets is a property of one
+class, so they live in one `st.data_editor` row per class — replicates, µm² per replicate,
+smallest and largest circle, and the gap — with only the image scale and the seed outside it.
+The picture sits directly below, so the loop is change-a-number, look down, change again
+(`decisions.md` 070). Those rows become `packing.ClassPacking`; `.as_budget()` converts to
+`budget.ClassBudget` so `budget.group_keys` keeps owning the `class_rN` naming rule that decides
+which well a group lands in.
+
+No metrics row: "tissue in the regions / being collected / circles to cut / mean circle across"
+sat between the settings and the picture and pushed the two apart, which is the one thing step 6
+is arranged to avoid. Every figure it carried is in the per-replicate table below
+(`decisions.md` 071).
+
+**No `st.fragment` here**, unlike the cell workflow. A fragment only reruns itself, so nothing
+below it re-executes — which would leave the plate and the export showing a stale collection,
+the exact trap `decisions.md` 051 describes. With the collection step above the plate the
+fragment has to go, and the caches on the projection and the packing are what keep a full rerun
+affordable instead.
+
+Defaults: **3 replicates** of **25 000 µm²** per class — or **150 cells** where a budget counts
+cells. Defined once, in `budget.py` (`DEFAULT_REPLICATES`, `DEFAULT_AREA_PER_REPLICATE_UM2`,
+`DEFAULT_CELLS_PER_REPLICATE`, and `BudgetMode.default_per_replicate`), and read by **both**
+workflows that collect into replicates, so the figure cannot drift between them. Three is the
+smallest number that supports a variance estimate, so it is what a DVP experiment is normally
+designed around. On his core those defaults sit at the edge for the
+smallest class — `Immune cells--Tumor` holds about 76 000 µm² of packable area against 75 000
+asked for — so the shortfall warning fires on its third replicate out of the box. That is the
+capacity estimate doing its job, not a failure.
+
+### The pipeline, and why each part is the way it is
+
+1. **Tessellate over every classified cell.** `shapely.voronoi_polygons(MultiPoint(centroids),
+   ordered=True, extend_to=hull.envelope)`. `ordered=True` (shapely >= 2.1) guarantees the i-th
+   polygon belongs to the i-th point, so class labels map by position — no spatial join and no
+   `-1` unbounded-region bookkeeping. Verified 121/121 on `Single_cells.geojson`.
+   `tests/test_regions.py::test_each_region_belongs_to_its_own_cell` is the guard: if that
+   contract breaks, every region carries a neighbour's class and every well holds the wrong
+   tissue.
+2. **Classes are filtered *after* tessellating**, never before. `project(..., include=[...])`
+   exists for exactly this. Dropping a class first would let its neighbours expand into the
+   space it occupied, putting one class's tissue in another class's well.
+3. **Cap each region** at a disc around its own cell, and **clip to the convex hull of the cell
+   outlines**. The interface asks for the cap as a **distance in µm**, defaulting to three times
+   `median_cell_spacing` — so "what bounds the projection?" is answered by the label rather than
+   by a tooltip (`decisions.md` 071). An uncapped Voronoi cell on the rim of the tissue is
+   unbounded, so a cut placed in it takes blank glass. The hull is of the cell **bodies**, not
+   their centroids: a rim cell's centroid sits on the centroid hull, which would clip away half
+   its own tissue. `RegionParams` still accepts `radius_factor` for callers that prefer to scale
+   it, which the harness and the tests use.
+4. **Merge by class**, `dissolve` then `explode`, one row per contiguous patch. Patches are then
+   sorted by `(class, minx, miny)` — GEOS decides what order a union returns and that order
+   picks the wells, so it is pinned rather than inherited.
+5. **Deal patches across replicates**, largest first into whichever replicate holds the least
+   area. No randomness; the same file reaches the same wells in any session.
+
+Voronoi cells, discs and the hull are all convex, so a **region is always a single Polygon** —
+MultiPolygons appear only at the merge, and the explode turns those into separate patches.
+
+### The feedback picture
+
+`plot.plot_regions_and_circles`. Two variables, so two channels that cannot be confused:
+**a pale fill is the class**, for regions and circles alike, so a circle is visibly part of the
+tissue it came from; **a dark outline is the replicate**.
+
+Hue alone is not enough, and this was measured rather than guessed. With a full palette for each
+channel, the tightest fill-outline pair across every combination has a WCAG contrast of **1.00** —
+literally the same colour, which is why an orange circle of an orange class hid its own ring in
+the first version. Scanning tint and shade factors against the contrast of every pair *and* the
+RGB separation of every pair of outlines:
+
+| fills | outlines | min contrast | min outline separation |
+| --- | --- | --- | --- |
+| Okabe-Ito as-is | tab20 | 1.00 | 0.098 |
+| Okabe-Ito as-is | tab10 | 1.00 | 0.265 |
+| tinted 0.55 | tab20 | 1.00 | 0.098 |
+| **tinted 0.55** | **tab10 shaded 0.25** | **1.78** | **0.198** |
+| tinted 0.6 | tab10 shaded 0.4 | 2.83 | 0.159 |
+
+So `CLASS_FILL_TINT = 0.55`, `REPLICATE_SHADE = 0.25`, `REPLICATE_COLORMAP = "tab10"`. tab10
+rather than tab20 because shading compresses a palette and tab20's twenty entries end up too
+close to tell apart once darkened; ten replicates is already more than a plate makes sense for,
+and it cycles beyond that. `class_colors` (the app-wide Okabe-Ito) stays the single source of
+truth for a class's hue and `class_fill_colors` tints it, so a class looks like itself in every
+picture. `replicate_colors` keys the palette by replicate *number*, not position, so replicate 2
+keeps its colour when a class with fewer replicates appears.
+`tests/test_plot.py` asserts both the contrast floor and the separation floor.
+
+**Holes are drawn as holes**, via `polygon_paths`: `Path.make_compound_path` over the exterior
+and every interior ring. Two things had to be right. Exterior-only drawing painted one region
+over 207 000 µm² of the class it surrounds, which is what looked like a broken merge. And a
+compound path only reads an interior as a hole if it **winds against** the exterior — GEOS makes
+no promise which way a ring came out, and on this data the unoriented rings rendered *filled*.
+`shapely.geometry.polygon.orient(polygon, sign=1.0)` fixes the winding.
+`tests/test_plot.py::test_a_hole_in_a_region_is_not_painted_over` renders the figure and reads
+the pixel in the hole, because nothing short of drawing it proves the orientation is right.
+
+Regions draw at alpha 0.45 as a backdrop, circles at full opacity with a 1.5 pt ring; the two
+layers separate by weight rather than by needing a third palette. Measured at 0.03 s for 684
+regions plus 422 circles, so it redraws on every keystroke for free.
+
+### Pinhole slivers
+
+`CAP_QUAD_SEGS = 16` makes the radius cap a 64-sided polygon, while Voronoi edges are exact. So
+where three capped regions meet they leave a gap of a pixel or two owned by no region, and
+merging turns those into interior rings. `close_slivers` fills any interior ring smaller than
+**the smallest region of the whole tessellation** — a real hole is another cell's territory, so
+it cannot be smaller than that, which makes the threshold a property of the data rather than a
+tuned constant. Measured:
+
+| file | radius factor | smallest region | hole areas |
+| --- | --- | --- | --- |
+| `multiclass_cells` | 1.0 | 298 px² | 0.0, 1.0 — slivers |
+| `multiclass_cells` | 0.5 / 2 / 3 | 149–361 px² | none |
+| `Single_cells` | 1.0 | 702 px² | 0.0, 0.0, 0.0, 8.4 — slivers |
+| `Single_cells` | 3.0 | 702 px² | 2635.5 — real |
+| synthetic grid, one class enclosed | 3.0 | 48 px² | 100.0 — real |
+
+The two groups do not overlap. The threshold is taken over **all** regions, not only the kept
+ones, because a hole may be the region of a class the user left out and that class can hold
+smaller regions than any kept one.
+
+### The merge is verified, not assumed
+
+Jose read the first version of the feedback picture as a broken merge — two classes appeared to
+overlay each other in places. The merge was correct; the **plot** was wrong. Measured over the
+684 regions of the real core:
+
+| check | result |
+| --- | --- |
+| largest **area** shared by any two regions | **0.000000 µm²** |
+| same-class region pairs that intersect at all | 18, all of them `Point` or `MultiPoint` |
+| different-class pairs that intersect | 1 177, all of them `LineString`/`MultiLineString` |
+
+So no two regions share any tissue, different-class regions meet along shared boundaries as they
+must, and same-class regions only ever touch at isolated corners — which is what separate
+components of a union legitimately do, not evidence of an unmerged pair.
+`tests/test_regions.py::test_no_two_regions_share_any_tissue` holds that invariant.
+
+### Two things Voronoi does that the user has to know about
+
+Both are Jose's, and both are real:
+
+- **Empty space inside the tissue** — a lumen, a vessel, a tear — is nearest to *some* cell, so a
+  plain Voronoi hands it to that cell. The **radius cap is the mechanism that prevents it**: a gap
+  wider than twice the cap is left unassigned. At the default factor of 3 on the real core the cap
+  is 29 µm, so gaps wider than about 58 µm are correctly left blank, and lowering the factor
+  leaves more of them blank. There is no way to distinguish "empty" from "sparse" from the
+  centroids alone, so this is a dial rather than a decision the app can make.
+- **The rim extends to infinity** — an outer Voronoi cell is unbounded. Handled by the same cap
+  plus the clip to the convex hull of the cell outlines, so nothing reaches past the tissue.
+
+### What the export path cannot represent
+
+`geojson.extract_coordinates` returns `geometry.exterior.coords`, so **a hole is cut through**.
+Where a region completely surrounds another class, that enclosed tissue lands in the same well if
+whole regions are being collected. Circles are never packed into a hole — `patch.contains`
+respects interior rings.
+
+**This is not warned about**, at Jose's direction: on his real core 21 of 684 regions enclose
+another class and in practice it does not affect a collection (`decisions.md` 068). The geometry
+still does it, and `RegionReport` still counts `n_patches_with_holes` and `hole_area_px2` into the
+log, so the figures are there if the judgement ever changes.
+
+A region also **reaches past the cell outlines QuPath drew**. This is the dilation case
+`decisions.md` 013 and ROADMAP round-one open question 3 both left open, with the commitment
+that the app would say so on screen if it ever arrived. Step 5 explains it in prose rather than
+warning, because it is how the workflow works rather than an anomaly.
+
+### Synthesised shapes
+
+Regions have no QuPath object behind them, but `sanitize_for_qupath` and the plan frame both
+need `id`, `objectType` and `classification`. `geojson.synthesize_qupath_columns` adds them:
+positional ids (`region-000001`), `objectType="annotation"`, and the `classification` value
+QuPath wrote for that class, so colours survive the round trip. Called inside
+`ui_packing._cached_projection`, so every later step already holds an exportable frame.
+
+### Measured cost
+
+| cells | voronoi + cap + clip | dissolve + explode |
+| --- | --- | --- |
+| 20 000 | 0.79 s | 0.65 s |
+| 100 000 | hull alone 0.09 s | — |
+
+`tissue_hull` uses `shapely.convex_hull` on a geometry collection rather than
+`union_all().convex_hull`: identical answer, **0.09 s against 9.1 s** at 100 000 cells.
+
+`scipy` was declared in `pyproject.toml` and imported nowhere until now; `regions.py` uses
+`scipy.spatial.cKDTree` for nearest-neighbour spacing. No new dependency was added.
+
+### Packing circles
+
+Rejection sampling: throw a circle of random size at a random spot in a region, keep it if it
+fits and is far enough from everything already placed, stop at the target area or after
+`max_attempts` consecutive failures. Ported from `PY38_CirclePackingStreamlit/functions.py`
+with the changes in `decisions.md` 067. Measured on the real 8 411-cell export at 0.6535 µm/px,
+684 regions, 3 replicates of 10 000 µm² for each of 3 classes:
+
+| | before | after |
+| --- | --- | --- |
+| wall time | 8.6 s | **0.7 s** |
+| circles kept / placed | 479 / 718 | **422 / 431** |
+| replicates reaching target | 6 of 9 | **9 of 9** |
+
+The three fixes behind that, all of them found by running it rather than reading it:
+
+1. **Regions that cannot hold one smallest circle are skipped.** `buffer(-min_radius).is_empty`
+   is the exact test and costs 0.01 s for 141 regions. On real tissue 119 of 684 regions are in
+   that state; each one otherwise burned the whole 2 000-attempt budget discovering it.
+2. **Each region is asked for its share of what is still outstanding**, not for a fixed share
+   plus a one-sided deficit. Every region overshoots by up to one circle, and with 141 regions
+   in a class the one-sided version over-packed it by more than twice its target — which is
+   where the 239 discarded circles came from.
+3. **One circle of slack per replicate.** A replicate fills until it *reaches* the target, so
+   packing exactly the total left the last replicate with only the remainder — reliably ~5%
+   short while its siblings overshot. A replicate systematically smaller than its siblings is
+   not a comparable measurement.
+
+Spacing is enforced **across the whole collection**, not per class: regions of different classes
+touch, so two circles either side of a boundary can otherwise end up a fraction of a micrometre
+apart and the strip between them detaches into whichever well is cut first. Consequence for
+reproducibility: classes are packed in sorted order and share one collision grid, so changing
+one class's amount can change the classes sorted *after* it, never those before it. The
+per-class random sub-streams (keyed by `blake2b` of the class name, never `hash()`, which Python
+salts per process) keep the candidate *positions* stable regardless.
+
+Collision detection is a dict of buckets keyed on `(x // cell, y // cell)` with
+`cell = 2 * max_radius + spacing`, so only the 3x3 neighbourhood needs checking. The prototype
+rebuilt a `shapely.STRtree` from every placed circle on every attempt — O(n² log n) over a run
+— and queried it without a predicate, so it compared bounding boxes and rejected legal
+placements.
+
+### How much a region can actually hold
+
+`packable_area` = `0.547 * area / (1 + spacing / (2 * mean_radius))²`. The 0.547 is measured:
+randomly thrown circles of mixed size cover that share of a 2000x2000 px square with no gap.
+The correction matters more than it looks — circles 100-500 µm² at 0.3467 µm/px:
+
+| gap between circles | measured fill | formula |
+| --- | --- | --- |
+| 0 µm | 54.7% | 54.7% |
+| 2 µm | 42.9% | 45.0% |
+| 5 µm | 32.9% | 34.7% |
+| 10 µm | 21.4% | 23.9% |
+| 20 µm | 12.2% | 13.4% |
+
+Within 2 points everywhere and slightly optimistic throughout. The prototype used a flat 0.55,
+which at a 20 µm gap would promise a user 4.5x the tissue actually available.
+
+### Smoothing takes area back off
+
+`simplify` cuts the corners off a circle, and area per replicate is this workflow's whole
+budget, so the loss is reported rather than absorbed. At the default 1 px tolerance a 64-sided
+circle is reduced to:
+
+| radius | vertices after | area lost |
+| --- | --- | --- |
+| 5-10 px | 9 | **10.0%** |
+| 20-50 px | 17 | 2.6% |
+| 100 px | 33 | 0.6% |
+
+At 0.6535 µm/px a 100 µm² circle has a radius of 8.6 px, so the default circle range straddles
+the worst of this: on the real export the loss is 6% of the collected area. `smoothing_loss`
+computes it, and step 8 warns above 5% and states it as a caption below that. The remedies
+offered are the real ones — a larger smallest circle, or a lower smoothing tolerance.
+
 ## Session state keys
 
 Initialised in the block at the top of `streamlit_app.py`. Any new key belongs here too.
@@ -428,12 +726,15 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | --- | --- |
 | `session_id` | uuid4 string, shown to the user for bug reports, names the log in the zip |
 | `log_file_path` | temp `.log` path; loguru sink, shipped inside the download zip |
-| `workflow` | `'legacy'` \| `'cells'` — which workflow the router dispatched to |
+| `workflow` | `'legacy'` \| `'cells'` \| `'regions'` — which workflow the router dispatched to |
 | `pixel_size_um` | µm per pixel, entered by the user; `None` until they do |
 | `selected_classes` | classes the cell workflow will collect; `None` means not chosen yet |
 | `budget_mode` | `'cells'` \| `'area'` — what the per-replicate amount counts |
 | `budgets` | list of `ClassBudget` as dicts: class, replicates, per-replicate amount |
 | `minimum_area_um2` | per-class minimum collectable area in µm²; drives the pre-measurement filter |
+| `region_params` | `RegionParams` as a dict: the radius cap that produced the current regions |
+| `packing_params` | `PackingParams` as a dict: sizes, gap, effort and seed of the last packing |
+| `region_budgets` | list of `ClassPacking` as dicts: per class, replicates, µm² per replicate, circle size range, gap |
 | `view_mode` | `'default'` \| `'samples'` — which plate table is rendered |
 | `gdf` | the working GeoDataFrame (points removed, `classification_name` added) |
 | `geojson_report` | `GeojsonReport` from the last read, re-rendered on every rerun |
@@ -505,10 +806,33 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
     types, which is better than a `0.0` sentinel that has to be told apart from a real entry.
   - Pixel size is therefore `step=1e-4`, `format="%.4f"`, `min_value=1e-4` — see the
     `PIXEL_SIZE_*` constants in `ui_shared.py`. Values with more than 4 decimals are rounded.
+- **How a number is shown, everywhere** (`decisions.md` 068, 072):
+  - **Amounts in µm² are whole numbers with a thousands separator.** Areas run from tens to
+    millions and a tenth of a square micrometre is far below anything the laser can place, so a
+    decimal is noise in a number the user has to read. Inputs use `format="%d"` with integer
+    bounds; tables go through `ui_shared.show_amounts`, which rounds the numeric columns, casts
+    them to `Int64` and applies `NumberColumn(format="localized")` — an integer column cannot
+    render a decimal, so one change satisfies both halves.
+  - **A `NumberColumn` only ever goes on a numeric column.** Handing one to a text column makes
+    Streamlit stamp every cell with a red "this value cannot be interpreted as a number"
+    triangle, so a table of class names and amounts reads as broken when it is fine.
+    `show_amounts` builds its config from `is_numeric_dtype`; `tests/test_ui_behaviour.py` pins
+    it, because the symptom is invisible to every check except looking at the screen.
+  - **One helper for all three workflows**, so a user switching between them meets the same
+    number the same way. Audited by rendering every amount table in all three and reading back
+    the dtypes and the column config.
+  - **The unit is in the column header**, never left to be inferred. The cell workflow's
+    feasibility and achieved tables are renamed at render time to carry `mode.unit`; the library
+    keeps its own column names, so `tests/test_budget.py` still pins the contract rather than
+    the rendering.
+  - **Display spellings are `µm²`, `px²`, `µm/px`, `px`.** `um2`/`px2` appear only in
+    identifiers. µm/px keeps 4 decimals and percentages keep 1 — those are small numbers where a
+    separator means nothing and the decimal carries information. The rule is "no meaningless
+    precision", not "no decimals anywhere".
 - `ruff` configured in `pyproject.toml`: line-length 120, target py311, double quotes,
   google docstring convention, `E501` ignored.
-- No test suite in the repo (pytest was removed in `0530833`), though `pytest` is still a
-  declared dependency.
+- The test suite lives in `tests/` and is described below; `pytest` and `pytest-cov` are in the
+  dev group.
 
 ## Known quirks and open issues
 
@@ -623,7 +947,7 @@ yields) with these figures and instructions for running locally (`decisions.md` 
 
 ## Test suite
 
-`tests/`, run with `uv run pytest` — 119 tests in about 5 seconds. `-m "not slow"` skips the
+`tests/`, run with `uv run pytest` — 231 tests in about 7 seconds. `-m "not slow"` skips the
 golden gate for a fast loop. CI runs ruff, the suite and the harness on every push and PR
 (`.github/workflows/ci.yml`).
 
@@ -650,23 +974,34 @@ golden gate for a fast loop. CI runs ruff, the suite and the harness on every pu
 
 ## Regression harness
 
-`tools/golden_harness.py`, with the reference output in `tools/golden/` (8 files, ~220 KB).
+`tools/golden_harness.py`, with the reference output in `tools/golden/` (14 files, ~255 KB).
 
 ```
 uv run python tools/golden_harness.py check      # compare against the golden files
 uv run python tools/golden_harness.py capture    # re-bless, only when output should change
 ```
 
-Five cases, each covering a path where a change could silently move coordinates:
+Seven cases, each covering a path where a change could silently move coordinates:
 `annotations` (ordinary mini-bulk), `cells` (128 shapes with measurements),
 `cells_exploded` (one well per shape), `annotations_96` (different plate geometry),
-`multiclass_cells` (real QuPath 0.7.0 export shape). Each produces an XML and a CSV, so
-10 artefacts.
+`multiclass_cells` (real QuPath 0.7.0 export shape), `regions` (Voronoi projection and merge,
+where every coordinate is computed rather than read from the file), `packing` (circles placed by
+a seeded random walk). Each produces an XML and a CSV, so 14 artefacts.
+
+- `capture` rewrites **every** case, not only a new one, so after adding a case check
+  `git diff tools/golden/` shows nothing but the new files before committing.
+- `regions` and `packing` are the cases whose bytes depend on **GEOS** as well as on this repo:
+  merging a class's regions is a union, and a GEOS upgrade can legitimately reorder the vertices
+  it returns. If only those differ after a dependency bump, that is what happened — check the
+  geometry is equivalent before re-blessing.
+- `packing` additionally pins **numpy's random stream**. If it differs on its own, a recorded
+  seed no longer reproduces its collection, which is breaking for anyone who wrote a seed into
+  a methods section.
 
 - The committed golden files are **byte-identical to output captured from the pre-Phase-0
   code**, so the reference traces back to the version that had been in production.
 - Verified to fail as well as pass: replacing `export.ORIENTATION_TRANSFORM` with the
-  identity matrix (a broken Y flip) makes all four XML comparisons differ and `check` exit 1.
+  identity matrix (a broken Y flip) makes every XML comparison differ and `check` exit 1.
 - It sets `MPLBACKEND=Agg` itself, so it needs no special invocation.
 - What it does **not** cover: the UI, the QC/warning behaviour, LineString geometries (no
   demo file has one), and any input outside the four cases. It also proves "unchanged", not
