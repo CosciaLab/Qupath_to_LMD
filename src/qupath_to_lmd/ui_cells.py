@@ -32,28 +32,6 @@ def _cached_selection(_gdf, _budgets, _mode, _params, cache_key: tuple, pixel_si
     return selection.select(_gdf, _budgets, _mode, _params, pixel_size_um=pixel_size_um)
 
 
-def overview_step(selected: list[str]) -> None:
-    """Draw the shapes, colouring the chosen classes and greying out the rest."""
-    gdf = st.session_state.gdf
-    with st.spinner("Drawing shapes..."):
-        figure = plot.plot_shapes(
-            gdf,
-            included=selected,
-            calibration_array=st.session_state.calib_array,
-            title=f"{len(gdf)} shapes — coloured classes are the ones you kept",
-        )
-    st.pyplot(figure, width="content")
-    if len(gdf) > plot.SHAPE_LIMIT:
-        st.caption(
-            f"Over {plot.SHAPE_LIMIT:,} shapes, so each one is drawn as a dot rather than "
-            "its outline. The outlines are still what gets cut."
-        )
-    st.caption(
-        "Dashed triangle and crosses are your calibration points. Shapes far outside the "
-        "triangle are the ones at risk of distortion."
-    )
-
-
 def _budget_mode() -> tuple[budget.BudgetMode, float | None]:
     """Choose what a budget counts, with the image scale beside it.
 
@@ -477,7 +455,6 @@ def render(uploaded_file) -> None:
     selected = ui_shared.class_selection_step(pixel_size, step="4")
     if not selected:
         return
-    overview_step(selected)
     st.divider()
 
     budgets, pixel_size, pool = budgets_step(selected, step="5")

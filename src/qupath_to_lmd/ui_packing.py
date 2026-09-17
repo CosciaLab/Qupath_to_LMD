@@ -11,7 +11,6 @@ circle settings is not yet thinking about wells. Everything expensive upstream o
 cached, so a rerun costs the packing and the drawing rather than the tessellation.
 """
 
-import math
 from dataclasses import dataclass
 from enum import Enum
 
@@ -92,15 +91,30 @@ def _whole_numbers(table: pandas.DataFrame) -> pandas.DataFrame:
 
 
 def _show_table(table: pandas.DataFrame) -> None:
-    """Show a table of amounts: whole numbers, thousands separated."""
+    """Show a table of amounts: whole numbers, thousands separated.
+
+    Only the numeric columns get a number format. Handing a `NumberColumn` to a text column —
+    a class name — makes Streamlit mark every cell with "this value cannot be interpreted as a
+    number", which reads as an error in a table that is perfectly fine.
+    """
     if table.empty:
         return
     rounded = _whole_numbers(table)
     st.dataframe(
         rounded,
         width="stretch",
-        column_config=dict.fromkeys(rounded.columns, WHOLE_NUMBER),
+        column_config={
+            name: WHOLE_NUMBER
+            for name in rounded.columns
+            if pandas.api.types.is_numeric_dtype(rounded[name])
+        },
     )
+
+
+@st.cache_data(show_spinner=False)
+def _cached_spacing(_gdf, cache_key: tuple) -> float:
+    """How far apart neighbouring cells are, for the default reach."""
+    return regions.median_cell_spacing(_gdf)
 
 
 def regions_step(
@@ -115,80 +129,81 @@ def regions_step(
 
     st.markdown(f"## Step {step}: Project cells into regions")
     st.markdown(
-        "Each cell is given the tissue closest to it, and touching cells of the same class are "
+        "Each cell is given the tissue nearest to it, and touching cells of the same class are "
         "merged into one **region**. Regions are what you collect from, so a whole "
-        "neighbourhood can go into a well rather than one cell.\n\n"
-        "**A region is larger than the cells it came from.** It covers the space between them "
-        "as well, because that is the tissue that belongs to this class. Two regions of "
-        "different classes never overlap, but a region does reach past the cell outlines QuPath "
-        "drew."
+        "neighbourhood can go into a well rather than one cell. A region covers the space "
+        "*between* its cells too, so it reaches past the outlines QuPath drew."
     )
 
-    factor_column, radius_column = st.columns([2, 3])
-    with factor_column:
-        radius_factor = st.number_input(
-            "How far a region may reach from its cell",
-            min_value=0.5,
-            max_value=20.0,
-            value=regions.DEFAULT_RADIUS_FACTOR,
-            step=0.5,
-            key=f"radius_factor_{step}",
+    controls, feedback = st.columns([1, 2], gap="medium")
+
+    with controls:
+        spacing_px = _cached_spacing(gdf, ui_shared.shape_fingerprint(gdf))
+        unit = "µm" if pixel_size_um else "px"
+        scale = pixel_size_um or 1.0
+        default_reach = round(regions.DEFAULT_RADIUS_FACTOR * spacing_px * scale)
+
+        reach = st.number_input(
+            f"Maximum reach from each cell ({unit})",
+            min_value=1,
+            max_value=100_000,
+            value=max(1, int(default_reach)),
+            step=1,
+            format="%d",
+            key=f"max_reach_{step}",
             help=(
-                "As a multiple of the typical distance between neighbouring cells, so the same "
-                "number behaves sensibly on dense and sparse tissue alike. In dense tissue this "
-                "limit is never reached — neighbouring cells meet first. It matters where cells "
-                "are sparse: without it, a lone cell at the edge of the tissue would claim all "
-                "the blank slide around it and the laser would cut glass.\n\n"
-                "A smaller number gives more, smaller regions; a larger one merges them into "
-                "fewer, bigger ones."
+                "A region is the tissue nearest to its cell and never further away than this. "
+                "It is the only thing bounding the projection: without it the outermost cells "
+                "would claim the empty slide around them, and empty space inside the tissue "
+                "would be handed to whichever cell happened to be nearest.\n\n"
+                f"Neighbouring cells here sit about {spacing_px * scale:,.0f} {unit} apart, so "
+                "the default is three times that."
             ),
         )
 
-    params = regions.RegionParams(radius_factor=float(radius_factor))
-    try:
-        patches, report = _cached_projection(
-            gdf, ui_shared.shape_fingerprint(gdf), params, tuple(selected)
-        )
-    except regions.RegionError as error:
-        st.error(str(error))
-        logger.error(f"Region projection failed: {error}")
-        return None, None
+        params = regions.RegionParams(max_radius_px=float(reach) / scale)
+        try:
+            patches, report = _cached_projection(
+                gdf, ui_shared.shape_fingerprint(gdf), params, tuple(selected)
+            )
+        except regions.RegionError as error:
+            st.error(str(error))
+            logger.error(f"Region projection failed: {error}")
+            return None, None
 
-    with radius_column:
-        st.markdown(
-            "Neighbouring cells sit about "
-            f"**{_as_distance(report.median_nn_distance_px, pixel_size_um)}** apart, so a region "
-            f"reaches at most **{_as_distance(report.max_radius_px, pixel_size_um)}** from its cell."
-        )
-
-    if st.session_state.region_params != vars(params):
-        st.session_state.region_params = vars(params)
-        logger.info(f"Region parameters: {vars(params)}")
-
-    _show_table(report.summary(pixel_size_um))
-    st.write(
-        f"**{report.n_patches:,} regions** from {report.n_cells_kept:,} cells across "
-        f"{len(report.per_class)} classes."
-    )
-
-    if report.n_duplicate_centroids:
-        st.warning(
-            f"{report.n_duplicate_centroids:,} cells sit at exactly the same position as another "
-            "cell. Only one of each pair can own the tissue around it, so the others are left "
-            "out. This usually means the same cells were exported twice."
+        st.caption(
+            f"Gaps wider than {2 * reach:,.0f} {unit} are left uncollected. A smaller reach "
+            "splits the tissue into more, smaller regions; a larger one merges them into fewer, "
+            "bigger ones."
         )
 
-    with st.spinner("Drawing regions..."):
-        figure = plot.plot_shapes(
-            patches,
-            calibration_array=st.session_state.calib_array,
-            title=f"{report.n_patches} regions, coloured by class",
+        if st.session_state.region_params != vars(params):
+            st.session_state.region_params = vars(params)
+            logger.info(f"Region parameters: {vars(params)}")
+
+        _show_table(report.summary(pixel_size_um))
+        st.write(
+            f"**{report.n_patches:,} regions** from {report.n_cells_kept:,} cells across "
+            f"{len(report.per_class)} classes."
         )
-    st.pyplot(figure, width="content")
-    st.caption(
-        "Dashed triangle and crosses are your calibration points. Regions far outside the "
-        "triangle are the ones at risk of distortion."
-    )
+
+        if report.n_duplicate_centroids:
+            st.warning(
+                f"{report.n_duplicate_centroids:,} cells sit at exactly the same position as "
+                "another cell. Only one of each pair can own the tissue around it, so the others "
+                "are left out. This usually means the same cells were exported twice."
+            )
+
+    with feedback:
+        with st.spinner("Drawing regions..."):
+            figure = plot.plot_regions_and_circles(
+                patches, calibration_array=st.session_state.calib_array
+            )
+        st.pyplot(figure, width="stretch")
+        st.caption(
+            "Fill colour is the class. Dashed triangle and crosses are your calibration points; "
+            "regions far outside it are the ones at risk of distortion."
+        )
 
     return patches, report
 
@@ -383,8 +398,6 @@ def _collect_circles(patches, requests, params, pixel_size_um):
         result.circles, "circle", source=st.session_state.gdf
     )
 
-    if result.n_circles:
-        _metrics(result, patches, pixel_size_um)
     _draw(patches, circles, circles[REPLICATE] if result.n_circles else None)
 
     if result.n_circles == 0:
@@ -420,29 +433,6 @@ def _draw(patches, circles, replicate_of) -> None:
         "A pale fill is the class, for the regions and the circles alike. A dark outline is the "
         "replicate. Dashed triangle and crosses are your calibration points."
     )
-
-
-def _metrics(result, patches, pixel_size_um) -> None:
-    """The four numbers that answer "is this a sensible collection?" at a glance."""
-    collected = float(result.circles[packing.CIRCLE_AREA].sum())
-    available = float(_as_area(patches.geometry.area.sum(), pixel_size_um))
-    mean_diameter = (
-        2 * (result.circles[packing.CIRCLE_AREA].mean() / math.pi) ** 0.5
-        if result.n_circles
-        else 0.0
-    )
-
-    tissue, packed, count, diameter = st.columns(4)
-    tissue.metric("Tissue in the regions", f"{available:,.0f} µm²")
-    packed.metric(
-        "Being collected",
-        f"{collected:,.0f} µm²",
-        f"{collected / available:.1%} of the tissue" if available else None,
-        # Neutral: this is a share of the whole, not a change, so it must not read as one.
-        delta_color="off",
-    )
-    count.metric("Circles to cut", f"{result.n_circles:,}")
-    diameter.metric("Mean circle across", f"{mean_diameter:,.0f} µm")
 
 
 def _capacity_for_display(estimate: pandas.DataFrame) -> pandas.DataFrame:

@@ -11,7 +11,7 @@ from pathlib import Path
 import streamlit as st
 from loguru import logger
 
-from qupath_to_lmd import export, extras, geojson, plate, qc, stats
+from qupath_to_lmd import export, extras, geojson, plate, plot, qc, stats
 from qupath_to_lmd.model import CLASS_NAME
 
 # The rendered number input carries `step` as an HTML attribute and browsers snap entries
@@ -368,68 +368,103 @@ def _cached_statistics(_gdf, cache_key: tuple, pixel_size_um: float | None):
 
 
 def class_selection_step(pixel_size_um: float | None, step: str = "4") -> list[str]:
-    """Show what each class holds, then let the user choose which ones to collect.
+    """Show what each class holds and what it looks like, then let the user choose.
 
-    Shared by the cell and regions workflows: both start by asking which biology to collect,
-    and a user switching between them should not meet two different tables.
+    Shared by the cell and regions workflows: both start by asking which biology to collect, and
+    a user switching between them should not meet two different tables.
+
+    The table and the picture sit side by side because they answer the same question from two
+    directions — how much is there, and is it where I expect. Seeing the input drawn also
+    confirms the file is the one the user meant to upload, which nothing else in the app does
+    (`decisions.md` 071).
     """
     gdf = st.session_state.gdf
 
     st.markdown(f"## Step {step}: Choose which classes to collect")
-    _, source = resolve_pixel_size()
-    if pixel_size_um and source == "estimated":
-        st.markdown(
-            f"Areas are computed from the shapes themselves at **{pixel_size_um:.4f} µm/px**, "
-            "estimated from this file's own QuPath measurements. You can change the scale in "
-            "the next step if it is wrong."
+
+    numbers, picture = st.columns([1, 2], gap="medium")
+
+    with numbers:
+        _, source = resolve_pixel_size()
+        if pixel_size_um and source == "estimated":
+            st.markdown(
+                f"Areas are measured from the shapes at **{pixel_size_um:.4f} µm/px**, estimated "
+                "from this file's own QuPath measurements. You can change the scale later."
+            )
+        elif pixel_size_um:
+            st.markdown(
+                f"Areas are measured from the shapes at **{pixel_size_um:.4f} µm/px**, the scale "
+                "you entered."
+            )
+        else:
+            st.markdown(
+                "This file carries no measurements to estimate an image scale from, so amounts "
+                "are in numbers of shapes. Enter a scale later to work in areas."
+            )
+
+        table = _cached_statistics(gdf, shape_fingerprint(gdf), pixel_size_um)
+        display = stats.for_display(table)
+        # Columns stay numeric so the table remains sortable; the format only trims the display.
+        st.dataframe(
+            display,
+            width="stretch",
+            column_config={
+                name: st.column_config.NumberColumn(name, format=f"%.{stats.DECIMALS}f")
+                for name in display.columns
+                if name != stats.DISPLAY_COLUMNS["shapes"]
+            },
         )
-    elif pixel_size_um:
-        st.markdown(
-            f"Areas are computed from the shapes themselves at **{pixel_size_um:.4f} µm/px**, "
-            "the scale you entered."
-        )
-    else:
-        st.markdown(
-            "This file carries no measurements to estimate an image scale from, so amounts are "
-            "in numbers of shapes. That is all you need to collect a number of cells; enter a "
-            "scale in the next step to work in areas."
+
+        all_classes = table.index.tolist()
+        selected = st.multiselect(
+            "Classes to collect",
+            options=all_classes,
+            default=st.session_state.selected_classes or all_classes,
+            help="Everything after this step works only on the classes you keep here.",
         )
 
-    table = _cached_statistics(gdf, shape_fingerprint(gdf), pixel_size_um)
-    display = stats.for_display(table)
-    # Columns stay numeric so the table remains sortable; the format only trims the display.
-    st.dataframe(
-        display,
-        width="stretch",
-        column_config={
-            name: st.column_config.NumberColumn(name, format=f"%.{stats.DECIMALS}f")
-            for name in display.columns
-            if name != stats.DISPLAY_COLUMNS["shapes"]
-        },
-    )
+        if selected != st.session_state.selected_classes:
+            st.session_state.selected_classes = selected
+            logger.info(f"Classes selected: {selected}")
 
-    all_classes = table.index.tolist()
-    selected = st.multiselect(
-        "Classes to collect",
-        options=all_classes,
-        default=st.session_state.selected_classes or all_classes,
-        help="Everything after this step works only on the classes you keep here.",
-    )
+        if selected:
+            kept = table.loc[selected]
+            summary = f"**{int(kept['shapes'].sum()):,} shapes** across {len(selected)} classes"
+            if "area_total_um2" in kept.columns:
+                summary += f", totalling **{kept['area_total_um2'].sum():,.0f} µm²** of tissue"
+            st.write(summary + ".")
+        else:
+            st.warning("No classes selected, so there is nothing to collect yet.")
 
-    if selected != st.session_state.selected_classes:
-        st.session_state.selected_classes = selected
-        logger.info(f"Classes selected: {selected}")
+    with picture:
+        _draw_input(gdf, selected)
 
-    if not selected:
-        st.warning("No classes selected, so there is nothing to collect yet.")
-        return []
-
-    kept = table.loc[selected]
-    summary = f"**{int(kept['shapes'].sum()):,} shapes** across {len(selected)} classes"
-    if "area_total_um2" in kept.columns:
-        summary += f", totalling **{kept['area_total_um2'].sum():,.{stats.DECIMALS}f} µm²** of tissue"
-    st.write(summary + ".")
     return selected
+
+
+def _draw_input(gdf, selected: list[str]) -> None:
+    """Draw everything in the file, colouring what is kept and greying out the rest.
+
+    Showing what was left out, rather than only what was taken, is what lets a user notice they
+    have excluded something by mistake — or that they uploaded the wrong export.
+    """
+    with st.spinner("Drawing shapes..."):
+        figure = plot.plot_shapes(
+            gdf,
+            included=selected,
+            calibration_array=st.session_state.calib_array,
+            title=f"{len(gdf):,} shapes in this file",
+        )
+    st.pyplot(figure, width="stretch")
+    if len(gdf) > plot.SHAPE_LIMIT:
+        st.caption(
+            f"Over {plot.SHAPE_LIMIT:,} shapes, so each one is drawn as a dot rather than its "
+            "outline. The outlines are still what gets cut."
+        )
+    st.caption(
+        "Greyed-out shapes are the classes you left out. Dashed triangle and crosses are your "
+        "calibration points; shapes far outside it are the ones at risk of distortion."
+    )
 
 
 def plate_settings_step(step: str = "5") -> dict:

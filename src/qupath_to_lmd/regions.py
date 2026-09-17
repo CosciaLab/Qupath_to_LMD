@@ -111,6 +111,20 @@ def tissue_hull(gdf: geopandas.GeoDataFrame):
     return shapely.convex_hull(shapely.geometrycollections(gdf.geometry.to_numpy()))
 
 
+def median_cell_spacing(gdf: geopandas.GeoDataFrame) -> float:
+    """How far apart neighbouring cells are, in pixels: the median nearest-neighbour distance.
+
+    Exposed on its own because the interface needs it before any tessellation runs, to offer a
+    sensible default reach in a unit the user recognises.
+    """
+    centroids = gdf.geometry.centroid
+    xy = numpy.unique(numpy.c_[centroids.x.to_numpy(), centroids.y.to_numpy()], axis=0)
+    if len(xy) < 2:
+        return 0.0
+    distances, _ = cKDTree(xy).query(xy, k=2)
+    return float(numpy.median(distances[:, 1]))
+
+
 def radius_from_spacing(xy: numpy.ndarray, params: RegionParams) -> tuple[float, float]:
     """The radius cap, and the median distance between neighbouring cells it came from.
 

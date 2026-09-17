@@ -50,7 +50,8 @@ src/qupath_to_lmd/
   budget.py                       BudgetMode, ClassBudget, feasibility, total_groups
   selection.py                    SelectionMode, SelectionParams, select, grid_bins
   regions.py                      RegionParams, project, voronoi_regions, merge_by_class,
-                                  close_slivers, deal_patches, tissue_hull
+                                  close_slivers, deal_patches, tissue_hull,
+                                  median_cell_spacing
   packing.py                      ClassPacking, PackingParams, pack, capacity,
                                   packable_area, class_generator, smoothing_loss
   plot.py                         plot_shapes — class overview, selection preview, QC image;
@@ -60,6 +61,7 @@ src/qupath_to_lmd/
   extras.py                       QuPath classes.json generation
   === UI layer: Streamlit, owns session_state ===
   ui_shared.py                    steps every workflow uses, incl. class_selection_step
+                                  (which draws the input beside its own table)
   ui_legacy.py                    annotations workflow (frozen as of Phase 1)
   ui_cells.py                     cell-segmentation workflow (step 8 is an st.fragment)
   ui_packing.py                   cellular-neighbourhood workflow
@@ -442,6 +444,15 @@ Step 6 offers a choice of what to cut out of each region: **circles packed insid
 is the default and the point of the workflow, or **the whole regions**. Whole regions is the
 only option when the file gives no image scale, because every packing amount is an area in µm².
 
+**Steps 4, 5 and 6 are all `st.columns([1, 2])`** — numbers on the left, a picture of what they
+produce on the right. Step 4 draws every shape in the file, coloured where the class is kept and
+grey where it is not, which is the only place the app shows a user what they actually uploaded.
+Step 5 draws the regions. Step 6's table is too wide for a third of the page, so its picture goes
+directly below instead (`decisions.md` 071).
+
+`class_selection_step` owns step 4's picture, so the cell workflow gets it too; `ui_cells`
+no longer has its own `overview_step`.
+
 **Step 6 is one table, then the picture.** Every number the user sets is a property of one
 class, so they live in one `st.data_editor` row per class — replicates, µm² per replicate,
 smallest and largest circle, and the gap — with only the image scale and the seed outside it.
@@ -449,6 +460,11 @@ The picture sits directly below, so the loop is change-a-number, look down, chan
 (`decisions.md` 070). Those rows become `packing.ClassPacking`; `.as_budget()` converts to
 `budget.ClassBudget` so `budget.group_keys` keeps owning the `class_rN` naming rule that decides
 which well a group lands in.
+
+No metrics row: "tissue in the regions / being collected / circles to cut / mean circle across"
+sat between the settings and the picture and pushed the two apart, which is the one thing step 6
+is arranged to avoid. Every figure it carried is in the per-replicate table below
+(`decisions.md` 071).
 
 **No `st.fragment` here**, unlike the cell workflow. A fragment only reruns itself, so nothing
 below it re-executes — which would leave the plate and the export showing a stale collection,
@@ -869,7 +885,7 @@ yields) with these figures and instructions for running locally (`decisions.md` 
 
 ## Test suite
 
-`tests/`, run with `uv run pytest` — 227 tests in about 7 seconds. `-m "not slow"` skips the
+`tests/`, run with `uv run pytest` — 231 tests in about 7 seconds. `-m "not slow"` skips the
 golden gate for a fast loop. CI runs ruff, the suite and the harness on every push and PR
 (`.github/workflows/ci.yml`).
 

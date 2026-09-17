@@ -40,6 +40,7 @@ def fake_streamlit(monkeypatch):
         def __init__(self):
             self.errors, self.warnings, self.captions, self.infos, self.writes = [], [], [], [], []
             self.metrics: list[tuple[str, str]] = []
+            self.tables: list[tuple[object, dict]] = []
             self.state = FakeState()
 
         def shown(self, kind):
@@ -77,7 +78,11 @@ def fake_streamlit(monkeypatch):
     monkeypatch.setattr(streamlit, "markdown", lambda *a, **k: None)
     monkeypatch.setattr(streamlit, "success", lambda *a, **k: None)
     monkeypatch.setattr(streamlit, "table", lambda *a, **k: None)
-    monkeypatch.setattr(streamlit, "dataframe", lambda *a, **k: None)
+    monkeypatch.setattr(
+        streamlit,
+        "dataframe",
+        lambda data=None, **k: recorder.tables.append((data, k.get("column_config") or {})),
+    )
     monkeypatch.setattr(streamlit, "stop", stop)
     monkeypatch.setattr(
         streamlit, "metric", lambda label, value, delta=None, **k: recorder.metrics.append((str(label), str(value)))
@@ -471,4 +476,34 @@ def test_the_smoothing_loss_is_warned_about_when_it_is_large(fake_streamlit):
     assert "moothing" in shown, (
         "Nothing was said about smoothing taking area off the circles, so the amounts shown are "
         "larger than what the laser will actually collect."
+    )
+
+
+def test_only_number_columns_are_given_a_number_format(fake_streamlit):
+    """A `NumberColumn` on a text column marks every cell with a red warning triangle.
+
+    Streamlit renders "this value cannot be interpreted as a number" over the class names, which
+    reads as an error in a table that is perfectly fine — so the config is built from the
+    numeric columns only.
+    """
+    import pandas
+
+    from qupath_to_lmd import ui_packing
+
+    ui_packing._show_table(
+        pandas.DataFrame({"Class": ["Tumor", "Immune cells"], "Collected (µm²)": [10_004.4, 9_998.1]})
+    )
+    assert fake_streamlit.tables, "Nothing was shown at all."
+    data, config = fake_streamlit.tables[-1]
+
+    assert "Class" not in config, (
+        "The class-name column was given a number format, so Streamlit flags every class name "
+        "as not being a number."
+    )
+    assert "Collected (µm²)" in config, (
+        "The amount column lost its format, so it shows a long float tail with no separator."
+    )
+    assert data["Collected (µm²)"].tolist() == [10_004, 9_998], (
+        f"Amounts came out as {data['Collected (µm²)'].tolist()}; they should be whole numbers, "
+        "since a fraction of a square micrometre is noise in a number the user has to read."
     )

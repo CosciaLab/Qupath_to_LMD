@@ -1549,3 +1549,50 @@ Agreed and noted in ROADMAP. Not done here: the cell workflow has its own per-cl
 own minimum-area filter and a `st.fragment` whose shape depends on the plate being above it, so
 converting it is its own piece of work with its own manual pass — and this branch is already one
 feature's worth of diff.
+
+## 071 — a picture beside every table, and the reach asked for in µm
+**Date:** 2026-09-17 · **Status:** active · **refines 069 and 070**
+Five notes from Jose on the working version. He kept the design and cut what was not earning
+its place.
+
+### The metrics row is removed
+"I think the number below the user input for the circle packing and replicates is unnecessary."
+Tissue in the regions, being collected, circles to cut, mean circle across — added in `068`,
+gone now. They sat **between** the settings and the picture and pushed the two apart, which is
+the one thing step 6 is arranged to avoid (`069`). Every figure they carried is either in the
+per-replicate table below or derivable from it. A summary that costs the reader the thing it is
+summarising is a bad trade.
+
+### A NumberColumn only goes on a numeric column
+"the Class column has a red triangle that states 'this value cannot be interpreted as a number'."
+`_show_table` was handing `st.column_config.NumberColumn` to every column including the class
+names, so Streamlit stamped each one with a warning triangle and a table that was perfectly fine
+read as an error. Config is now built from `is_numeric_dtype` only. Pinned by a test, because
+the symptom is invisible to every check except looking at the screen.
+
+### The reach is a distance, not a multiplier
+"For Step 5, what does it mean 'How far a region may reach from its cell'? what is the limit for
+the voronoi projection? this needs better explaining (not longer)."
+He is right that it needed explaining, and right that the answer is not more words. The control
+was a dimensionless multiple of cell spacing, which is a unit nobody thinks in. It is now
+**"Maximum reach from each cell (µm)"**, defaulting to three times `median_cell_spacing` — so the
+label states what the limit is and the caption below states its consequence: *gaps wider than
+twice this are left uncollected*. The one genuinely unintuitive thing about a Voronoi projection
+is now the first thing the control says.
+`RegionParams` keeps `radius_factor` for callers that prefer to scale it; the UI passes
+`max_radius_px`.
+
+### A picture beside the numbers, in steps 4 and 5 too
+"the preview for Step 5 is rather large, consider the 1/3 tabular info and 2/3 preview idea.
+Same with Step 4, it should preview the segmented classified cells (in that way ensuring they
+know what their input was)."
+Both now `st.columns([1, 2])`. Step 4's picture is the more valuable of the two and it is new in
+kind: it is the **only place the app shows a user what they actually uploaded**. Every other
+check is a number, and a number cannot tell you the export was the wrong slide. Classes the user
+keeps are coloured and the rest are greyed, so an accidental exclusion is visible as well.
+**It lives in `class_selection_step`, so the cell workflow gets it too** — which is the first
+instalment of the generalisation Jose asked for in `070`, done here because the step is already
+shared and `ui_cells.overview_step` drew the same picture a screen further down. That function is
+gone.
+Step 6 keeps its picture *below* rather than beside: five per-class columns do not fit in a third
+of the page, which `070` already settled.

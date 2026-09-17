@@ -612,7 +612,12 @@ What the regions workflow got that the cell workflow has not:
   still shows two decimals, because `stats.for_display` and `DECIMALS = 2` are shared and asserted
   by `tests/test_stats.py`. That is the smallest piece of this and could be done on its own.
 
-**Why it is its own PR.** The cell workflow has a minimum-area filter that must run before
+**First instalment already done** (`decisions.md` 071): `class_selection_step` now draws the
+input beside its own table — every shape in the file, coloured where the class is kept and grey
+where it is not — so the cell workflow has it too and `ui_cells.overview_step` is gone. That step
+was already shared, which made it the cheap half.
+
+**Why the rest is its own PR.** The cell workflow has a minimum-area filter that must run before
 anything is measured (`decisions.md` 060), a budget mode that switches the meaning of a column,
 and a `st.fragment` whose existence depends on the plate sitting *above* it — the opposite of the
 regions order. Converting it means re-deciding all three, and it needs its own manual pass over a

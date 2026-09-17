@@ -43,8 +43,9 @@ picked before you export. Cells below a minimum area (100 µm² by default, per 
 out, so keeping only the shapes you can actually collect.
 
 **Cellular neighbourhoods** — for when a single cell is too little tissue but you still want to
-collect by cell type. Each cell is given the tissue closest to it, and touching cells of the same
-class are merged into one **region**. Then, in one table with a row per class, you set how many replicates
+collect by cell type. Each cell is given the tissue nearest to it — up to a distance you set,
+which is what stops a cell at the edge of the tissue claiming the empty slide around it — and
+touching cells of the same class are merged into one **region**. Then, in one table with a row per class, you set how many replicates
 you want, how much tissue goes into each one, the size range of the circles and the gap to leave
 between cuts — and the app fills the regions with circles until it reaches that amount. Those
 settings are per class because a sparse, stringy class needs smaller circles than a solid one
