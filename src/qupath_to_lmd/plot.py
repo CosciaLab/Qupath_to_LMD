@@ -11,9 +11,12 @@ import numpy
 import pandas
 from loguru import logger
 from matplotlib import colormaps
-from matplotlib.collections import PolyCollection
+from matplotlib.collections import PathCollection, PolyCollection
+from matplotlib.colors import to_rgb
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.path import Path
+from shapely.geometry.polygon import orient
 
 from qupath_to_lmd.model import CLASS_NAME
 
@@ -26,22 +29,72 @@ MUTED_EDGE = "#b4b4b4"
 # ~2s at 50k shapes and ~8s at 200k; centroids are 0.14s at 200k.
 SHAPE_LIMIT = 20_000
 
-# Replicates are told apart by the colour of a circle's outline, and tab20 is the standard
-# categorical map with enough distinct entries to make more than a handful legible. Deliberately
-# a different scale from the class colours above: one picture carries both, so they must not be
-# mistakable for each other (`decisions.md` 069).
-REPLICATE_COLORMAP = "tab20"
+# Two variables share one picture — which class a shape belongs to and which replicate it goes
+# into — so they are on two channels that cannot be confused. Hue alone is not enough: a full
+# palette for each collides, and at that point an outline can be the same colour as the fill it
+# sits on. Measured across every pair, the tightest contrast with two full palettes is 1.00,
+# meaning literally the same colour (`decisions.md` 070).
+#
+# So the channels differ in lightness as well as hue. Fills are the class, tinted toward white;
+# outlines are the replicate, shaded toward black. Those two factors were chosen by scanning
+# them against the WCAG contrast of every fill-outline pair and the RGB separation of every pair
+# of outlines: they give contrast 1.78 everywhere, with outlines 0.198 apart from each other.
+CLASS_FILL_TINT = 0.55
+REPLICATE_SHADE = 0.25
 
-# A circle is drawn as a class-coloured disc with a replicate-coloured ring. The ring has to
-# stay readable on a whole-core view, where a circle is a few pixels across, and it has to stay
-# readable against a fill of a similar hue.
-CIRCLE_FILL_ALPHA = 0.7
+# tab10 rather than tab20: shading compresses a palette, and tab20's twenty entries end up too
+# close together to tell apart once darkened. Ten replicates is already more than a plate makes
+# sense for, and the palette cycles beyond that.
+REPLICATE_COLORMAP = "tab10"
+
+# A circle is a class-coloured disc with a replicate-coloured ring, and on a whole-core view it
+# is only a few pixels across — so the ring has to carry most of the weight.
 CIRCLE_EDGE_WIDTH = 1.5
+# Regions are the backdrop the cuts are judged against, not the subject. The circles use the
+# same fill palette at full opacity, so the two layers separate by weight rather than by needing
+# a third set of colours.
+REGION_FILL_ALPHA = 0.45
 
 
 def class_colors(classes: list[str]) -> dict[str, str]:
     """Stable colour per class: sorted, so a class keeps its colour across redraws."""
     return {name: PALETTE[i % len(PALETTE)] for i, name in enumerate(sorted(classes))}
+
+
+def class_fill_colors(classes: list[str]) -> dict[str, tuple]:
+    """The same hue per class, tinted toward white, for use as a fill under a dark outline.
+
+    One source of truth for a class's hue — `class_colors` — rendered two ways, so a class looks
+    like itself whichever picture it appears in.
+    """
+    return {
+        name: _tint(color, CLASS_FILL_TINT) for name, color in class_colors(classes).items()
+    }
+
+
+def replicate_colors(replicates: list[int]) -> dict[int, tuple]:
+    """A dark colour per replicate number, for the outline of a circle.
+
+    Keyed by the replicate number rather than by position, so replicate 2 keeps its colour when
+    a class with fewer replicates is added or removed — keyed by position, a user comparing two
+    screenshots would read a change that never happened. Cycles beyond the palette, which is
+    already more replicates than a plate makes sense for.
+    """
+    colormap = colormaps[REPLICATE_COLORMAP]
+    return {
+        number: _shade(colormap(int(number - 1) % colormap.N), REPLICATE_SHADE)
+        for number in sorted(set(replicates))
+    }
+
+
+def _tint(color, amount: float) -> tuple:
+    """A colour moved toward white by `amount`."""
+    return tuple(value + (1.0 - value) * amount for value in to_rgb(color))
+
+
+def _shade(color, amount: float) -> tuple:
+    """A colour moved toward black by `amount`."""
+    return tuple(value * (1.0 - amount) for value in to_rgb(color))
 
 
 def plot_shapes(
@@ -156,15 +209,32 @@ def _draw(axes, subset: geopandas.GeoDataFrame, color: str, as_dots: bool, empha
     axes.autoscale_view()
 
 
-def replicate_colors(replicates: list[int]) -> dict[int, tuple]:
-    """A colour per replicate number, from tab20, stable across redraws.
 
-    Keyed by the replicate number rather than by position, so replicate 2 keeps its colour when
-    a class with fewer replicates is added or removed. Cycles beyond 20 replicates, which is far
-    more than a plate makes sense for.
+def polygon_paths(subset) -> list:
+    """Every polygon in a frame as a matplotlib path that keeps its holes.
+
+    A region can completely surround tissue of another class, and that hole is not its tissue.
+    Drawing the exterior ring alone paints straight over the class inside it — on the demo core
+    one region did that to 207 000 µm² of another class, which is what made the picture look as
+    though the merge had failed when it had not (`decisions.md` 070).
+
+    The rings are **oriented** first: a compound path only reads an interior ring as a hole if
+    it winds against the exterior, and GEOS makes no promise about which way a ring came out.
+    Measured on the demo core, unoriented rings rendered the holes filled.
     """
-    colormap = colormaps[REPLICATE_COLORMAP]
-    return {number: colormap(int(number - 1) % colormap.N) for number in sorted(set(replicates))}
+    paths = []
+    for geometry in subset.geometry:
+        if geometry is None or geometry.is_empty:
+            continue
+        for polygon in getattr(geometry, "geoms", [geometry]):
+            if polygon.geom_type != "Polygon":
+                continue
+            oriented = orient(polygon, sign=1.0)
+            rings = [Path(numpy.asarray(oriented.exterior.coords))] + [
+                Path(numpy.asarray(ring.coords)) for ring in oriented.interiors
+            ]
+            paths.append(Path.make_compound_path(*rings))
+    return paths
 
 
 def plot_regions_and_circles(
@@ -177,11 +247,11 @@ def plot_regions_and_circles(
 ) -> Figure:
     """The regions as a tissue map, with what will be cut drawn on top of them.
 
-    Two variables in one picture, so they are encoded on two different channels:
-    **fill colour is the class** — for the regions and for the circles inside them, so a circle
-    is visibly part of the tissue it came from — and **outline colour is the replicate**, from
-    tab20. That way a user can see at once whether a class is being sampled evenly and whether
-    the replicates are spread across it rather than clustered in one corner.
+    Two variables in one picture, so they are encoded on two channels that cannot be mistaken
+    for one another: **a pale fill is the class** — for the regions and for the circles alike, so
+    a circle is visibly part of the tissue it came from — and **a dark outline is the
+    replicate**. That way a user can see at once whether a class is being sampled evenly and
+    whether the replicates are spread across it rather than clustered in one corner.
 
     Args:
         regions: the merged regions, carrying `classification_name`.
@@ -196,19 +266,17 @@ def plot_regions_and_circles(
     axes = figure.add_subplot()
 
     classes = sorted(regions[CLASS_NAME].dropna().unique())
-    colors = class_colors(classes)
+    fills = class_fill_colors(classes)
 
-    # The tissue, faint: it is the backdrop against which the cuts are judged, not the subject.
     for class_name in classes:
-        subset = regions[regions[CLASS_NAME] == class_name]
-        polygons = _rings(subset)
-        if polygons:
+        paths = polygon_paths(regions[regions[CLASS_NAME] == class_name])
+        if paths:
             axes.add_collection(
-                PolyCollection(
-                    polygons,
-                    facecolors=colors[class_name],
-                    edgecolors=colors[class_name],
-                    alpha=0.25,
+                PathCollection(
+                    paths,
+                    facecolors=[fills[class_name]],
+                    edgecolors=[fills[class_name]],
+                    alpha=REGION_FILL_ALPHA,
                     linewidths=0.6,
                     zorder=2,
                 )
@@ -222,19 +290,14 @@ def plot_regions_and_circles(
         for class_name in classes:
             for number in replicates:
                 subset = circles[(circles[CLASS_NAME] == class_name) & (labels == number)]
-                polygons = _rings(subset)
-                if not polygons:
+                paths = polygon_paths(subset)
+                if not paths:
                     continue
                 axes.add_collection(
-                    PolyCollection(
-                        polygons,
-                        facecolors=colors[class_name],
+                    PathCollection(
+                        paths,
+                        facecolors=[fills[class_name]],
                         edgecolors=[edges[number]],
-                        # The fill is held back and the outline pushed forward on purpose. Both
-                        # palettes contain an orange, so an orange circle of an orange class
-                        # would hide its own replicate ring at full opacity — and the ring is
-                        # the only thing carrying the replicate.
-                        alpha=CIRCLE_FILL_ALPHA,
                         linewidths=CIRCLE_EDGE_WIDTH,
                         zorder=3,
                     )
@@ -250,7 +313,7 @@ def plot_regions_and_circles(
             marker="+", s=90, color="#444444", zorder=4,
         )
 
-    _two_legends(figure, classes, colors, replicates)
+    _two_legends(figure, classes, fills, replicates)
 
     # QuPath image coordinates grow downward, so inverting y makes this look like the view
     # the user annotated in.
@@ -267,30 +330,22 @@ def plot_regions_and_circles(
     return figure
 
 
-def _rings(subset) -> list:
-    """Exterior rings of every Polygon in a frame, for a PolyCollection."""
-    return [
-        numpy.asarray(geometry.exterior.coords)
-        for geometry in subset.geometry
-        if geometry is not None and geometry.geom_type == "Polygon"
-    ]
-
-
-def _two_legends(figure, classes, colors, replicates) -> None:
-    """One legend for the class fills and one for the replicate outlines.
+def _two_legends(figure, classes, fills, replicates) -> None:
+    """One key for the class fills and one for the replicate outlines.
 
     Both outside the axes: a legend over the tissue hides the thing being judged. Two separate
-    legends rather than one combined, because the reader has to be able to tell which channel
-    carries which meaning.
+    keys rather than one combined, because the reader has to be able to tell which channel
+    carries which meaning. The class swatches get a grey edge, since a pale fill on white is
+    otherwise hard to see at legend size.
     """
     class_handles = [
-        Line2D([], [], marker="s", linestyle="", markersize=9, markerfacecolor=colors[name],
-               markeredgecolor="none", label=name)
+        Line2D([], [], marker="s", linestyle="", markersize=10, markerfacecolor=fills[name],
+               markeredgecolor="#888888", markeredgewidth=0.6, label=name)
         for name in classes
     ]
     if class_handles:
         first = figure.legend(
-            handles=class_handles, title="Class", fontsize=8, title_fontsize=8,
+            handles=class_handles, title="Class (fill)", fontsize=8, title_fontsize=8,
             loc="outside right upper", frameon=False,
         )
         figure.add_artist(first)
@@ -299,7 +354,7 @@ def _two_legends(figure, classes, colors, replicates) -> None:
         return
     edges = replicate_colors(replicates)
     replicate_handles = [
-        Line2D([], [], marker="o", linestyle="", markersize=9, markerfacecolor="none",
+        Line2D([], [], marker="o", linestyle="", markersize=10, markerfacecolor="none",
                markeredgecolor=edges[number], markeredgewidth=2, label=f"replicate {number}")
         for number in replicates
     ]

@@ -51,8 +51,8 @@ src/qupath_to_lmd/
   selection.py                    SelectionMode, SelectionParams, select, grid_bins
   regions.py                      RegionParams, project, voronoi_regions, merge_by_class,
                                   close_slivers, deal_patches, tissue_hull
-  packing.py                      PackingParams, pack, capacity, packable_area,
-                                  class_generator, smoothing_loss
+  packing.py                      ClassPacking, PackingParams, pack, capacity,
+                                  packable_area, class_generator, smoothing_loss
   plot.py                         plot_shapes — class overview, selection preview, QC image;
                                   plot_regions_and_circles — the regions feedback picture
   export.py                       build_collection, build_bundle, PathOrder,
@@ -442,22 +442,13 @@ Step 6 offers a choice of what to cut out of each region: **circles packed insid
 is the default and the point of the workflow, or **the whole regions**. Whole regions is the
 only option when the file gives no image scale, because every packing amount is an area in µm².
 
-**Step 6 is laid out as `st.columns([1, 2])`**: every input in the narrow left column, the
-picture in the wide right one, so changing a number and seeing what it did needs no scrolling
-(`decisions.md` 069). One `st.data_editor` carries both per-class numbers — replicates and µm²
-per replicate — because they answer one question per class. Those become
-`budget.ClassBudget`, reused rather than reinvented: `class_name`, `replicates`,
-`per_replicate` is exactly its shape, and `budget.group_keys` then sizes the plate for free.
-
-**The feedback picture** is `plot.plot_regions_and_circles`. Two variables on two channels:
-**fill colour is the class** for regions and circles alike, so a circle is visibly part of the
-tissue it came from; **outline colour is the replicate**, from `tab20`. Regions are drawn at
-alpha 0.25 as a backdrop; circles at alpha 0.7 with a 1.5 pt ring. The held-back fill is
-deliberate — both palettes contain an orange, so a full-opacity orange circle of an orange class
-would hide its own replicate ring, and the ring is the only thing carrying the replicate.
-`replicate_colors` keys tab20 by replicate *number*, not by position, so replicate 2 keeps its
-colour when a class with fewer replicates is added. Measured at 0.02 s for 684 regions plus 422
-circles, so it redraws on every keystroke for free.
+**Step 6 is one table, then the picture.** Every number the user sets is a property of one
+class, so they live in one `st.data_editor` row per class — replicates, µm² per replicate,
+smallest and largest circle, and the gap — with only the image scale and the seed outside it.
+The picture sits directly below, so the loop is change-a-number, look down, change again
+(`decisions.md` 070). Those rows become `packing.ClassPacking`; `.as_budget()` converts to
+`budget.ClassBudget` so `budget.group_keys` keeps owning the `class_rN` naming rule that decides
+which well a group lands in.
 
 **No `st.fragment` here**, unlike the cell workflow. A fragment only reruns itself, so nothing
 below it re-executes — which would leave the plate and the export showing a stale collection,
@@ -465,31 +456,47 @@ the exact trap `decisions.md` 051 describes. With the collection step above the 
 fragment has to go, and the caches on the projection and the packing are what keep a full rerun
 affordable instead.
 
-The pipeline, and why each part is the way it is:
+### The feedback picture
 
-1. **Tessellate over every classified cell.** `shapely.voronoi_polygons(MultiPoint(centroids),
-   ordered=True, extend_to=hull.envelope)`. `ordered=True` (shapely ≥ 2.1) guarantees the i-th
-   polygon belongs to the i-th point, so class labels map by position — no spatial join and no
-   `-1` unbounded-region bookkeeping. Verified 121/121 on `Single_cells.geojson`.
-   `tests/test_regions.py::test_each_region_belongs_to_its_own_cell` is the guard: if that
-   contract breaks, every region carries a neighbour's class and every well holds the wrong
-   tissue.
-2. **Classes are filtered *after* tessellating**, never before. `project(..., include=[...])`
-   exists for exactly this. Dropping a class first would let its neighbours expand into the
-   space it occupied, putting one class's tissue in another class's well.
-3. **Cap each region** at a disc of radius `R` around its own cell, `R = radius_factor ×
-   median nearest-neighbour distance` (default factor 3), and **clip to the convex hull of the
-   cell outlines**. An uncapped Voronoi cell on the rim of the tissue is unbounded, so a cut
-   placed in it takes blank glass. The hull is of the cell **bodies**, not their centroids: a
-   rim cell's centroid sits on the centroid hull, which would clip away half its own tissue.
-4. **Merge by class**, `dissolve` then `explode`, one row per contiguous patch. Patches are
-   then sorted by `(class, minx, miny)` — GEOS decides what order a union returns and that
-   order picks the wells, so it is pinned rather than inherited.
-5. **Deal patches across replicates**, largest first into whichever replicate holds the least
-   area. No randomness; the same file reaches the same wells in any session.
+`plot.plot_regions_and_circles`. Two variables, so two channels that cannot be confused:
+**a pale fill is the class**, for regions and circles alike, so a circle is visibly part of the
+tissue it came from; **a dark outline is the replicate**.
 
-Voronoi cells, discs and the hull are all convex, so a **region is always a single Polygon** —
-MultiPolygons appear only at the merge, and the explode turns those into separate patches.
+Hue alone is not enough, and this was measured rather than guessed. With a full palette for each
+channel, the tightest fill-outline pair across every combination has a WCAG contrast of **1.00** —
+literally the same colour, which is why an orange circle of an orange class hid its own ring in
+the first version. Scanning tint and shade factors against the contrast of every pair *and* the
+RGB separation of every pair of outlines:
+
+| fills | outlines | min contrast | min outline separation |
+| --- | --- | --- | --- |
+| Okabe-Ito as-is | tab20 | 1.00 | 0.098 |
+| Okabe-Ito as-is | tab10 | 1.00 | 0.265 |
+| tinted 0.55 | tab20 | 1.00 | 0.098 |
+| **tinted 0.55** | **tab10 shaded 0.25** | **1.78** | **0.198** |
+| tinted 0.6 | tab10 shaded 0.4 | 2.83 | 0.159 |
+
+So `CLASS_FILL_TINT = 0.55`, `REPLICATE_SHADE = 0.25`, `REPLICATE_COLORMAP = "tab10"`. tab10
+rather than tab20 because shading compresses a palette and tab20's twenty entries end up too
+close to tell apart once darkened; ten replicates is already more than a plate makes sense for,
+and it cycles beyond that. `class_colors` (the app-wide Okabe-Ito) stays the single source of
+truth for a class's hue and `class_fill_colors` tints it, so a class looks like itself in every
+picture. `replicate_colors` keys the palette by replicate *number*, not position, so replicate 2
+keeps its colour when a class with fewer replicates appears.
+`tests/test_plot.py` asserts both the contrast floor and the separation floor.
+
+**Holes are drawn as holes**, via `polygon_paths`: `Path.make_compound_path` over the exterior
+and every interior ring. Two things had to be right. Exterior-only drawing painted one region
+over 207 000 µm² of the class it surrounds, which is what looked like a broken merge. And a
+compound path only reads an interior as a hole if it **winds against** the exterior — GEOS makes
+no promise which way a ring came out, and on this data the unoriented rings rendered *filled*.
+`shapely.geometry.polygon.orient(polygon, sign=1.0)` fixes the winding.
+`tests/test_plot.py::test_a_hole_in_a_region_is_not_painted_over` renders the figure and reads
+the pixel in the hole, because nothing short of drawing it proves the orientation is right.
+
+Regions draw at alpha 0.45 as a backdrop, circles at full opacity with a 1.5 pt ring; the two
+layers separate by weight rather than by needing a third palette. Measured at 0.03 s for 684
+regions plus 422 circles, so it redraws on every keystroke for free.
 
 ### Pinhole slivers
 
@@ -511,6 +518,36 @@ tuned constant. Measured:
 The two groups do not overlap. The threshold is taken over **all** regions, not only the kept
 ones, because a hole may be the region of a class the user left out and that class can hold
 smaller regions than any kept one.
+
+### The merge is verified, not assumed
+
+Jose read the first version of the feedback picture as a broken merge — two classes appeared to
+overlay each other in places. The merge was correct; the **plot** was wrong. Measured over the
+684 regions of the real core:
+
+| check | result |
+| --- | --- |
+| largest **area** shared by any two regions | **0.000000 µm²** |
+| same-class region pairs that intersect at all | 18, all of them `Point` or `MultiPoint` |
+| different-class pairs that intersect | 1 177, all of them `LineString`/`MultiLineString` |
+
+So no two regions share any tissue, different-class regions meet along shared boundaries as they
+must, and same-class regions only ever touch at isolated corners — which is what separate
+components of a union legitimately do, not evidence of an unmerged pair.
+`tests/test_regions.py::test_no_two_regions_share_any_tissue` holds that invariant.
+
+### Two things Voronoi does that the user has to know about
+
+Both are Jose's, and both are real:
+
+- **Empty space inside the tissue** — a lumen, a vessel, a tear — is nearest to *some* cell, so a
+  plain Voronoi hands it to that cell. The **radius cap is the mechanism that prevents it**: a gap
+  wider than twice the cap is left unassigned. At the default factor of 3 on the real core the cap
+  is 29 µm, so gaps wider than about 58 µm are correctly left blank, and lowering the factor
+  leaves more of them blank. There is no way to distinguish "empty" from "sparse" from the
+  centroids alone, so this is a dial rather than a decision the app can make.
+- **The rim extends to infinity** — an outer Voronoi cell is unbounded. Handled by the same cap
+  plus the clip to the convex hull of the cell outlines, so nothing reaches past the tissue.
 
 ### What the export path cannot represent
 
@@ -642,7 +679,7 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | `minimum_area_um2` | per-class minimum collectable area in µm²; drives the pre-measurement filter |
 | `region_params` | `RegionParams` as a dict: the radius cap that produced the current regions |
 | `packing_params` | `PackingParams` as a dict: sizes, gap, effort and seed of the last packing |
-| `region_budgets` | list of `ClassBudget` as dicts in the regions workflow: class, replicates, µm² per replicate |
+| `region_budgets` | list of `ClassPacking` as dicts: per class, replicates, µm² per replicate, circle size range, gap |
 | `view_mode` | `'default'` \| `'samples'` — which plate table is rendered |
 | `gdf` | the working GeoDataFrame (points removed, `classification_name` added) |
 | `geojson_report` | `GeojsonReport` from the last read, re-rendered on every rerun |
@@ -832,7 +869,7 @@ yields) with these figures and instructions for running locally (`decisions.md` 
 
 ## Test suite
 
-`tests/`, run with `uv run pytest` — 213 tests in about 7 seconds. `-m "not slow"` skips the
+`tests/`, run with `uv run pytest` — 227 tests in about 7 seconds. `-m "not slow"` skips the
 golden gate for a fast loop. CI runs ruff, the suite and the harness on every push and PR
 (`.github/workflows/ci.yml`).
 

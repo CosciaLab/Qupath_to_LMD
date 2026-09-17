@@ -88,41 +88,72 @@ class PackingError(Exception):
 
 
 @dataclass(frozen=True)
-class PackingParams:
-    """Everything that determines the circles, recorded so they can be reproduced.
+class ClassPacking:
+    """Everything one class asks for: how much, into how many wells, and at what circle size.
 
-    Areas rather than radii throughout: the amount of tissue is what a proteomics experiment
-    is specified in, and it is what the user is budgeting.
+    Per class rather than global because biologies differ in both directions. On a real TMA core
+    two classes held about 900 000 µm² each while a third held 220 000, so one amount could not
+    ask each for what it can give; and a sparse, stringy class needs smaller circles than a solid
+    one before anything fits at all (`decisions.md` 070).
 
-    How *much* to collect is not here — it is per class, in a `ClassBudget`, because different
-    biologies hold different amounts and a user setting them in one table wants one row each.
-    These are the settings that apply to every circle whatever class it lands in.
+    Areas rather than radii throughout: the amount of tissue is what an experiment is specified
+    in, and it is what the user is budgeting.
     """
 
+    class_name: str
+    replicates: int = 1
+    area_per_replicate_um2: float = DEFAULT_AREA_PER_REPLICATE_UM2
     min_circle_area_um2: float = DEFAULT_MIN_CIRCLE_AREA_UM2
     max_circle_area_um2: float = DEFAULT_MAX_CIRCLE_AREA_UM2
     spacing_um: float = DEFAULT_SPACING_UM
-    max_attempts: int = DEFAULT_MAX_ATTEMPTS
-    seed: int = 0
 
-    def validate(self) -> None:
-        """Raise on a combination that cannot produce circles.
-
-        Raises:
-            PackingError: the size range is empty or the amounts are not positive.
-        """
-        if self.min_circle_area_um2 <= 0:
-            raise PackingError("The smallest circle must have an area greater than zero.")
-        if self.max_circle_area_um2 < self.min_circle_area_um2:
-            raise PackingError(
-                f"The largest circle ({self.max_circle_area_um2:,.0f} µm²) is smaller than the "
-                f"smallest ({self.min_circle_area_um2:,.0f} µm²). Swap them, or widen the range."
-            )
+    @property
+    def required(self) -> float:
+        """Total tissue demanded across every replicate of this class."""
+        return self.replicates * self.area_per_replicate_um2
 
     @property
     def mean_circle_area_um2(self) -> float:
         """Areas are drawn uniformly, so the mean is the midpoint of the range."""
         return (self.min_circle_area_um2 + self.max_circle_area_um2) / 2
+
+    def as_budget(self) -> ClassBudget:
+        """The same request in the form the plate understands.
+
+        `budget.group_keys` owns the `class_rN` naming rule that decides which well a group
+        lands in, so it is converted rather than reimplemented — one rule, one place.
+        """
+        return ClassBudget(self.class_name, self.replicates, self.area_per_replicate_um2)
+
+    def validate(self) -> None:
+        """Raise on a combination that cannot produce circles.
+
+        Raises:
+            PackingError: the size range is empty or inverted.
+        """
+        if self.min_circle_area_um2 <= 0:
+            raise PackingError(
+                f"{self.class_name}: the smallest circle must be larger than zero µm²."
+            )
+        if self.max_circle_area_um2 < self.min_circle_area_um2:
+            raise PackingError(
+                f"{self.class_name}: the largest circle ({self.max_circle_area_um2:,.0f} µm²) is "
+                f"smaller than the smallest ({self.min_circle_area_um2:,.0f} µm²). Swap them, or "
+                "widen the range."
+            )
+
+
+@dataclass(frozen=True)
+class PackingParams:
+    """Settings for the run as a whole, rather than for any one class.
+
+    Only the things that genuinely cannot differ per class live here: one random stream feeds
+    every class, and how hard to try before giving up is a property of the sampler rather than a
+    decision about the experiment.
+    """
+
+    seed: int = 0
+    max_attempts: int = DEFAULT_MAX_ATTEMPTS
 
 
 @dataclass
@@ -163,7 +194,7 @@ def class_generator(seed: int, class_name: str) -> numpy.random.Generator:
     return numpy.random.default_rng([seed, int.from_bytes(digest, "big")])
 
 
-def packable_area(area: float, params: PackingParams) -> float:
+def packable_area(area: float, request: ClassPacking) -> float:
     """Roughly how much of `area` circles of this size and spacing can actually cover.
 
     Randomly thrown circles of mixed size reach about 55% coverage with no gap between them.
@@ -177,15 +208,14 @@ def packable_area(area: float, params: PackingParams) -> float:
     This is an estimate shown before packing runs, so the user can see an impossible request
     before waiting for it. What was actually achieved is always reported separately.
     """
-    mean_radius = numpy.sqrt(params.mean_circle_area_um2 / numpy.pi)
-    inflation = (1 + params.spacing_um / (2 * mean_radius)) ** 2
+    mean_radius = numpy.sqrt(request.mean_circle_area_um2 / numpy.pi)
+    inflation = (1 + request.spacing_um / (2 * mean_radius)) ** 2
     return float(RANDOM_PACKING_FILL * area / inflation)
 
 
 def capacity(
     patches: geopandas.GeoDataFrame,
-    budgets: list[ClassBudget],
-    params: PackingParams,
+    requests: list[ClassPacking],
     pixel_size_um: float,
 ) -> pandas.DataFrame:
     """What each class holds, what it is asked for, and whether the two are compatible.
@@ -194,16 +224,18 @@ def capacity(
     """
     rows = {}
     areas = patches.geometry.area * pixel_size_um**2
-    for item in budgets:
+    for item in requests:
         region_area = float(areas[patches[CLASS_NAME] == item.class_name].sum())
-        estimated = packable_area(region_area, params)
+        estimated = packable_area(region_area, item)
         rows[item.class_name] = {
             "region_area_um2": region_area,
             "packable_estimate_um2": estimated,
             "requested_um2": item.required,
             "shortfall_um2": max(0.0, item.required - estimated),
             "fillable_replicates": (
-                int(estimated // item.per_replicate) if item.per_replicate > 0 else 0
+                int(estimated // item.area_per_replicate_um2)
+                if item.area_per_replicate_um2 > 0
+                else 0
             ),
         }
     return pandas.DataFrame.from_dict(rows, orient="index")
@@ -257,7 +289,7 @@ def _pack_one(
         if not patch.contains(circle):
             continue
 
-        buckets.setdefault(_bucket(x, y, bucket_size), []).append((x, y, radius))
+        buckets.setdefault(_bucket(x, y, bucket_size), []).append((x, y, radius, spacing_px))
         placed.append((circle, circle.area))
         area += circle.area
         # Reset, so `max_attempts` measures how hard placement has become rather than how many
@@ -275,21 +307,25 @@ def _bucket(x: float, y: float, size: float) -> tuple[int, int]:
 def _collides(
     buckets: dict, size: float, x: float, y: float, radius: float, spacing: float
 ) -> bool:
-    """Whether a circle here would sit closer than `spacing` to one already placed.
+    """Whether a circle here would sit closer than the gap to one already placed.
 
     An exact centre-to-centre test against a grid of buckets. The prototype rebuilt a
     `shapely.STRtree` from every placed circle on every single attempt, which is O(n² log n)
     over a run and was the dominant cost; it also queried the tree without a predicate, so it
     compared bounding boxes and rejected placements that were actually legal.
 
-    The bucket side is `2 * max_radius + spacing`, so no circle can conflict with one more than
-    one bucket away and only the 3x3 neighbourhood needs checking.
+    The bucket side is `2 * largest_radius + widest_gap` across every class, so no circle can
+    conflict with one more than one bucket away and only the 3x3 neighbourhood needs checking.
+
+    **The wider of the two gaps wins.** Classes can ask for different gaps, and a pair of
+    circles either side of a class boundary has to satisfy both requests — taking the narrower
+    would silently override whichever class asked for more room.
     """
     bucket_x, bucket_y = _bucket(x, y, size)
     for i in range(bucket_x - 1, bucket_x + 2):
         for j in range(bucket_y - 1, bucket_y + 2):
-            for other_x, other_y, other_radius in buckets.get((i, j), ()):
-                limit = radius + other_radius + spacing
+            for other_x, other_y, other_radius, other_spacing in buckets.get((i, j), ()):
+                limit = radius + other_radius + max(spacing, other_spacing)
                 if (x - other_x) ** 2 + (y - other_y) ** 2 < limit**2:
                     return True
     return False
@@ -297,7 +333,7 @@ def _collides(
 
 def pack(
     patches: geopandas.GeoDataFrame,
-    budgets: list[ClassBudget],
+    requests: list[ClassPacking],
     params: PackingParams,
     pixel_size_um: float,
 ) -> PackingResult:
@@ -305,8 +341,8 @@ def pack(
 
     Args:
         patches: regions from `regions.project`, carrying `classification_name`.
-        budgets: one per class — how many replicates, and how much tissue in each.
-        params: circle sizes, the gap, effort and the seed.
+        requests: one per class — amount, replicates, circle sizes and the gap.
+        params: the seed and how hard to try, which apply to the whole run.
         pixel_size_um: the image scale. Required — every amount here is an area in µm².
 
     Returns:
@@ -314,29 +350,33 @@ def pack(
         capacity estimate the user was shown beforehand.
 
     Raises:
-        PackingError: the parameters cannot produce circles, or there is no image scale.
+        PackingError: a request cannot produce circles, or there is no image scale.
     """
-    params.validate()
     if not pixel_size_um:
         raise PackingError("Packing circles needs the image scale (µm per pixel).")
+    for item in requests:
+        item.validate()
 
     logger.info(
-        f"Packing circles {params.min_circle_area_um2:,.0f}-{params.max_circle_area_um2:,.0f} µm², "
-        f"gap {params.spacing_um} µm, seed {params.seed}, {params.max_attempts} attempts; "
-        + ", ".join(
-            f"{item.class_name} {item.replicates}x{item.per_replicate:,.0f} µm²" for item in budgets
+        f"Packing seed {params.seed}, {params.max_attempts} attempts; "
+        + "; ".join(
+            f"{item.class_name} {item.replicates}x{item.area_per_replicate_um2:,.0f} µm² "
+            f"in {item.min_circle_area_um2:,.0f}-{item.max_circle_area_um2:,.0f} µm² circles "
+            f"{item.spacing_um:,.0f} µm apart"
+            for item in requests
         )
     )
 
     um2_per_px2 = pixel_size_um**2
-    radius_range_px = (
-        numpy.sqrt(params.min_circle_area_um2 / numpy.pi) / pixel_size_um,
-        numpy.sqrt(params.max_circle_area_um2 / numpy.pi) / pixel_size_um,
+    # One grid for the whole collection, so the gap holds between classes too. Its cell has to
+    # accommodate the largest circle any class may place, since a single grid serves them all.
+    largest_radius_px = max(
+        (numpy.sqrt(item.max_circle_area_um2 / numpy.pi) / pixel_size_um for item in requests),
+        default=1.0,
     )
-    spacing_px = params.spacing_um / pixel_size_um
-    bucket_size = 2 * radius_range_px[1] + spacing_px
+    widest_gap_px = max((item.spacing_um / pixel_size_um for item in requests), default=0.0)
+    bucket_size = 2 * largest_radius_px + widest_gap_px
 
-    # One grid for the whole collection, so the gap holds between classes too.
     buckets: dict = {}
     records: list[dict] = []
     rows: list[dict] = []
@@ -344,24 +384,32 @@ def pack(
     n_regions_skipped = 0
 
     # Sorted, so the run does not depend on the order the classes happen to appear in.
-    for item in sorted(budgets, key=lambda entry: entry.class_name):
-        class_name, wanted = item.class_name, int(item.replicates)
+    for item in sorted(requests, key=lambda entry: entry.class_name):
+        wanted = int(item.replicates)
         if wanted < 1:
             continue
-        if item.per_replicate <= 0:
+        if item.area_per_replicate_um2 <= 0:
             # Still reported, so a class asked for nothing does not simply vanish from the table.
             rows.extend(_empty_rows(item))
             continue
-        generator = class_generator(params.seed, class_name)
+
+        generator = class_generator(params.seed, item.class_name)
+        radius_range_px = (
+            numpy.sqrt(item.min_circle_area_um2 / numpy.pi) / pixel_size_um,
+            numpy.sqrt(item.max_circle_area_um2 / numpy.pi) / pixel_size_um,
+        )
+        spacing_px = item.spacing_um / pixel_size_um
         # One circle of slack per replicate. A replicate is filled until it reaches the target,
         # so it overshoots by up to one circle; packing exactly the total left the *last*
         # replicate with only the remainder and systematically short. A replicate that is
         # reliably 5% smaller than its siblings is not a comparable measurement, and the slack
         # costs only the handful of circles reported as discarded.
-        target_px2 = wanted * (item.per_replicate + params.mean_circle_area_um2) / um2_per_px2
+        target_px2 = (
+            wanted * (item.area_per_replicate_um2 + item.mean_circle_area_um2) / um2_per_px2
+        )
 
         circles, skipped = _pack_class(
-            patches[patches[CLASS_NAME] == class_name],
+            patches[patches[CLASS_NAME] == item.class_name],
             target_px2,
             radius_range_px,
             spacing_px,
@@ -373,7 +421,7 @@ def pack(
         n_regions_skipped += skipped
 
         dealt, leftover = _deal_circles(
-            circles, wanted, item.per_replicate / um2_per_px2, generator
+            circles, wanted, item.area_per_replicate_um2 / um2_per_px2, generator
         )
         n_discarded += leftover
 
@@ -384,18 +432,18 @@ def pack(
                 records.append(
                     {
                         "geometry": geometry,
-                        CLASS_NAME: class_name,
+                        CLASS_NAME: item.class_name,
                         REPLICATE: replicate,
                         CIRCLE_AREA: area * um2_per_px2,
                     }
                 )
             rows.append(
                 {
-                    CLASS_NAME: class_name,
+                    CLASS_NAME: item.class_name,
                     "replicate": replicate,
                     "circles": len(members),
                     CIRCLE_AREA: achieved,
-                    "requested": item.per_replicate,
+                    "requested": item.area_per_replicate_um2,
                     "achieved": achieved,
                 }
             )
@@ -408,7 +456,7 @@ def pack(
     result = PackingResult(
         circles=circles_gdf,
         achieved=pandas.DataFrame(rows) if rows else empty_achieved(),
-        capacity=capacity(patches, budgets, params, pixel_size_um),
+        capacity=capacity(patches, requests, pixel_size_um),
         n_discarded=n_discarded,
         n_regions_too_small=n_regions_skipped,
     )
@@ -419,19 +467,7 @@ def pack(
     return result
 
 
-def _fits_one_circle(class_patches: geopandas.GeoDataFrame, min_radius_px: float):
-    """Which regions could hold at least one smallest circle.
-
-    Eroding a region by the smallest radius and asking whether anything is left is the exact
-    test, and it costs about 0.01 s for 141 regions. Worth doing: a region too thin to hold
-    anything otherwise burns the whole `max_attempts` budget discovering that, and on real
-    tissue 18 of 141 regions of one class are in that state — 36 000 darts thrown to learn
-    nothing (`decisions.md` 067).
-    """
-    return ~class_patches.geometry.buffer(-min_radius_px).is_empty
-
-
-def _empty_rows(item: ClassBudget) -> list[dict]:
+def _empty_rows(item: ClassPacking) -> list[dict]:
     """Rows for a class asked to supply nothing, so it still appears in the report."""
     return [
         {
@@ -439,11 +475,23 @@ def _empty_rows(item: ClassBudget) -> list[dict]:
             "replicate": replicate,
             "circles": 0,
             CIRCLE_AREA: 0.0,
-            "requested": item.per_replicate,
+            "requested": item.area_per_replicate_um2,
             "achieved": 0.0,
         }
         for replicate in range(1, item.replicates + 1)
     ]
+
+
+def _fits_one_circle(class_patches: geopandas.GeoDataFrame, min_radius_px: float):
+    """Which regions could hold at least one smallest circle.
+
+    Eroding a region by the smallest radius and asking whether anything is left is the exact
+    test, and it costs about 0.01 s for 141 regions. Worth doing: a region too thin to hold
+    anything otherwise burns the whole `max_attempts` budget discovering that, and on real
+    tissue 119 of 684 regions are in that state — hundreds of thousands of darts thrown to
+    learn nothing (`decisions.md` 067).
+    """
+    return ~class_patches.geometry.buffer(-min_radius_px).is_empty
 
 
 def _pack_class(

@@ -584,3 +584,38 @@ Jose's two rounds of notes on the working version, and what they changed:
   the sampler gives up, not a decision about the experiment).
 - **Every µm² figure is a whole number with a thousands separator.** Areas here run to millions
   and a tenth of a square micrometre is far below anything the laser can place.
+- **The merge was checked, not argued.** Jose read the picture as a broken merge; the merge was
+  right and the *plot* was wrong — it drew region exteriors only, painting one region over
+  207 000 µm² of the class it surrounds. The invariant (no two regions share any tissue) is now
+  asserted, and holes are drawn as holes.
+- **Colours are measured.** Two full-hue palettes have a fill-outline pair at contrast 1.00 —
+  the same colour. Fills are now tinted toward white and outlines shaded toward black, giving
+  1.78 everywhere with outlines 0.198 apart. Both floors are asserted.
+- **Circle parameters are per class**, in the same table as the replicates and the amount. A
+  sparse class needs smaller circles than a solid one before anything fits.
+
+---
+
+# 8. Round four — generalise the regions UI to the cell workflow
+
+Jose, reviewing round three: *"I like this UI, and should be generalized to the segmentation-based
+workflow as well."*
+
+What the regions workflow got that the cell workflow has not:
+
+- **One per-class table** carrying every number that class needs, instead of a global budget mode
+  plus a separate per-class editor plus separate selection controls.
+- **A live picture directly below the settings**, with a stable encoding — pale fill for the
+  class, dark outline for the replicate — and both legibility floors asserted.
+- **A metrics row** answering "is this a sensible collection?" at a glance.
+- **Whole-number µm² with thousands separators** everywhere. The cell workflow's per-class table
+  still shows two decimals, because `stats.for_display` and `DECIMALS = 2` are shared and asserted
+  by `tests/test_stats.py`. That is the smallest piece of this and could be done on its own.
+
+**Why it is its own PR.** The cell workflow has a minimum-area filter that must run before
+anything is measured (`decisions.md` 060), a budget mode that switches the meaning of a column,
+and a `st.fragment` whose existence depends on the plate sitting *above* it — the opposite of the
+regions order. Converting it means re-deciding all three, and it needs its own manual pass over a
+path that currently carries the most tests in the repo. `tools/golden_harness.py` covers the cell
+output byte-for-byte, so the refactor is safe to attempt; it is the interaction design that needs
+Jose's eye, not the plumbing.

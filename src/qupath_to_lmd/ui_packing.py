@@ -47,7 +47,7 @@ class Collected:
 
     shapes: object
     replicate_of: object
-    replicates: list
+    requests: list
     mode: CollectMode
     pixel_size_um: float | None
     params: packing.PackingParams | None = None
@@ -193,199 +193,189 @@ def regions_step(
     return patches, report
 
 
+# The per-class table. Every column is something the user sets for one class, so they sit in one
+# row per class rather than scattered between a table and a row of global inputs
+# (`decisions.md` 070).
 REPLICATES_COLUMN = "Replicates"
 AMOUNT_COLUMN = "µm² per replicate"
+MIN_CIRCLE_COLUMN = "Smallest circle (µm²)"
+MAX_CIRCLE_COLUMN = "Largest circle (µm²)"
+GAP_COLUMN = "Gap (µm)"
+
+COLUMN_HELP = {
+    REPLICATES_COLUMN: "Each replicate of each class is collected into its own well.",
+    AMOUNT_COLUMN: (
+        "How much tissue goes into each well of this class. Circles are added until this is "
+        "reached. Zero collects nothing for the class."
+    ),
+    MIN_CIRCLE_COLUMN: (
+        "Microdissection cannot reliably collect below about 100 µm², and small circles lose "
+        "more of their area to smoothing. Smaller circles fit into narrower regions, so "
+        "lowering this uses more of a fragmented class."
+    ),
+    MAX_CIRCLE_COLUMN: (
+        "Bigger circles reach the target with fewer cuts, so the collection runs faster, but "
+        "they only fit in the wider parts of a region."
+    ),
+    GAP_COLUMN: (
+        "The least tissue left between two cuts. Cuts closer than this leave a strip too thin "
+        "to hold, which detaches and falls into whichever well is cut first — so it is enforced "
+        "between circles of different classes too, at the wider of the two gaps. It costs more "
+        "tissue than it looks: a 5 µm gap roughly halves how much of a region can be filled, "
+        "and 20 µm quarters it."
+    ),
+}
 
 
-def _circle_controls(step: str) -> packing.PackingParams:
-    """Circle sizes, the gap between cuts, and the seed — one per line, in a narrow column.
-
-    Whole µm² throughout: a tenth of a square micrometre is far below anything the laser can
-    place, so a decimal here is noise in a number the user has to read (`decisions.md` 068).
-    """
-    min_area = st.number_input(
-        "Smallest circle (µm²)",
-        min_value=1,
-        max_value=1_000_000,
-        value=int(packing.DEFAULT_MIN_CIRCLE_AREA_UM2),
-        step=10,
-        format="%d",
-        key=f"min_circle_{step}",
-        help=(
-            "Microdissection cannot reliably collect below about 100 µm², and small circles "
-            "also lose more of their area to smoothing. Smaller circles fit into narrower "
-            "regions, so lowering this uses more of the tissue."
-        ),
-    )
-    max_area = st.number_input(
-        "Largest circle (µm²)",
-        min_value=1,
-        max_value=1_000_000,
-        value=int(packing.DEFAULT_MAX_CIRCLE_AREA_UM2),
-        step=50,
-        format="%d",
-        key=f"max_circle_{step}",
-        help=(
-            "Bigger circles reach the target with fewer cuts, so the collection runs faster, "
-            "but they only fit in the wider parts of a region."
-        ),
-    )
-    gap = st.number_input(
-        "Gap between circles (µm)",
-        min_value=0,
-        max_value=200,
-        value=int(packing.DEFAULT_SPACING_UM),
-        step=1,
-        format="%d",
-        key=f"gap_{step}",
-        help=(
-            "The least tissue left between two cuts. Cuts closer than this leave a strip too "
-            "thin to hold, which detaches and falls into whichever well is cut first — so this "
-            "is enforced between circles of different classes too. It costs more tissue than it "
-            "looks: at these circle sizes a 5 µm gap roughly halves how much of a region can be "
-            "filled, and 20 µm quarters it."
-        ),
-    )
-    seed = st.number_input(
-        "Seed",
-        min_value=0,
-        max_value=10_000,
-        value=0,
-        step=1,
-        key=f"packing_seed_{step}",
-        help=(
-            "Same seed and settings, same circles. Change it to draw a different random "
-            "arrangement from the same tissue. Recorded in provenance.json so a collection can "
-            "be repeated in a later session."
-        ),
-    )
-    return packing.PackingParams(
-        min_circle_area_um2=float(min_area),
-        max_circle_area_um2=float(max_area),
-        spacing_um=float(gap),
-        seed=int(seed),
-    )
+def _run_controls(step: str) -> tuple[float | None, packing.PackingParams]:
+    """The two settings that are not per class: the image scale and the seed."""
+    scale_column, seed_column, _spacer = st.columns([2, 1, 3])
+    with scale_column:
+        pixel_size_um = ui_shared.pixel_size_control()
+    with seed_column:
+        seed = st.number_input(
+            "Seed",
+            min_value=0,
+            max_value=10_000,
+            value=0,
+            step=1,
+            key=f"packing_seed_{step}",
+            help=(
+                "Same seed and settings, same circles. Change it to draw a different random "
+                "arrangement from the same tissue. Recorded in provenance.json so a collection "
+                "can be repeated in a later session."
+            ),
+        )
+    return pixel_size_um, packing.PackingParams(seed=int(seed))
 
 
-def _budget_table(report, step: str, with_amount: bool) -> list[budget.ClassBudget]:
-    """One row per class: how many replicates, and how much tissue in each.
+def _request_table(report, step: str, with_circles: bool) -> list[packing.ClassPacking]:
+    """One row per class: replicates, amount, circle sizes and the gap.
 
-    One table rather than a global amount and a separate replicate editor, because the two
-    numbers answer one question per class and different biologies hold different amounts
-    (`decisions.md` 069).
+    All of it in one table because every number is a property of one class, and a user deciding
+    what to take from `Tumor` wants those numbers together rather than split between a table and
+    a row of controls somewhere else.
     """
     classes = report.per_class.index
     columns = {REPLICATES_COLUMN: 1}
-    if with_amount:
+    if with_circles:
         columns[AMOUNT_COLUMN] = int(packing.DEFAULT_AREA_PER_REPLICATE_UM2)
+        columns[MIN_CIRCLE_COLUMN] = int(packing.DEFAULT_MIN_CIRCLE_AREA_UM2)
+        columns[MAX_CIRCLE_COLUMN] = int(packing.DEFAULT_MAX_CIRCLE_AREA_UM2)
+        columns[GAP_COLUMN] = int(packing.DEFAULT_SPACING_UM)
 
-    configuration = {
-        REPLICATES_COLUMN: st.column_config.NumberColumn(
-            REPLICATES_COLUMN, min_value=1, step=1, format="%d",
-            help="Each replicate of each class is collected into its own well.",
-        )
+    steps = {
+        REPLICATES_COLUMN: 1,
+        AMOUNT_COLUMN: 1_000,
+        MIN_CIRCLE_COLUMN: 10,
+        MAX_CIRCLE_COLUMN: 50,
+        GAP_COLUMN: 1,
     }
-    if with_amount:
-        configuration[AMOUNT_COLUMN] = st.column_config.NumberColumn(
-            AMOUNT_COLUMN, min_value=0, step=1_000, format="localized",
-            help=(
-                "How much tissue goes into each well of this class. Circles are added until "
-                "this is reached. Zero collects nothing for the class."
-            ),
+    configuration = {
+        name: st.column_config.NumberColumn(
+            name,
+            min_value=1 if name == REPLICATES_COLUMN else 0,
+            step=steps[name],
+            format="%d" if name in (REPLICATES_COLUMN, GAP_COLUMN) else "localized",
+            help=COLUMN_HELP[name],
         )
+        for name in columns
+    }
 
     edited = st.data_editor(
         pandas.DataFrame(columns, index=classes),
         width="stretch",
-        key=f"budget_editor_{step}_{len(classes)}_{int(with_amount)}",
+        key=f"request_editor_{step}_{len(classes)}_{int(with_circles)}",
         column_config=configuration,
     )
 
-    budgets = [
-        budget.ClassBudget(
+    requests = [
+        packing.ClassPacking(
             class_name=str(name),
             replicates=int(row[REPLICATES_COLUMN] or 1),
-            per_replicate=float(row[AMOUNT_COLUMN] or 0) if with_amount else 0.0,
+            area_per_replicate_um2=float(row.get(AMOUNT_COLUMN, 0) or 0),
+            min_circle_area_um2=float(
+                row.get(MIN_CIRCLE_COLUMN, packing.DEFAULT_MIN_CIRCLE_AREA_UM2) or 1
+            ),
+            max_circle_area_um2=float(
+                row.get(MAX_CIRCLE_COLUMN, packing.DEFAULT_MAX_CIRCLE_AREA_UM2) or 1
+            ),
+            spacing_um=float(row.get(GAP_COLUMN, 0) or 0),
         )
         for name, row in edited.iterrows()
     ]
-    recorded = [vars(item) for item in budgets]
+    recorded = [vars(item) for item in requests]
     if st.session_state.region_budgets != recorded:
         st.session_state.region_budgets = recorded
-        logger.info(f"Per-class budgets: {recorded}")
-    return budgets
+        logger.info(f"Per-class requests: {recorded}")
+    return requests
 
 
 def collect_step(patches, report, pixel_size_um, step: str = "6") -> Collected | None:
     """Decide what to cut, how much of it, and into how many replicates.
 
-    The settings sit in a narrow left column with the picture beside them, so changing a number
-    and seeing what it did needs no scrolling — this is the step the user loops on
-    (`decisions.md` 069). It comes before the plate because the amount and the replicate count
-    are what the plate has to accommodate.
+    The table of settings sits directly above the picture of what they produce, so the loop is
+    change-a-number, look down, change again (`decisions.md` 070). It comes before the plate
+    because the amount and the replicate count are what the plate has to accommodate.
     """
     st.markdown(f"## Step {step}: What to collect, and how much")
 
-    controls, feedback = st.columns([1, 2], gap="medium")
-
-    with controls:
-        options = list(CollectMode) if pixel_size_um else [CollectMode.WHOLE]
-        mode = st.radio(
-            "What to collect",
-            options=options,
-            format_func=lambda option: COLLECT_LABELS[option],
-            key=f"collect_mode_{step}",
-            help=(
-                "Circles are the usual choice: a region is one large irregular outline that "
-                "takes a long time to cut and gives no way to ask for a set amount, whereas "
-                "circles cut quickly and add up to the amount you set. Collect whole regions "
-                "when you want all of the tissue rather than a measured amount of it."
-            ),
+    options = list(CollectMode) if pixel_size_um else [CollectMode.WHOLE]
+    mode = st.radio(
+        "What to collect from each region",
+        options=options,
+        format_func=lambda option: COLLECT_LABELS[option],
+        key=f"collect_mode_{step}",
+        horizontal=True,
+        help=(
+            "Circles are the usual choice: a region is one large irregular outline that takes a "
+            "long time to cut and gives no way to ask for a set amount, whereas circles cut "
+            "quickly and add up to the amount you set. Collect whole regions when you want all "
+            "of the tissue rather than a measured amount of it."
+        ),
+    )
+    packing_wanted = mode is CollectMode.CIRCLES
+    if not pixel_size_um:
+        st.caption(
+            "Packing circles needs the image scale, because circle sizes and the amount per "
+            "replicate are areas in µm². Enter one below to pack circles."
         )
-        packing_wanted = mode is CollectMode.CIRCLES
-        if not pixel_size_um:
-            st.caption(
-                "Packing circles needs the image scale, because circle sizes and the amount per "
-                "replicate are areas in µm². Enter one below to pack circles."
-            )
 
-        pixel_size_um = ui_shared.pixel_size_control()
-        params = _circle_controls(step) if packing_wanted else None
-        budgets = _budget_table(report, step, with_amount=packing_wanted)
+    pixel_size_um, params = _run_controls(step)
+    requests = _request_table(report, step, with_circles=packing_wanted)
 
-    if packing_wanted:
-        if not pixel_size_um:
-            with controls:
-                st.warning(
-                    "The image scale was cleared, so circles cannot be sized. Enter one above, "
-                    "or collect whole regions instead."
-                )
-            return None
-        return _collect_circles(patches, budgets, params, pixel_size_um, controls, feedback)
-    return _collect_whole(patches, budgets, pixel_size_um, controls, feedback)
+    if not packing_wanted:
+        return _collect_whole(patches, requests, pixel_size_um)
+
+    if not pixel_size_um:
+        st.warning(
+            "The image scale was cleared, so circles cannot be sized. Enter one above, or "
+            "collect whole regions instead."
+        )
+        return None
+    return _collect_circles(patches, requests, params, pixel_size_um)
 
 
-def _collect_circles(patches, budgets, params, pixel_size_um, controls, feedback):
-    """Pack, draw the result beside the settings, and hand back the shapes to cut."""
+def _collect_circles(patches, requests, params, pixel_size_um):
+    """Pack, draw the result under the settings, and hand back the shapes to cut."""
     try:
-        params.validate()
+        for item in requests:
+            item.validate()
     except packing.PackingError as error:
-        with controls:
-            st.error(str(error))
+        st.error(str(error))
         return None
 
     cache_key = (
         ui_shared.shape_fingerprint(st.session_state.gdf),
         tuple(sorted((st.session_state.region_params or {}).items())),
-        tuple((item.class_name, item.replicates, item.per_replicate) for item in budgets),
+        tuple(tuple(sorted(vars(item).items())) for item in requests),
         tuple(sorted(vars(params).items())),
         pixel_size_um,
     )
     try:
-        result = _cached_packing(patches, budgets, params, cache_key, pixel_size_um)
+        result = _cached_packing(patches, requests, params, cache_key, pixel_size_um)
     except packing.PackingError as error:
-        with controls:
-            st.error(str(error))
+        st.error(str(error))
         logger.error(f"Packing failed: {error}")
         return None
 
@@ -393,25 +383,23 @@ def _collect_circles(patches, budgets, params, pixel_size_um, controls, feedback
         result.circles, "circle", source=st.session_state.gdf
     )
 
-    with feedback:
-        _draw(patches, circles, circles[REPLICATE] if result.n_circles else None)
-        if result.n_circles:
-            _metrics(result, patches, pixel_size_um)
+    if result.n_circles:
+        _metrics(result, patches, pixel_size_um)
+    _draw(patches, circles, circles[REPLICATE] if result.n_circles else None)
 
     if result.n_circles == 0:
-        with controls:
-            st.warning(
-                "No circles could be placed. The regions may all be narrower than the smallest "
-                "circle — lower the smallest circle area, or reduce how far a region may reach "
-                "in step 5 so the regions are less fragmented."
-            )
+        st.warning(
+            "No circles could be placed. The regions may all be narrower than the smallest "
+            "circle — lower the smallest circle area in the table, or reduce how far a region "
+            "may reach in step 5 so the regions are less fragmented."
+        )
         return None
 
-    _report_packing(result, params, budgets)
+    _report_packing(result, requests)
     return Collected(
         shapes=circles,
         replicate_of=circles[REPLICATE],
-        replicates=budgets,
+        requests=requests,
         mode=CollectMode.CIRCLES,
         pixel_size_um=pixel_size_um,
         params=params,
@@ -429,7 +417,7 @@ def _draw(patches, circles, replicate_of) -> None:
         )
     st.pyplot(figure, width="stretch")
     st.caption(
-        "Fill colour is the class, for the regions and the circles alike. Outline colour is the "
+        "A pale fill is the class, for the regions and the circles alike. A dark outline is the "
         "replicate. Dashed triangle and crosses are your calibration points."
     )
 
@@ -439,7 +427,9 @@ def _metrics(result, patches, pixel_size_um) -> None:
     collected = float(result.circles[packing.CIRCLE_AREA].sum())
     available = float(_as_area(patches.geometry.area.sum(), pixel_size_um))
     mean_diameter = (
-        2 * (result.circles[packing.CIRCLE_AREA].mean() / math.pi) ** 0.5 if result.n_circles else 0.0
+        2 * (result.circles[packing.CIRCLE_AREA].mean() / math.pi) ** 0.5
+        if result.n_circles
+        else 0.0
     )
 
     tissue, packed, count, diameter = st.columns(4)
@@ -468,11 +458,11 @@ def _capacity_for_display(estimate: pandas.DataFrame) -> pandas.DataFrame:
     )
 
 
-def _report_packing(result, params: packing.PackingParams, budgets) -> None:
+def _report_packing(result, requests) -> None:
     """Per replicate, what was achieved, and everything that quietly changes the amount.
 
-    Below the settings and the picture rather than beside them: this is the detail a user reads
-    once they have settled on an arrangement, not what they watch while tuning it.
+    Below the settings and the picture: this is the detail a user reads once they have settled
+    on an arrangement, not what they watch while tuning it.
     """
     _show_table(
         result.achieved.rename(
@@ -495,9 +485,9 @@ def _report_packing(result, params: packing.PackingParams, budgets) -> None:
         )
         st.warning(
             f"{len(short)} replicate(s) could not be filled:\n\n{lines}\n\n"
-            "They will still be collected, with less tissue than you asked for. To fit more: "
-            "narrow the gap between circles, lower the smallest circle area, or include more of "
-            "the class by lowering how far a region may reach in step 5."
+            "They will still be collected, with less tissue than you asked for. To fit more, for "
+            "that class alone: narrow its gap, lower its smallest circle area, or include more "
+            "of it by lowering how far a region may reach in step 5."
         )
     else:
         st.success("Every replicate reached the amount you asked for.")
@@ -512,12 +502,12 @@ def _report_packing(result, params: packing.PackingParams, budgets) -> None:
     if result.n_regions_too_small:
         st.warning(
             f"{result.n_regions_too_small:,} region(s) are too narrow to hold even one circle of "
-            f"{params.min_circle_area_um2:,.0f} µm², so they contribute nothing. Lower the "
-            "smallest circle area to use them, or accept that this tissue is too fragmented to "
-            "collect at that size."
+            "the size asked for, so they contribute nothing. Lower the smallest circle area for "
+            "that class to use them, or accept that this tissue is too fragmented to collect at "
+            "that size."
         )
 
-    zero = [item.class_name for item in budgets if item.per_replicate <= 0]
+    zero = [item.class_name for item in requests if item.area_per_replicate_um2 <= 0]
     if zero:
         st.warning(f"Nothing will be collected for: {', '.join(zero)} — the amount is zero.")
 
@@ -537,13 +527,12 @@ def _report_packing(result, params: packing.PackingParams, budgets) -> None:
         )
 
 
-def _collect_whole(patches, budgets, pixel_size_um, controls, feedback) -> Collected:
+def _collect_whole(patches, requests, pixel_size_um) -> Collected:
     """Deal whole regions across replicates and report what each one holds."""
-    replicates = {item.class_name: item.replicates for item in budgets}
+    replicates = {item.class_name: item.replicates for item in requests}
     replicate_of = regions.deal_patches(patches, replicates)
 
-    with feedback:
-        _draw(patches, None, None)
+    _draw(patches, None, None)
 
     frame = pandas.DataFrame(
         {
@@ -564,7 +553,7 @@ def _collect_whole(patches, budgets, pixel_size_um, controls, feedback) -> Colle
     return Collected(
         shapes=patches,
         replicate_of=replicate_of,
-        replicates=budgets,
+        requests=requests,
         mode=CollectMode.WHOLE,
         pixel_size_um=pixel_size_um,
     )
@@ -595,7 +584,7 @@ def _report_starved_replicates(patches, replicates: dict, replicate_of) -> None:
         st.success("Every replicate of every class has at least one region.")
 
 
-def plate_step(budgets: list, step: str = "7") -> dict:
+def plate_step(requests: list, step: str = "7") -> dict:
     """Plate settings, the well assignment they produce, and whether it fits.
 
     Comes after the collection is decided, so the well count it has to accommodate is already
@@ -603,7 +592,7 @@ def plate_step(budgets: list, step: str = "7") -> dict:
     """
     settings = ui_shared.plate_settings_step(step=step)
 
-    groups = budget.group_keys(budgets)
+    groups = budget.group_keys([item.as_budget() for item in requests])
     usable = settings["wells"]
     st.write(
         f"This plan needs **{len(groups)} wells**, one per replicate per class. "
@@ -638,7 +627,7 @@ def export_step(collected: Collected, settings: dict, step: str = "8") -> None:
         "step_col": settings["step_col"],
         "randomize_wells": settings["randomize"],
         "classes": st.session_state.selected_classes,
-        "budgets": [vars(item) for item in collected.replicates],
+        "requests": [vars(item) for item in collected.requests],
         "collect_mode": collected.mode.value,
     }
     recorded.update(st.session_state.region_params or {})
@@ -687,7 +676,7 @@ def render(uploaded_file) -> None:
         return
     st.divider()
 
-    settings = plate_step(collected.replicates, step="7")
+    settings = plate_step(collected.requests, step="7")
     st.divider()
 
     export_step(collected, settings, step="8")

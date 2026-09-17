@@ -12,17 +12,22 @@ import shapely
 from shapely.geometry import box
 
 from qupath_to_lmd import packing, regions
-from qupath_to_lmd.budget import ClassBudget
 from qupath_to_lmd.model import CLASS_NAME, REPLICATE
 
 # 1 µm per pixel keeps every µm² figure in a test readable as a pixel area too.
 SCALE = 1.0
 
 
-def _pack(patches, replicates: dict, params, area=10_000.0, scale=SCALE):
-    """Pack with the same amount asked of every class, which is all most tests need."""
-    budgets = [ClassBudget(name, count, area) for name, count in replicates.items()]
-    return packing.pack(patches, budgets, params, scale)
+def _pack(patches, replicates: dict, params=None, area=10_000.0, scale=SCALE, **circle):
+    """Pack with the same request made of every class, which is all most tests need.
+
+    `circle` overrides go to every class's `ClassPacking`; `params` carries the run-level seed
+    and effort.
+    """
+    requests = [
+        packing.ClassPacking(name, count, area, **circle) for name, count in replicates.items()
+    ]
+    return packing.pack(patches, requests, params or packing.PackingParams(), scale)
 
 
 def _patches(boxes, classes):
@@ -71,8 +76,7 @@ def test_every_circle_is_wholly_inside_its_own_region(two_classes_side_by_side):
 
 def test_no_two_circles_are_closer_than_the_gap(one_big_region):
     """The gap is what leaves material between two cuts."""
-    params = packing.PackingParams(spacing_um=10.0, seed=0)
-    result = _pack(one_big_region, {"Tumor": 1}, params, area=50_000)
+    result = _pack(one_big_region, {"Tumor": 1}, area=50_000, spacing_um=10.0)
 
     geometries = result.circles.geometry.to_numpy()
     tree = shapely.STRtree(geometries)
@@ -90,8 +94,9 @@ def test_the_gap_holds_between_circles_of_different_classes(two_classes_side_by_
     The prototype tracked placed circles per class, so this pair was never checked. The laser
     does not care which class a neighbouring cut belongs to.
     """
-    params = packing.PackingParams(spacing_um=15.0, seed=0)
-    result = _pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, params, area=40_000)
+    result = _pack(
+        two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, area=40_000, spacing_um=15.0
+    )
 
     immune = result.circles[result.circles[CLASS_NAME] == "Immune cells"].geometry.to_numpy()
     tumor = result.circles[result.circles[CLASS_NAME] == "Tumor"].geometry.to_numpy()
@@ -106,10 +111,10 @@ def test_the_gap_holds_between_circles_of_different_classes(two_classes_side_by_
 
 def test_every_circle_area_is_within_the_range_asked_for(one_big_region):
     """The range is how a user controls what the LMD can actually collect."""
-    params = packing.PackingParams(
-        min_circle_area_um2=200, max_circle_area_um2=400, seed=0
+    result = _pack(
+        one_big_region, {"Tumor": 1}, area=30_000,
+        min_circle_area_um2=200, max_circle_area_um2=400,
     )
-    result = _pack(one_big_region, {"Tumor": 1}, params, area=30_000)
     areas = result.circles[packing.CIRCLE_AREA]
 
     # A buffered circle is a 64-sided polygon, so it is a fraction under the circle it
@@ -212,8 +217,7 @@ def test_a_region_too_small_for_one_circle_is_counted_not_silently_ignored():
     patches = _patches(
         [(0, 0, 1000, 1000), (2000, 0, 2005, 5), (3000, 0, 3005, 5)], ["Tumor"] * 3
     )
-    params = packing.PackingParams(min_circle_area_um2=100, seed=0)
-    result = _pack(patches, {"Tumor": 1}, params, area=5_000)
+    result = _pack(patches, {"Tumor": 1}, area=5_000, min_circle_area_um2=100)
     assert result.n_regions_too_small == 2, (
         f"Reported {result.n_regions_too_small} regions too small to hold a circle, expected 2. "
         "Unreported, the user sees fewer circles than regions with no explanation."
@@ -222,9 +226,7 @@ def test_a_region_too_small_for_one_circle_is_counted_not_silently_ignored():
 
 def test_a_saturated_region_reports_a_shortfall_instead_of_looping(one_big_region):
     """Asking for more tissue than the region can hold must end, and must say so."""
-    params = packing.PackingParams(
-        max_attempts=200, seed=0
-    )
+    params = packing.PackingParams(max_attempts=200, seed=0)
     result = _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000)
     assert not result.shortfalls.empty, (
         "An impossible request reported no shortfall, so the user would believe a well holds "
@@ -239,13 +241,15 @@ def test_the_capacity_estimate_matches_what_packing_achieves(one_big_region):
     tissue actually available.
     """
     for gap in (0.0, 5.0, 20.0):
-        params = packing.PackingParams(
-            spacing_um=gap, max_attempts=400, seed=0
+        params = packing.PackingParams(max_attempts=400, seed=0)
+        estimate = packing.packable_area(
+            1_000_000, packing.ClassPacking("Tumor", 1, 10_000_000, spacing_um=gap)
         )
-        estimate = packing.packable_area(1_000_000, params)
-        achieved = _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000).achieved[
-            "achieved"
-        ].sum()
+        achieved = (
+            _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000, spacing_um=gap)
+            .achieved["achieved"]
+            .sum()
+        )
         ratio = achieved / estimate
         assert 0.7 < ratio < 1.15, (
             f"At a {gap} µm gap the estimate was {estimate:,.0f} µm² but packing reached "
@@ -258,10 +262,8 @@ def test_a_wider_gap_fits_less_tissue(one_big_region):
     """The control has to move the amount, and in the direction the user expects."""
     achieved = []
     for gap in (0.0, 10.0):
-        params = packing.PackingParams(
-            spacing_um=gap, max_attempts=300, seed=0
-        )
-        result = _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000)
+        params = packing.PackingParams(max_attempts=300, seed=0)
+        result = _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000, spacing_um=gap)
         achieved.append(result.achieved["achieved"].sum())
     assert achieved[0] > achieved[1] * 1.5, (
         f"A 0 µm gap fitted {achieved[0]:,.0f} µm² and a 10 µm gap {achieved[1]:,.0f} µm². The "
@@ -271,15 +273,14 @@ def test_a_wider_gap_fits_less_tissue(one_big_region):
 
 def test_an_empty_size_range_is_refused_with_a_reason(one_big_region):
     """One keystroke away in a number input, so it must explain rather than traceback."""
-    params = packing.PackingParams(min_circle_area_um2=500, max_circle_area_um2=100)
     with pytest.raises(packing.PackingError, match="smaller than"):
-        _pack(one_big_region, {"Tumor": 1}, params)
+        _pack(one_big_region, {"Tumor": 1}, min_circle_area_um2=500, max_circle_area_um2=100)
 
 
 def test_packing_without_an_image_scale_is_refused(one_big_region):
     """Every amount here is an area in µm², so without a scale nothing means anything."""
     with pytest.raises(packing.PackingError, match="image scale"):
-        _pack(one_big_region, {"Tumor": 1}, packing.PackingParams(), scale=None)
+        _pack(one_big_region, {"Tumor": 1}, scale=None)
 
 
 def test_circles_cannot_be_packed_into_an_enclosed_island(one_big_region):
@@ -307,10 +308,10 @@ def test_smoothing_loss_is_measured_not_assumed(one_big_region):
     Small circles lose a real share: a 64-sided circle of radius 10 px or less drops to 9
     vertices at the default 1 px tolerance.
     """
-    params = packing.PackingParams(
-        min_circle_area_um2=100, max_circle_area_um2=150, seed=0
+    result = _pack(
+        one_big_region, {"Tumor": 1}, area=20_000,
+        min_circle_area_um2=100, max_circle_area_um2=150,
     )
-    result = _pack(one_big_region, {"Tumor": 1}, params, area=20_000)
     lost, fraction = packing.smoothing_loss(result.circles, 1.0)
 
     assert lost > 0 and fraction > 0.01, (
@@ -366,8 +367,7 @@ def test_an_empty_result_still_has_its_columns():
 def test_a_region_narrower_than_any_circle_reports_rather_than_raises():
     """Every region too thin to hold a circle is the realistic way to get nothing at all."""
     patches = _patches([(0, 0, 500, 2), (1000, 0, 1500, 2)], ["Tumor"] * 2)
-    params = packing.PackingParams(min_circle_area_um2=100, seed=0)
-    result = _pack(patches, {"Tumor": 1}, params, area=5_000)
+    result = _pack(patches, {"Tumor": 1}, area=5_000, min_circle_area_um2=100)
     assert result.n_circles == 0, "Circles were placed into regions narrower than themselves."
     assert result.n_regions_too_small == 2, (
         "Neither region was reported as too small, so the user sees an empty result with no "
@@ -381,12 +381,12 @@ def test_each_class_gets_the_amount_asked_of_it(two_classes_side_by_side):
     One global amount forced the same target on a class with a tenth of the tissue, so the user
     could not ask for what each one could actually give.
     """
-    budgets = [
-        ClassBudget("Immune cells", 1, 5_000.0),
-        ClassBudget("Tumor", 1, 25_000.0),
+    requests = [
+        packing.ClassPacking("Immune cells", 1, 5_000.0),
+        packing.ClassPacking("Tumor", 1, 25_000.0),
     ]
     result = packing.pack(
-        two_classes_side_by_side, budgets, packing.PackingParams(seed=0), SCALE
+        two_classes_side_by_side, requests, packing.PackingParams(seed=0), SCALE
     )
     by_class = result.achieved.set_index(CLASS_NAME)["achieved"]
 
@@ -409,10 +409,56 @@ def test_a_class_asked_for_nothing_still_appears_in_the_report(one_big_region):
     it was excluded or simply failed.
     """
     result = packing.pack(
-        one_big_region, [ClassBudget("Tumor", 2, 0.0)], packing.PackingParams(seed=0), SCALE
+        one_big_region, [packing.ClassPacking("Tumor", 2, 0.0)], packing.PackingParams(seed=0), SCALE
     )
     assert result.n_circles == 0, "Circles were packed for a class asked for zero tissue."
     assert len(result.achieved) == 2, (
         f"The report has {len(result.achieved)} rows for a class with 2 replicates asked for "
         "nothing. It should still show both, at zero."
+    )
+
+
+def test_each_class_can_ask_for_its_own_circle_size(one_big_region):
+    """A sparse, stringy class needs smaller circles than a solid one before anything fits.
+
+    One global size range meant the user had to pick whichever class was worst off and apply it
+    to all of them.
+    """
+    patches = _patches([(0, 0, 500, 500), (600, 0, 1100, 500)], ["Fine", "Coarse"])
+    requests = [
+        packing.ClassPacking("Fine", 1, 10_000.0, min_circle_area_um2=100, max_circle_area_um2=150),
+        packing.ClassPacking("Coarse", 1, 10_000.0, min_circle_area_um2=800, max_circle_area_um2=1_000),
+    ]
+    result = packing.pack(patches, requests, packing.PackingParams(seed=0), SCALE)
+    sizes = result.circles.groupby(CLASS_NAME)[packing.CIRCLE_AREA]
+
+    assert sizes.max()["Fine"] <= 150, (
+        f"A Fine circle came out at {sizes.max()['Fine']:.0f} µm², over its own 150 µm² maximum."
+    )
+    assert sizes.min()["Coarse"] >= 800 * 0.99, (
+        f"A Coarse circle came out at {sizes.min()['Coarse']:.0f} µm², under its own 800 µm² "
+        "minimum. The per-class sizes are not reaching the packer."
+    )
+
+
+def test_the_wider_of_two_gaps_wins_between_classes():
+    """Two classes can ask for different gaps, and a pair across a boundary must satisfy both.
+
+    Taking the narrower would silently override whichever class asked for more room, and that
+    class's cuts would come out closer together than it specified.
+    """
+    patches = _patches([(0, 0, 500, 1000), (500, 0, 1000, 1000)], ["Narrow", "Wide"])
+    requests = [
+        packing.ClassPacking("Narrow", 1, 30_000.0, spacing_um=0.0),
+        packing.ClassPacking("Wide", 1, 30_000.0, spacing_um=25.0),
+    ]
+    result = packing.pack(patches, requests, packing.PackingParams(seed=0), SCALE)
+    narrow = result.circles[result.circles[CLASS_NAME] == "Narrow"].geometry.to_numpy()
+    wide = result.circles[result.circles[CLASS_NAME] == "Wide"].geometry.to_numpy()
+    assert len(narrow) and len(wide), "Both classes need circles for this test to mean anything."
+
+    closest = min(a.distance(b) for a in narrow for b in wide)
+    assert closest >= 24.9, (
+        f"A Narrow circle sits {closest:.2f} µm from a Wide one, inside the 25 µm the Wide class "
+        "asked for. Its cuts would be closer together than it specified."
     )

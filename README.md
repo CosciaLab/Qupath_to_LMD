@@ -44,17 +44,19 @@ out, so keeping only the shapes you can actually collect.
 
 **Cellular neighbourhoods** — for when a single cell is too little tissue but you still want to
 collect by cell type. Each cell is given the tissue closest to it, and touching cells of the same
-class are merged into one **region**. Then you set, per class, how many replicates you want and how much
-tissue goes into each one, and the app fills the regions with small circles until it reaches that
-amount. Circles cut
+class are merged into one **region**. Then, in one table with a row per class, you set how many replicates
+you want, how much tissue goes into each one, the size range of the circles and the gap to leave
+between cuts — and the app fills the regions with circles until it reaches that amount. Those
+settings are per class because a sparse, stringy class needs smaller circles than a solid one
+before anything fits at all. Circles cut
 far faster than one enormous irregular outline, and they let you ask for a measured amount rather
 than all of it. You control the circle size range, the gap left between cuts, and a seed — the
 same seed and settings always give you the same circles, so a collection can be repeated in a
 later session and reported in a methods section. Everything you set is saved in the download.
 
-The settings sit beside a live picture of what you are about to cut, so you can see the effect of
-every change without scrolling: the regions are shaded by class, the circles are filled in their
-class colour, and each circle's outline tells you which replicate it belongs to. The app also
+The table sits directly above a live picture of what you are about to cut, so you can see the
+effect of every change without hunting for it: a pale fill is the class, for the regions and the
+circles alike, and a dark outline tells you which replicate a circle belongs to. The app also
 shows how much each class can actually hold, which is well below its area — randomly placed
 circles cover about 55% of a region at best, and the gap between them cuts that down a lot more —
 and afterwards what each replicate really got.

@@ -363,3 +363,75 @@ def test_filling_a_sliver_does_not_move_the_outline(grid):
     assert [g.exterior.length for g in before.geometry] == pytest.approx(
         [g.exterior.length for g in after.geometry]
     ), "Filling a sliver changed a region's outer outline, so the cut path would move."
+
+
+def test_no_two_regions_share_any_tissue(grid):
+    """The invariant the whole workflow rests on: one piece of tissue, one well.
+
+    If two regions overlapped, the laser would cut the same tissue twice and two wells would
+    contain the same material — and on a picture that reads as a broken merge, which is how this
+    came to be checked. Same-class regions may touch at a corner, and different-class regions
+    must share boundaries; neither is an overlap.
+    """
+    patches, _report = regions.project(grid, regions.RegionParams())
+    geometries = patches.geometry.to_numpy()
+    tree = shapely.STRtree(geometries)
+    left, right = tree.query(geometries, predicate="intersects")
+
+    worst = 0.0
+    for i, j in zip(left, right, strict=True):
+        if i < j:
+            worst = max(worst, geometries[i].intersection(geometries[j]).area)
+
+    assert worst == pytest.approx(0.0, abs=1e-9), (
+        f"Two regions share {worst:.6f} px² of tissue. The laser would cut it twice and two "
+        "wells would hold the same material."
+    )
+
+
+def test_same_class_regions_only_ever_touch_at_a_point(grid):
+    """Anything more than a point contact between same-class regions means the merge left work.
+
+    Separate components of a union may legitimately meet at isolated corners; sharing an edge
+    would mean two regions that should have been one.
+    """
+    patches, _report = regions.project(grid, regions.RegionParams())
+    geometries = patches.geometry.to_numpy()
+    classes = patches[CLASS_NAME].to_numpy()
+    tree = shapely.STRtree(geometries)
+    left, right = tree.query(geometries, predicate="intersects")
+
+    offenders = []
+    for i, j in zip(left, right, strict=True):
+        if i >= j or classes[i] != classes[j]:
+            continue
+        kind = geometries[i].intersection(geometries[j]).geom_type
+        if kind not in ("Point", "MultiPoint"):
+            offenders.append((int(i), int(j), kind))
+
+    assert not offenders, (
+        f"Same-class regions meet along more than a point: {offenders[:5]}. They should have "
+        "been merged into one region, so the user is being asked to cut one area as two."
+    )
+
+
+def test_a_gap_wider_than_the_cap_is_left_unassigned():
+    """Empty space inside tissue — a lumen, a vessel, a tear — must not be handed to a cell.
+
+    Plain Voronoi gives every point to its nearest cell, so a gap would be collected as if it
+    were tissue. The radius cap is the only thing preventing that, and this is the test that
+    says so: two clusters far apart must not be joined across the space between them.
+    """
+    left = [(i * SPACING, j * SPACING) for j in range(4) for i in range(4)]
+    right = [(400 + i * SPACING, j * SPACING) for j in range(4) for i in range(4)]
+    cells = _cells(left + right, ["Tumor"] * 32)
+
+    patches, report = regions.project(cells, regions.RegionParams(radius_factor=1.0))
+    gap = shapely.box(200, 0, 300, 30)
+    intruding = [geometry for geometry in patches.geometry if geometry.intersects(gap)]
+
+    assert not intruding, (
+        f"{len(intruding)} region(s) reach into the empty space between two clusters "
+        f"{400 - 3 * SPACING:.0f} px apart, with the cap at {report.max_radius_px:.0f} px. That "
+        "space would be cut and collected as if it were tissue."
+    )

@@ -1467,3 +1467,85 @@ plate and export below it stale.
 `{class: count}` map. Not folded into the cell workflow's existing `budgets` key: the two
 workflows would then overwrite each other's on a switch, and one key silently meaning two things
 is how `059` says a vocabulary rots.
+
+## 070 — the merge was right, the picture was wrong; and packing goes per class
+**Date:** 2026-09-17 · **Status:** active · **refines 066, 067 and 069**
+Jose, on the first side-by-side version: "There seems to be issues with plotting the
+neighborhoods, in some places two different colors overlay… The visualization right now tells me
+the merging is not working."
+
+### The merge was correct and is now asserted
+Checked rather than argued, over the 684 regions of the real core: the largest **area** shared by
+any two regions is **0.000000 µm²**; the 18 same-class pairs that intersect at all do so at
+`Point`/`MultiPoint` only, which is what separate components of a union legitimately do; the 1 177
+different-class pairs intersect along `LineString`/`MultiLineString`, i.e. shared boundaries,
+which is exactly right. `tests/test_regions.py::test_no_two_regions_share_any_tissue` holds it.
+And yes, the pipeline is what Jose described: Voronoi of the cell centroids, capped and clipped,
+then `dissolve` by class and `explode` into one row per contiguous area.
+
+### What he was actually seeing was a plotting bug, and a large one
+`polygon_paths` draws compound paths over the exterior **and every interior** ring. The first
+version drew `exterior.coords` alone, which on one region painted **207 000 µm² of Immune cells
+straight over the Tumor inside it**. A picture that shows one class covering another is indeed
+evidence of a broken merge — it just was not this merge.
+**The part that would have bitten silently:** a compound path only reads an interior ring as a
+hole if it winds *against* the exterior, GEOS promises nothing about which way a ring came out,
+and on this data the unoriented rings rendered filled. `orient(polygon, sign=1.0)` fixes it, and
+the test renders the figure and reads the pixel in the hole, because nothing short of drawing it
+proves the winding is right.
+
+### Jose's two Voronoi caveats, and what the app does about them
+- **"empty spaces within the tissue are labelled improperly."** True of plain Voronoi: a lumen or
+  a tear is nearest to *some* cell, so it gets handed to it. The **radius cap is the mechanism** —
+  a gap wider than twice the cap is left unassigned, which at the default factor of 3 on the real
+  core means anything wider than about 58 µm. Nothing in the centroids distinguishes "empty" from
+  "sparse", so this has to stay a dial rather than a judgement the app makes; what the app owes
+  the user is that the dial exists, says what it does, and shows the result.
+- **"the edges of tissue would extend to infinity."** Also true, and handled by the same cap plus
+  the clip to the convex hull of the cell outlines. `066` recorded that choice.
+
+### Colours: measured, not chosen by eye
+Jose: "Colors are weird, please choose a set of colors for class and circle colors, and a
+different set for outlines."
+Two full-hue palettes cannot do this. Across every fill-outline pair with Okabe-Ito fills and
+tab20 outlines, the tightest WCAG contrast is **1.00** — the same colour — which is precisely why
+an orange circle of an orange class hid its own ring. So the channels differ in **lightness** as
+well as hue: fills tinted toward white, outlines shaded toward black. Scanning both factors
+against the contrast of every pair and the RGB separation of every pair of outlines gave
+`CLASS_FILL_TINT = 0.55` with tab10 shaded 0.25 — contrast **1.78** everywhere, outlines
+**0.198** apart. tab10 rather than tab20 because shading compresses a palette and tab20's twenty
+entries become indistinguishable once darkened; ten replicates already exceeds what a plate is
+for, and it cycles. `class_colors` remains the one source of truth for a class's hue, with
+`class_fill_colors` tinting it, so a class looks like itself in every picture. Both floors are
+asserted in `tests/test_plot.py`, so a future palette change cannot quietly break legibility.
+
+### Circle parameters are per class
+Jose: "we should add class-specific circle packing parameters… build that table were users input
+how many replicates, and how much area, and add the parameters to that table."
+New `packing.ClassPacking` carries everything one class asks for — replicates, µm² per replicate,
+smallest and largest circle, gap. `PackingParams` keeps only what genuinely cannot differ per
+class: the seed and the attempt budget. `.as_budget()` converts to `ClassBudget` so
+`budget.group_keys` still owns the `class_rN` rule — one naming rule, one place.
+**Why it is right, not just asked for:** a sparse, stringy class needs smaller circles than a
+solid one before anything fits at all. With one global range the user had to pick whichever class
+was worst off and impose it on every class. On the real core 119 of 684 regions hold no circle at
+100 µm²; that number is a property of one class's geometry, and now so is the remedy.
+**One new rule this forces:** two classes can ask for different gaps, and a pair of circles either
+side of a class boundary has to satisfy **both** — so the collision test takes the *wider* of the
+two. Taking the narrower would silently override whichever class asked for more room. The buckets
+therefore store each circle's own gap alongside its radius.
+**Verified faithful:** all 14 golden artefacts stayed byte-identical through this refactor,
+because every class received what the global parameters used to impose.
+
+### Layout: the table, then the picture
+`069` put the inputs in a 1/3 column beside the picture. With five per-class columns that no
+longer fits, and Jose asked for the picture below the table anyway. Now: the mode radio, then the
+scale and seed, then the full-width table, then the metrics, then the picture. Still one screen
+from first input to feedback, which was the point of `069`.
+
+### Still to do, not in this change
+Jose: "I like this UI, and should be generalized to the segmentation-based workflow as well."
+Agreed and noted in ROADMAP. Not done here: the cell workflow has its own per-class editor, its
+own minimum-area filter and a `st.fragment` whose shape depends on the plate being above it, so
+converting it is its own piece of work with its own manual pass — and this branch is already one
+feature's worth of diff.
