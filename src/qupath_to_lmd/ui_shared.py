@@ -44,6 +44,7 @@ HOSTED_MEMORY_CEILING_MB = 2_700
 WORKFLOWS = {
     "legacy": "Annotations — one class is one sample is one well",
     "cells": "Cell segmentation — pick classes, replicates and how much to collect",
+    "regions": "Cellular neighbourhoods — merge cells of a class into regions to cut",
 }
 
 

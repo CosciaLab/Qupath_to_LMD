@@ -7,7 +7,7 @@ collection — the hard stops, and the difference between a warning and a note.
 import pytest
 import streamlit
 
-from qupath_to_lmd import budget, geojson, plate, selection, ui_cells, ui_shared
+from qupath_to_lmd import budget, geojson, plate, regions, selection, ui_cells, ui_packing, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, plan_from_class_wells, plan_from_selection
 
 
@@ -349,3 +349,85 @@ def test_a_full_plate_says_so_rather_than_naming_a_well(fake_streamlit, monkeypa
     caption = " ".join(captions)
     assert "full" in caption, f"A plate with no free wells should say so; caption was {caption!r}"
     assert "start at" not in caption, "A full plate must not suggest a well to start at."
+
+
+def test_an_enclosed_region_is_warned_about_with_its_area(fake_streamlit):
+    """The laser follows a region's outer outline only, so an enclosed island is cut through.
+
+    That puts another class's tissue in this class's well. It is allowed, because the user may
+    know better, but it can never be silent.
+    """
+    report = regions.RegionReport(n_patches_with_holes=2, hole_area_px2=4000.0)
+    ui_packing._report_projection(report, pixel_size_um=0.5)
+
+    shown = fake_streamlit.shown("warnings")
+    assert "surround tissue of another class" in shown, (
+        "A region enclosing another class was not reported, so the user would not know that "
+        "well holds a mixture."
+    )
+    assert "1,000 µm²" in shown, (
+        f"The enclosed area was not stated in µm². Shown: {shown!r}. Without the amount the "
+        "user cannot judge whether the contamination matters."
+    )
+
+
+def test_an_enclosed_region_is_reported_in_pixels_without_a_scale(fake_streamlit):
+    """No scale is normal, and it must not turn an area into a silent omission."""
+    report = regions.RegionReport(n_patches_with_holes=1, hole_area_px2=4000.0)
+    ui_packing._report_projection(report, pixel_size_um=None)
+    assert "4,000 px²" in fake_streamlit.shown("warnings"), (
+        "Without a scale the enclosed area was not reported at all, so the warning lost the "
+        "one number that makes it actionable."
+    )
+
+
+def test_duplicate_cell_positions_are_reported_to_the_user(fake_streamlit):
+    """Cells sharing a position lose their region, so the user is collecting fewer than they think."""
+    ui_packing._report_projection(
+        regions.RegionReport(n_duplicate_centroids=7), pixel_size_um=0.5
+    )
+    assert "same position" in fake_streamlit.shown("warnings"), (
+        "Cells dropped for sharing a position were not reported, so the region count would be "
+        "lower than the cell count with no explanation."
+    )
+
+
+def test_a_clean_projection_says_nothing(fake_streamlit):
+    """A report with nothing wrong in it must not produce a warning box.
+
+    Warning on every run is how a warning stops being read (`decisions.md` 064).
+    """
+    ui_packing._report_projection(regions.RegionReport(n_patches=4), pixel_size_um=0.5)
+    assert not fake_streamlit.warnings, (
+        f"A clean projection warned anyway: {fake_streamlit.shown('warnings')!r}. Warnings that "
+        "always appear get ignored when they matter."
+    )
+
+
+def test_a_class_with_too_few_regions_warns_and_still_continues(fake_streamlit):
+    """Asking for more replicates than a class has regions cannot be satisfied.
+
+    Warned rather than blocked: the empty replicates keep their wells, so the plate still
+    matches what the user asked for and they can decide.
+    """
+    import geopandas
+    from shapely.geometry import box
+
+    patches = geopandas.GeoDataFrame(
+        {CLASS_NAME: ["Tumor", "Tumor", "Stroma"], regions.N_CELLS: [5, 4, 3]},
+        geometry=[box(0, 0, 10, 10), box(20, 0, 30, 10), box(40, 0, 50, 10)],
+        crs=None,
+    )
+    replicate_of = regions.deal_patches(patches, {"Tumor": 2, "Stroma": 3})
+    achieved = ui_packing._achieved_table(patches, replicate_of, pixel_size_um=None)
+    ui_packing._report_replicates({"Tumor": 2, "Stroma": 3}, replicate_of, patches, achieved)
+
+    shown = fake_streamlit.shown("warnings")
+    assert "fewer regions than replicates" in shown, (
+        "A class that cannot fill its replicates was not reported, so two of its wells would "
+        "arrive empty with no warning."
+    )
+    assert "Stroma" in shown and "Tumor" not in shown, (
+        f"The warning named the wrong classes. Shown: {shown!r}. Tumor has enough regions for "
+        "its two replicates; only Stroma is short."
+    )

@@ -18,8 +18,13 @@ re-blessing silently is how a real regression gets frozen into the reference. Ne
 hand-edit the files in tools/golden/.
 
 What it does not cover: the UI, the intentional behaviour changes around QC and warnings,
-LineString geometries (no demo file has one), and any input shape outside the four cases
-below. Add cases as the app grows.
+LineString geometries (no demo file has one), and any input shape outside the cases below.
+Add cases as the app grows.
+
+The `regions` case is the one whose bytes depend on GEOS as well as on this repo: merging
+regions of a class is a union, and a GEOS upgrade can legitimately reorder the vertices it
+returns. If that case alone differs after a dependency bump, that is what happened — check the
+geometry is equivalent before re-blessing, and say so in the commit.
 """
 
 import os
@@ -31,8 +36,8 @@ from pathlib import Path
 # matplotlib.
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-from qupath_to_lmd import export, geojson, plate, qc
-from qupath_to_lmd.model import CLASS_NAME, plan_from_class_wells
+from qupath_to_lmd import export, geojson, plate, qc, regions
+from qupath_to_lmd.model import CLASS_NAME, plan_from_class_wells, plan_from_selection
 
 REPO = Path(__file__).resolve().parent.parent
 GOLDEN_DIR = Path(__file__).resolve().parent / "golden"
@@ -50,6 +55,13 @@ CASES = {
     "annotations_96": {"source": DEMO / "TD_01_verysmall_mIF.geojson", "plate_type": "96", "margin": 0},
     # a realistic QuPath 0.7 cell export: multi-class objects and unclassified objects mixed in
     "multiclass_cells": {"source": DEMO / "multiclass_cells.geojson"},
+    # the regions path: Voronoi projection, merge by class, and shapes the app synthesised
+    # rather than read, so the coordinates come from geometry code rather than from the file
+    "regions": {
+        "kind": "regions",
+        "source": DEMO / "multiclass_cells.geojson",
+        "replicates": 2,
+    },
 }
 
 
@@ -82,11 +94,51 @@ def run_case(source, explode=None, plate_type="384", margin=1) -> tuple[str, str
     return result.xml, result.csv
 
 
+def run_regions_case(
+    source, replicates=1, radius_factor=3.0, plate_type="384", margin=1
+) -> tuple[str, str]:
+    """Drive the regions pipeline for one case and return its XML and CSV.
+
+    Worth its own reference: every coordinate here is computed rather than read from the file,
+    so a change in how regions are tessellated, capped, clipped or merged shows up as different
+    bytes instead of as a picture nobody compares.
+    """
+    gdf, calibration_points, _report = geojson.read_and_qc(str(source))
+    calibration_names = list(calibration_points)[:3]
+    triangle = qc.triangle_qc(gdf, calibration_points, calibration_names)
+
+    params = regions.RegionParams(radius_factor=radius_factor)
+    patches, _region_report = regions.project(gdf, params)
+    patches = geojson.synthesize_qupath_columns(patches, "region", source=gdf)
+
+    counts = dict.fromkeys(sorted(set(patches[CLASS_NAME])), replicates)
+    replicate_of = regions.deal_patches(patches, counts)
+
+    wells = plate.acceptable_wells(plate=plate_type, margins=margin)
+    plan, samples_and_wells = plan_from_selection(
+        gdf=patches,
+        replicate_of=replicate_of,
+        wells=wells,
+        calibration_names=calibration_names,
+        calibration_array=triangle.calibration_array,
+        source_file=Path(source).name,
+        session_id="golden",
+        workflow="regions",
+    )
+    result = export.build_collection(plan, samples_and_wells=samples_and_wells, plate=plate_type)
+    return result.xml, result.csv
+
+
+def _run(kind: str = "annotations", **kwargs) -> tuple[str, str]:
+    """Dispatch a case to the pipeline it exercises."""
+    return run_regions_case(**kwargs) if kind == "regions" else run_case(**kwargs)
+
+
 def capture() -> int:
     """Write current output to tools/golden/, replacing what is there."""
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
     for name, kwargs in CASES.items():
-        xml, csv = run_case(**kwargs)
+        xml, csv = _run(**kwargs)
         (GOLDEN_DIR / f"{name}.xml").write_text(xml)
         (GOLDEN_DIR / f"{name}.csv").write_text(csv)
         print(f"captured  {name}  xml={len(xml)}B csv={len(csv)}B")
@@ -102,7 +154,7 @@ def check() -> int:
 
     mismatches = []
     for name, kwargs in CASES.items():
-        produced = dict(zip(("xml", "csv"), run_case(**kwargs), strict=True))
+        produced = dict(zip(("xml", "csv"), _run(**kwargs), strict=True))
         for kind, content in produced.items():
             reference_path = GOLDEN_DIR / f"{name}.{kind}"
             if not reference_path.exists():

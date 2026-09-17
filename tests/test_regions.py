@@ -8,6 +8,7 @@ import geopandas
 import numpy
 import pandas
 import pytest
+import shapely
 from shapely.geometry import Point, box
 
 from qupath_to_lmd import geojson, regions
@@ -163,7 +164,7 @@ def test_an_unwanted_class_still_holds_its_own_territory(grid):
 def test_merging_joins_touching_regions_of_one_class(grid):
     """A class occupies contiguous areas, and each area is one thing to cut."""
     result = regions.voronoi_regions(grid, regions.RegionParams())
-    patches = regions.merge_by_class(result)
+    patches, _filled = regions.merge_by_class(result)
     assert len(patches) < len(result), (
         f"{len(result)} regions merged into {len(patches)} patches — no merging happened. The "
         "user would be asked to cut every cell's territory separately."
@@ -176,7 +177,7 @@ def test_merging_joins_touching_regions_of_one_class(grid):
 def test_merging_conserves_area(grid):
     """Merging joins tissue; it must not gain or lose any."""
     result = regions.voronoi_regions(grid, regions.RegionParams())
-    patches = regions.merge_by_class(result)
+    patches, _filled = regions.merge_by_class(result)
     assert patches.geometry.area.sum() == pytest.approx(result.geometry.area.sum(), rel=1e-9), (
         "The merged area differs from the regions it came from, so the amount of tissue the "
         "user is told they will collect is wrong."
@@ -189,8 +190,8 @@ def test_patch_order_does_not_depend_on_the_union(grid):
     Pinning it is what makes the same file produce the same plate in a later session.
     """
     result = regions.voronoi_regions(grid, regions.RegionParams())
-    first = regions.merge_by_class(result)
-    second = regions.merge_by_class(result.iloc[::-1])
+    first, _ = regions.merge_by_class(result)
+    second, _ = regions.merge_by_class(result.iloc[::-1])
     assert list(first[CLASS_NAME]) == list(second[CLASS_NAME]), (
         "Patch order changed with the input order, so the same cells would land in different "
         "wells between two sessions."
@@ -315,3 +316,50 @@ def test_a_real_qupath_export_projects_and_merges(multiclass):
         "A region reaches outside the area the cells cover, so a cut would be placed on blank "
         "slide."
     )
+
+
+def test_pinhole_gaps_from_the_radius_cap_are_filled_not_warned_about(grid):
+    """The cap is a 64-sided polygon, so capped regions leave gaps of a pixel where three meet.
+
+    Those are not enclosed tissue. Reporting them as such would raise a warning about one pixel
+    and teach the user to ignore the warning when a real class really is enclosed.
+    """
+    result = regions.voronoi_regions(grid, regions.RegionParams(radius_factor=1.0))
+    patches, filled = regions.merge_by_class(
+        result, minimum_hole_area=float(result.geometry.area.min())
+    )
+    remaining = [
+        shapely.Polygon(ring).area for geometry in patches.geometry for ring in geometry.interiors
+    ]
+    assert not any(area < result.geometry.area.min() for area in remaining), (
+        f"Holes smaller than the smallest region survived: {remaining}. Each one raises a "
+        "warning about tissue that is not there."
+    )
+    assert filled >= 0
+
+
+def test_filling_slivers_never_swallows_a_real_enclosed_class(grid):
+    """The threshold is the smallest region in the tessellation, so a real region always clears it.
+
+    If it did not, another class's tissue would be silently folded into this class's well with
+    no warning at all — worse than the false warning the threshold exists to prevent.
+    """
+    patches, report = regions.project(grid, regions.RegionParams(), include=["Tumor"])
+    assert report.n_patches_with_holes == 1, (
+        f"The enclosed class's region was filled in as a sliver ({report.n_slivers_filled} "
+        "filled), so its tissue would be cut into the Tumor well without a word."
+    )
+    assert report.hole_area_px2 >= report.smallest_region_px2, (
+        f"The surviving hole ({report.hole_area_px2:.1f}px²) is smaller than the smallest region "
+        f"({report.smallest_region_px2:.1f}px²), so the threshold is not doing what it claims."
+    )
+
+
+def test_filling_a_sliver_does_not_move_the_outline(grid):
+    """Only interior rings are dropped; the outline the laser follows must be untouched."""
+    result = regions.voronoi_regions(grid, regions.RegionParams(radius_factor=1.0))
+    before, _ = regions.merge_by_class(result)
+    after, _ = regions.merge_by_class(result, minimum_hole_area=float(result.geometry.area.min()))
+    assert [g.exterior.length for g in before.geometry] == pytest.approx(
+        [g.exterior.length for g in after.geometry]
+    ), "Filling a sliver changed a region's outer outline, so the cut path would move."
