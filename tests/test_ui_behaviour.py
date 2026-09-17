@@ -407,12 +407,14 @@ def _region_frame():
 
 def _packed(**overrides):
     """A small packing result, for the reporting functions."""
-    from shapely.geometry import Point
 
     from qupath_to_lmd import packing
+    from qupath_to_lmd.budget import ClassBudget
 
+    area = overrides.pop("area", 10_000.0)
     params = packing.PackingParams(**overrides)
-    return packing.pack(_region_frame(), {"Tumor": 1}, params, 1.0), params, Point
+    budgets = [ClassBudget("Tumor", 1, area)]
+    return packing.pack(_region_frame(), budgets, params, 1.0), params, budgets
 
 
 def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_streamlit):
@@ -421,8 +423,8 @@ def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_strea
     The user may accept a partly-filled replicate, so it warns rather than blocks
     (`decisions.md` 003).
     """
-    result, params, _ = _packed(area_per_replicate_um2=10_000_000, max_attempts=150, seed=0)
-    ui_packing._report_packing(result, params, _region_frame(), pixel_size_um=1.0)
+    result, params, budgets = _packed(area=10_000_000, max_attempts=150, seed=0)
+    ui_packing._report_packing(result, params, budgets)
 
     shown = fake_streamlit.shown("warnings")
     assert "could not be filled" in shown, (
@@ -434,8 +436,8 @@ def test_a_replicate_that_could_not_be_filled_warns_and_still_exports(fake_strea
 
 def test_a_filled_replicate_does_not_warn(fake_streamlit):
     """Warning on the ordinary case is how warnings stop being read."""
-    result, params, _ = _packed(area_per_replicate_um2=2_000, seed=0)
-    ui_packing._report_packing(result, params, _region_frame(), pixel_size_um=1.0)
+    result, params, budgets = _packed(area=2_000, seed=0)
+    ui_packing._report_packing(result, params, budgets)
     assert "could not be filled" not in fake_streamlit.shown("warnings"), (
         f"A fully-filled replicate warned anyway: {fake_streamlit.shown('warnings')!r}"
     )
@@ -449,8 +451,10 @@ def test_regions_too_narrow_for_a_circle_are_reported(fake_streamlit):
     from qupath_to_lmd import packing
 
     result = packing.PackingResult(n_regions_too_small=17)
+    from qupath_to_lmd.budget import ClassBudget
+
     ui_packing._report_packing(
-        result, packing.PackingParams(min_circle_area_um2=250), _region_frame(), pixel_size_um=1.0
+        result, packing.PackingParams(min_circle_area_um2=250), [ClassBudget("Tumor", 1, 100.0)]
     )
     shown = fake_streamlit.shown("warnings")
     assert "too narrow to hold even one circle" in shown and "250" in shown, (
@@ -464,10 +468,10 @@ def test_the_smoothing_loss_is_warned_about_when_it_is_large(fake_streamlit):
     Small circles lose about 10% of their area at the default 1 px tolerance, so every well
     would hold less than the table above it says.
     """
-    result, params, _ = _packed(
-        area_per_replicate_um2=4_000, min_circle_area_um2=100, max_circle_area_um2=150, seed=0
+    result, params, budgets = _packed(
+        area=4_000, min_circle_area_um2=100, max_circle_area_um2=150, seed=0
     )
-    ui_packing._report_packing(result, params, _region_frame(), pixel_size_um=1.0)
+    ui_packing._report_packing(result, params, budgets)
     shown = fake_streamlit.shown("warnings") + " " + fake_streamlit.shown("captions")
     assert "moothing" in shown, (
         "Nothing was said about smoothing taking area off the circles, so the amounts shown are "

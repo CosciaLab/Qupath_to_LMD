@@ -561,3 +561,26 @@ to describe the geometry that will actually be cut.
 The feedback loop is the point: circle sizes, the gap, the seed, the area per replicate and the
 replicate count all live in one step, and the projection and packing caches are what let it
 redraw without re-tessellating.
+
+## Revised after review — `decisions.md` 068 and 069
+
+Jose's two rounds of notes on the working version, and what they changed:
+
+- **The collection step moved above the plate.** The amount and the replicate count are what size
+  the plate, so deciding them first shows the plate once, already correct. The `st.fragment` went
+  with it: a fragment reruns only itself, so the plate and export below the loop would have sat
+  there stale.
+- **Step 6 became side by side** — inputs at a third of the width, a live picture of the
+  collection at two thirds. It is the only step where a user changes a number specifically to see
+  what it does, and scrolling between the two meant nobody tuned at all.
+- **The amount per replicate became per class**, in one table with the replicate count, on
+  `budget.ClassBudget`. On the real core two classes hold ~900 000 µm² each and a third holds
+  220 000, so one global amount could not ask each for what it can give.
+- **Class by fill, replicate by tab20 outline.** Rendering the real core showed both palettes
+  contain an orange, so the fill had to be held back to alpha 0.7 or an orange circle of an
+  orange class hid its own replicate ring.
+- **Removed:** the enclosed-class warning (a non-issue that fired on 21 of 684 regions, so it
+  appeared on an ordinary run) and the "Effort" control (it exposed `max_attempts`, which is how
+  the sampler gives up, not a decision about the experiment).
+- **Every µm² figure is a whole number with a thousands separator.** Areas here run to millions
+  and a tenth of a square micrometre is far below anything the laser can place.

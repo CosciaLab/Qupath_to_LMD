@@ -34,6 +34,7 @@ import pandas
 import shapely
 from loguru import logger
 
+from qupath_to_lmd.budget import ClassBudget
 from qupath_to_lmd.model import CLASS_NAME, REPLICATE
 
 # A circle this many segments per quarter turn is a 64-sided polygon. Vertices are what the
@@ -92,9 +93,12 @@ class PackingParams:
 
     Areas rather than radii throughout: the amount of tissue is what a proteomics experiment
     is specified in, and it is what the user is budgeting.
+
+    How *much* to collect is not here — it is per class, in a `ClassBudget`, because different
+    biologies hold different amounts and a user setting them in one table wants one row each.
+    These are the settings that apply to every circle whatever class it lands in.
     """
 
-    area_per_replicate_um2: float = DEFAULT_AREA_PER_REPLICATE_UM2
     min_circle_area_um2: float = DEFAULT_MIN_CIRCLE_AREA_UM2
     max_circle_area_um2: float = DEFAULT_MAX_CIRCLE_AREA_UM2
     spacing_um: float = DEFAULT_SPACING_UM
@@ -114,8 +118,6 @@ class PackingParams:
                 f"The largest circle ({self.max_circle_area_um2:,.0f} µm²) is smaller than the "
                 f"smallest ({self.min_circle_area_um2:,.0f} µm²). Swap them, or widen the range."
             )
-        if self.area_per_replicate_um2 <= 0:
-            raise PackingError("The area per replicate must be greater than zero.")
 
     @property
     def mean_circle_area_um2(self) -> float:
@@ -182,7 +184,7 @@ def packable_area(area: float, params: PackingParams) -> float:
 
 def capacity(
     patches: geopandas.GeoDataFrame,
-    replicates: dict[str, int],
+    budgets: list[ClassBudget],
     params: PackingParams,
     pixel_size_um: float,
 ) -> pandas.DataFrame:
@@ -192,16 +194,17 @@ def capacity(
     """
     rows = {}
     areas = patches.geometry.area * pixel_size_um**2
-    for class_name, count in replicates.items():
-        region_area = float(areas[patches[CLASS_NAME] == class_name].sum())
+    for item in budgets:
+        region_area = float(areas[patches[CLASS_NAME] == item.class_name].sum())
         estimated = packable_area(region_area, params)
-        required = count * params.area_per_replicate_um2
-        rows[class_name] = {
+        rows[item.class_name] = {
             "region_area_um2": region_area,
             "packable_estimate_um2": estimated,
-            "requested_um2": required,
-            "shortfall_um2": max(0.0, required - estimated),
-            "fillable_replicates": int(estimated // params.area_per_replicate_um2),
+            "requested_um2": item.required,
+            "shortfall_um2": max(0.0, item.required - estimated),
+            "fillable_replicates": (
+                int(estimated // item.per_replicate) if item.per_replicate > 0 else 0
+            ),
         }
     return pandas.DataFrame.from_dict(rows, orient="index")
 
@@ -294,7 +297,7 @@ def _collides(
 
 def pack(
     patches: geopandas.GeoDataFrame,
-    replicates: dict[str, int],
+    budgets: list[ClassBudget],
     params: PackingParams,
     pixel_size_um: float,
 ) -> PackingResult:
@@ -302,8 +305,8 @@ def pack(
 
     Args:
         patches: regions from `regions.project`, carrying `classification_name`.
-        replicates: how many replicates each class wants.
-        params: sizes, spacing, effort and the seed.
+        budgets: one per class — how many replicates, and how much tissue in each.
+        params: circle sizes, the gap, effort and the seed.
         pixel_size_um: the image scale. Required — every amount here is an area in µm².
 
     Returns:
@@ -318,9 +321,11 @@ def pack(
         raise PackingError("Packing circles needs the image scale (µm per pixel).")
 
     logger.info(
-        f"Packing: {params.area_per_replicate_um2:,.0f} µm² per replicate, circles "
-        f"{params.min_circle_area_um2:,.0f}-{params.max_circle_area_um2:,.0f} µm², gap "
-        f"{params.spacing_um} µm, seed {params.seed}, {params.max_attempts} attempts"
+        f"Packing circles {params.min_circle_area_um2:,.0f}-{params.max_circle_area_um2:,.0f} µm², "
+        f"gap {params.spacing_um} µm, seed {params.seed}, {params.max_attempts} attempts; "
+        + ", ".join(
+            f"{item.class_name} {item.replicates}x{item.per_replicate:,.0f} µm²" for item in budgets
+        )
     )
 
     um2_per_px2 = pixel_size_um**2
@@ -339,9 +344,13 @@ def pack(
     n_regions_skipped = 0
 
     # Sorted, so the run does not depend on the order the classes happen to appear in.
-    for class_name in sorted(replicates):
-        wanted = int(replicates[class_name])
+    for item in sorted(budgets, key=lambda entry: entry.class_name):
+        class_name, wanted = item.class_name, int(item.replicates)
         if wanted < 1:
+            continue
+        if item.per_replicate <= 0:
+            # Still reported, so a class asked for nothing does not simply vanish from the table.
+            rows.extend(_empty_rows(item))
             continue
         generator = class_generator(params.seed, class_name)
         # One circle of slack per replicate. A replicate is filled until it reaches the target,
@@ -349,11 +358,7 @@ def pack(
         # replicate with only the remainder and systematically short. A replicate that is
         # reliably 5% smaller than its siblings is not a comparable measurement, and the slack
         # costs only the handful of circles reported as discarded.
-        target_px2 = (
-            wanted
-            * (params.area_per_replicate_um2 + params.mean_circle_area_um2)
-            / um2_per_px2
-        )
+        target_px2 = wanted * (item.per_replicate + params.mean_circle_area_um2) / um2_per_px2
 
         circles, skipped = _pack_class(
             patches[patches[CLASS_NAME] == class_name],
@@ -368,7 +373,7 @@ def pack(
         n_regions_skipped += skipped
 
         dealt, leftover = _deal_circles(
-            circles, wanted, params.area_per_replicate_um2 / um2_per_px2, generator
+            circles, wanted, item.per_replicate / um2_per_px2, generator
         )
         n_discarded += leftover
 
@@ -390,7 +395,7 @@ def pack(
                     "replicate": replicate,
                     "circles": len(members),
                     CIRCLE_AREA: achieved,
-                    "requested": params.area_per_replicate_um2,
+                    "requested": item.per_replicate,
                     "achieved": achieved,
                 }
             )
@@ -403,7 +408,7 @@ def pack(
     result = PackingResult(
         circles=circles_gdf,
         achieved=pandas.DataFrame(rows) if rows else empty_achieved(),
-        capacity=capacity(patches, replicates, params, pixel_size_um),
+        capacity=capacity(patches, budgets, params, pixel_size_um),
         n_discarded=n_discarded,
         n_regions_too_small=n_regions_skipped,
     )
@@ -424,6 +429,21 @@ def _fits_one_circle(class_patches: geopandas.GeoDataFrame, min_radius_px: float
     nothing (`decisions.md` 067).
     """
     return ~class_patches.geometry.buffer(-min_radius_px).is_empty
+
+
+def _empty_rows(item: ClassBudget) -> list[dict]:
+    """Rows for a class asked to supply nothing, so it still appears in the report."""
+    return [
+        {
+            CLASS_NAME: item.class_name,
+            "replicate": replicate,
+            "circles": 0,
+            CIRCLE_AREA: 0.0,
+            "requested": item.per_replicate,
+            "achieved": 0.0,
+        }
+        for replicate in range(1, item.replicates + 1)
+    ]
 
 
 def _pack_class(

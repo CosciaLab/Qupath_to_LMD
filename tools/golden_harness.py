@@ -40,6 +40,7 @@ from pathlib import Path
 os.environ.setdefault("MPLBACKEND", "Agg")
 
 from qupath_to_lmd import export, geojson, packing, plate, qc, regions
+from qupath_to_lmd.budget import ClassBudget
 from qupath_to_lmd.model import CLASS_NAME, REPLICATE, plan_from_class_wells, plan_from_selection
 
 REPO = Path(__file__).resolve().parent.parent
@@ -159,9 +160,11 @@ def run_packing_case(
     triangle = qc.triangle_qc(gdf, calibration_points, calibration_names)
 
     patches, _region_report = regions.project(gdf, regions.RegionParams(radius_factor=radius_factor))
-    params = packing.PackingParams(area_per_replicate_um2=2_000.0, seed=seed)
-    counts = dict.fromkeys(sorted(set(patches[CLASS_NAME])), replicates)
-    result = packing.pack(patches, counts, params, pixel_size_um)
+    params = packing.PackingParams(seed=seed)
+    budgets = [
+        ClassBudget(name, replicates, 2_000.0) for name in sorted(set(patches[CLASS_NAME]))
+    ]
+    result = packing.pack(patches, budgets, params, pixel_size_um)
 
     circles = geojson.synthesize_qupath_columns(result.circles, "circle", source=gdf)
     wells = plate.acceptable_wells(plate=plate_type, margins=margin)

@@ -1405,3 +1405,65 @@ in the regions, how much is being collected and what share of the whole that is,
 circles, and the mean circle diameter. It answers "is this a sensible collection?" at a glance,
 which the per-replicate table alone does not. The share is `delta_color="off"` so it does not
 read as a change.
+
+## 069 — step 6 is a side-by-side loop, and the amount is per class
+**Date:** 2026-09-17 · **Status:** active · **refines 067 and 068**
+Jose: "Step 6 needs better visual feedback loop, currently I have to scroll up and down too
+much."
+
+### Inputs at a third of the width, the picture at two thirds
+`st.columns([1, 2])`. Every control the user touches is in the narrow left column — what to
+collect, the image scale, the circle sizes, the gap, the seed, and the per-class table. The
+picture is in the wide right column, with the four summary metrics under it. The per-replicate
+table, the capacity expander and the warnings sit below, full width: they are what a user reads
+once they have settled on an arrangement, not what they watch while tuning it.
+**Why it matters more than it sounds:** this is the only step in the app where the user changes a
+number specifically to see what it does to the geometry. With the controls above the picture,
+every adjustment cost a scroll down to look and a scroll up to change — so in practice nobody
+tunes, they accept the first result.
+
+### The amount per replicate is per class, in the same table as the replicates
+Jose: "There should be one table, where users define the number of replicates, and the area per
+replicate for each class."
+`PackingParams` lost `area_per_replicate_um2`; `pack` and `capacity` now take
+`list[budget.ClassBudget]`. **`ClassBudget` is reused, not reinvented** — `class_name`,
+`replicates`, `per_replicate` is exactly its shape, it already has `.required`, and
+`budget.group_keys` then sizes the plate with no new code. The cell workflow has used it since
+Phase 3, so the two workflows now describe an amount the same way.
+**Why per class is right:** on Jose's real core `Tumor` and `Immune cells` hold about 900 000 µm²
+each while `Immune cells--Tumor` holds 220 000. One global amount forced the same target on all
+three, so the user could not ask each class for what it could actually give. A class asked for
+zero still appears in the report at zero, because a row vanishing looks like a failure rather
+than a choice.
+
+### Two variables, two channels
+Jose: "you should plot the circles with the colors of each class, not replicate. The outline of
+the circle should be colored with tab20, and that should mean the replicate number."
+`plot.plot_regions_and_circles`: **fill is the class**, for the regions and the circles alike, so
+a circle is visibly part of the tissue it came from; **outline is the replicate**, from tab20.
+Two legends, both outside the axes, because one combined key would not say which channel carries
+which meaning.
+**tab20 deliberately, and deliberately not the class palette.** The classes keep Okabe-Ito, which
+stays legible for the common forms of colour blindness but only has seven entries; tab20 has
+twenty, which is what makes more than a handful of replicates tellable apart. One picture carries
+both scales, so they must not be mistakable for each other.
+**One thing measurement forced:** both palettes contain an orange, and at full opacity an orange
+circle of an orange class hid its own replicate ring — the ring being the only thing carrying the
+replicate. Fill dropped to alpha 0.7 and the ring to 1.5 pt, checked by rendering the real core
+at full extent and at working zoom. `replicate_colors` keys tab20 by replicate *number* rather
+than by position, so replicate 2 keeps its colour when a class with fewer replicates is added;
+keyed by position, a user comparing two screenshots would read a change that never happened.
+Drawing costs 0.02 s for 684 regions and 422 circles, so it redraws on every keystroke for free.
+
+### Refreshing
+Jose: "should refresh after the table has been updated by user." `st.data_editor` already reruns
+the script on an edit, and the projection and packing caches make that rerun cheap, so the
+picture is rebuilt from the edited table with nothing extra. This is the second reason the
+`st.fragment` removed in `068` had to go: a fragment would have redrawn the picture but left the
+plate and export below it stale.
+
+### Session state
+`replicates` became `region_budgets`, holding a list of `ClassBudget` as dicts rather than a
+`{class: count}` map. Not folded into the cell workflow's existing `budgets` key: the two
+workflows would then overwrite each other's on a switch, and one key silently meaning two things
+is how `059` says a vocabulary rots.

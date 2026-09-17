@@ -53,7 +53,8 @@ src/qupath_to_lmd/
                                   close_slivers, deal_patches, tissue_hull
   packing.py                      PackingParams, pack, capacity, packable_area,
                                   class_generator, smoothing_loss
-  plot.py                         plot_shapes — class overview, selection preview, QC image
+  plot.py                         plot_shapes — class overview, selection preview, QC image;
+                                  plot_regions_and_circles — the regions feedback picture
   export.py                       build_collection, build_bundle, PathOrder,
                                   order_for_cutting, path_stats, ORIENTATION_TRANSFORM
   extras.py                       QuPath classes.json generation
@@ -441,6 +442,23 @@ Step 6 offers a choice of what to cut out of each region: **circles packed insid
 is the default and the point of the workflow, or **the whole regions**. Whole regions is the
 only option when the file gives no image scale, because every packing amount is an area in µm².
 
+**Step 6 is laid out as `st.columns([1, 2])`**: every input in the narrow left column, the
+picture in the wide right one, so changing a number and seeing what it did needs no scrolling
+(`decisions.md` 069). One `st.data_editor` carries both per-class numbers — replicates and µm²
+per replicate — because they answer one question per class. Those become
+`budget.ClassBudget`, reused rather than reinvented: `class_name`, `replicates`,
+`per_replicate` is exactly its shape, and `budget.group_keys` then sizes the plate for free.
+
+**The feedback picture** is `plot.plot_regions_and_circles`. Two variables on two channels:
+**fill colour is the class** for regions and circles alike, so a circle is visibly part of the
+tissue it came from; **outline colour is the replicate**, from `tab20`. Regions are drawn at
+alpha 0.25 as a backdrop; circles at alpha 0.7 with a 1.5 pt ring. The held-back fill is
+deliberate — both palettes contain an orange, so a full-opacity orange circle of an orange class
+would hide its own replicate ring, and the ring is the only thing carrying the replicate.
+`replicate_colors` keys tab20 by replicate *number*, not by position, so replicate 2 keeps its
+colour when a class with fewer replicates is added. Measured at 0.02 s for 684 regions plus 422
+circles, so it redraws on every keystroke for free.
+
 **No `st.fragment` here**, unlike the cell workflow. A fragment only reruns itself, so nothing
 below it re-executes — which would leave the plate and the export showing a stale collection,
 the exact trap `decisions.md` 051 describes. With the collection step above the plate the
@@ -624,7 +642,7 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | `minimum_area_um2` | per-class minimum collectable area in µm²; drives the pre-measurement filter |
 | `region_params` | `RegionParams` as a dict: the radius cap that produced the current regions |
 | `packing_params` | `PackingParams` as a dict: sizes, gap, effort and seed of the last packing |
-| `replicates` | `{class_name: count}` in the regions workflow; sizes the plate |
+| `region_budgets` | list of `ClassBudget` as dicts in the regions workflow: class, replicates, µm² per replicate |
 | `view_mode` | `'default'` \| `'samples'` — which plate table is rendered |
 | `gdf` | the working GeoDataFrame (points removed, `classification_name` added) |
 | `geojson_report` | `GeojsonReport` from the last read, re-rendered on every rerun |

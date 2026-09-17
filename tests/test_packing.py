@@ -12,10 +12,17 @@ import shapely
 from shapely.geometry import box
 
 from qupath_to_lmd import packing, regions
+from qupath_to_lmd.budget import ClassBudget
 from qupath_to_lmd.model import CLASS_NAME, REPLICATE
 
 # 1 µm per pixel keeps every µm² figure in a test readable as a pixel area too.
 SCALE = 1.0
+
+
+def _pack(patches, replicates: dict, params, area=10_000.0, scale=SCALE):
+    """Pack with the same amount asked of every class, which is all most tests need."""
+    budgets = [ClassBudget(name, count, area) for name, count in replicates.items()]
+    return packing.pack(patches, budgets, params, scale)
 
 
 def _patches(boxes, classes):
@@ -48,8 +55,8 @@ def test_every_circle_is_wholly_inside_its_own_region(two_classes_side_by_side):
 
     That is the failure this workflow exists to prevent, and nothing downstream would catch it.
     """
-    params = packing.PackingParams(area_per_replicate_um2=20_000, seed=0)
-    result = packing.pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, params, SCALE)
+    params = packing.PackingParams(seed=0)
+    result = _pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, params, area=20_000)
 
     for class_name, group in result.circles.groupby(CLASS_NAME):
         region = two_classes_side_by_side.loc[
@@ -64,8 +71,8 @@ def test_every_circle_is_wholly_inside_its_own_region(two_classes_side_by_side):
 
 def test_no_two_circles_are_closer_than_the_gap(one_big_region):
     """The gap is what leaves material between two cuts."""
-    params = packing.PackingParams(area_per_replicate_um2=50_000, spacing_um=10.0, seed=0)
-    result = packing.pack(one_big_region, {"Tumor": 1}, params, SCALE)
+    params = packing.PackingParams(spacing_um=10.0, seed=0)
+    result = _pack(one_big_region, {"Tumor": 1}, params, area=50_000)
 
     geometries = result.circles.geometry.to_numpy()
     tree = shapely.STRtree(geometries)
@@ -83,8 +90,8 @@ def test_the_gap_holds_between_circles_of_different_classes(two_classes_side_by_
     The prototype tracked placed circles per class, so this pair was never checked. The laser
     does not care which class a neighbouring cut belongs to.
     """
-    params = packing.PackingParams(area_per_replicate_um2=40_000, spacing_um=15.0, seed=0)
-    result = packing.pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, params, SCALE)
+    params = packing.PackingParams(spacing_um=15.0, seed=0)
+    result = _pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, params, area=40_000)
 
     immune = result.circles[result.circles[CLASS_NAME] == "Immune cells"].geometry.to_numpy()
     tumor = result.circles[result.circles[CLASS_NAME] == "Tumor"].geometry.to_numpy()
@@ -100,9 +107,9 @@ def test_the_gap_holds_between_circles_of_different_classes(two_classes_side_by_
 def test_every_circle_area_is_within_the_range_asked_for(one_big_region):
     """The range is how a user controls what the LMD can actually collect."""
     params = packing.PackingParams(
-        area_per_replicate_um2=30_000, min_circle_area_um2=200, max_circle_area_um2=400, seed=0
+        min_circle_area_um2=200, max_circle_area_um2=400, seed=0
     )
-    result = packing.pack(one_big_region, {"Tumor": 1}, params, SCALE)
+    result = _pack(one_big_region, {"Tumor": 1}, params, area=30_000)
     areas = result.circles[packing.CIRCLE_AREA]
 
     # A buffered circle is a 64-sided polygon, so it is a fraction under the circle it
@@ -118,9 +125,9 @@ def test_every_circle_area_is_within_the_range_asked_for(one_big_region):
 
 def test_the_same_seed_gives_the_same_circles(one_big_region):
     """A collection has to be reproducible in a later session to be reportable."""
-    params = packing.PackingParams(area_per_replicate_um2=20_000, seed=7)
-    first = packing.pack(one_big_region, {"Tumor": 2}, params, SCALE)
-    second = packing.pack(one_big_region, {"Tumor": 2}, params, SCALE)
+    params = packing.PackingParams(seed=7)
+    first = _pack(one_big_region, {"Tumor": 2}, params, area=20_000)
+    second = _pack(one_big_region, {"Tumor": 2}, params, area=20_000)
 
     assert first.circles.geometry.to_wkt().tolist() == second.circles.geometry.to_wkt().tolist(), (
         "The same seed and settings produced different circles, so a user could not reproduce "
@@ -133,10 +140,10 @@ def test_the_same_seed_gives_the_same_circles(one_big_region):
 
 def test_a_different_seed_gives_different_circles(one_big_region):
     """The seed has to do something, or offering it is a lie."""
-    params = packing.PackingParams(area_per_replicate_um2=20_000, seed=1)
-    other = packing.PackingParams(area_per_replicate_um2=20_000, seed=2)
-    first = packing.pack(one_big_region, {"Tumor": 1}, params, SCALE)
-    second = packing.pack(one_big_region, {"Tumor": 1}, other, SCALE)
+    params = packing.PackingParams(seed=1)
+    other = packing.PackingParams(seed=2)
+    first = _pack(one_big_region, {"Tumor": 1}, params, area=20_000)
+    second = _pack(one_big_region, {"Tumor": 1}, other, area=20_000)
     assert first.circles.geometry.to_wkt().tolist() != second.circles.geometry.to_wkt().tolist(), (
         "Two different seeds produced identical circles, so the seed control does nothing."
     )
@@ -164,9 +171,9 @@ def test_a_class_packs_the_same_whatever_a_later_class_asks_for(two_classes_side
     per-class sub-streams a single shared stream would re-roll Immune cells too, and a user
     adjusting one class would watch another change for no visible reason.
     """
-    params = packing.PackingParams(area_per_replicate_um2=20_000, seed=3)
-    few = packing.pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, params, SCALE)
-    many = packing.pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 3}, params, SCALE)
+    params = packing.PackingParams(seed=3)
+    few = _pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 1}, params, area=20_000)
+    many = _pack(two_classes_side_by_side, {"Immune cells": 1, "Tumor": 3}, params, area=20_000)
 
     def immune(result):
         return result.circles[result.circles[CLASS_NAME] == "Immune cells"].geometry.to_wkt().tolist()
@@ -183,8 +190,8 @@ def test_every_replicate_reaches_the_area_asked_for(one_big_region):
     Packing exactly the total left the last replicate with only the remainder, reliably ~5%
     short while its siblings overshot — a systematic difference, not noise.
     """
-    params = packing.PackingParams(area_per_replicate_um2=10_000, seed=0)
-    result = packing.pack(one_big_region, {"Tumor": 4}, params, SCALE)
+    params = packing.PackingParams(seed=0)
+    result = _pack(one_big_region, {"Tumor": 4}, params, area=10_000)
 
     achieved = result.achieved["achieved"]
     assert (achieved >= 10_000).all(), (
@@ -205,8 +212,8 @@ def test_a_region_too_small_for_one_circle_is_counted_not_silently_ignored():
     patches = _patches(
         [(0, 0, 1000, 1000), (2000, 0, 2005, 5), (3000, 0, 3005, 5)], ["Tumor"] * 3
     )
-    params = packing.PackingParams(area_per_replicate_um2=5_000, min_circle_area_um2=100, seed=0)
-    result = packing.pack(patches, {"Tumor": 1}, params, SCALE)
+    params = packing.PackingParams(min_circle_area_um2=100, seed=0)
+    result = _pack(patches, {"Tumor": 1}, params, area=5_000)
     assert result.n_regions_too_small == 2, (
         f"Reported {result.n_regions_too_small} regions too small to hold a circle, expected 2. "
         "Unreported, the user sees fewer circles than regions with no explanation."
@@ -216,9 +223,9 @@ def test_a_region_too_small_for_one_circle_is_counted_not_silently_ignored():
 def test_a_saturated_region_reports_a_shortfall_instead_of_looping(one_big_region):
     """Asking for more tissue than the region can hold must end, and must say so."""
     params = packing.PackingParams(
-        area_per_replicate_um2=10_000_000, max_attempts=200, seed=0
+        max_attempts=200, seed=0
     )
-    result = packing.pack(one_big_region, {"Tumor": 1}, params, SCALE)
+    result = _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000)
     assert not result.shortfalls.empty, (
         "An impossible request reported no shortfall, so the user would believe a well holds "
         "ten times the tissue it does."
@@ -233,10 +240,10 @@ def test_the_capacity_estimate_matches_what_packing_achieves(one_big_region):
     """
     for gap in (0.0, 5.0, 20.0):
         params = packing.PackingParams(
-            area_per_replicate_um2=10_000_000, spacing_um=gap, max_attempts=400, seed=0
+            spacing_um=gap, max_attempts=400, seed=0
         )
         estimate = packing.packable_area(1_000_000, params)
-        achieved = packing.pack(one_big_region, {"Tumor": 1}, params, SCALE).achieved[
+        achieved = _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000).achieved[
             "achieved"
         ].sum()
         ratio = achieved / estimate
@@ -252,9 +259,9 @@ def test_a_wider_gap_fits_less_tissue(one_big_region):
     achieved = []
     for gap in (0.0, 10.0):
         params = packing.PackingParams(
-            area_per_replicate_um2=10_000_000, spacing_um=gap, max_attempts=300, seed=0
+            spacing_um=gap, max_attempts=300, seed=0
         )
-        result = packing.pack(one_big_region, {"Tumor": 1}, params, SCALE)
+        result = _pack(one_big_region, {"Tumor": 1}, params, area=10_000_000)
         achieved.append(result.achieved["achieved"].sum())
     assert achieved[0] > achieved[1] * 1.5, (
         f"A 0 µm gap fitted {achieved[0]:,.0f} µm² and a 10 µm gap {achieved[1]:,.0f} µm². The "
@@ -266,13 +273,13 @@ def test_an_empty_size_range_is_refused_with_a_reason(one_big_region):
     """One keystroke away in a number input, so it must explain rather than traceback."""
     params = packing.PackingParams(min_circle_area_um2=500, max_circle_area_um2=100)
     with pytest.raises(packing.PackingError, match="smaller than"):
-        packing.pack(one_big_region, {"Tumor": 1}, params, SCALE)
+        _pack(one_big_region, {"Tumor": 1}, params)
 
 
 def test_packing_without_an_image_scale_is_refused(one_big_region):
     """Every amount here is an area in µm², so without a scale nothing means anything."""
     with pytest.raises(packing.PackingError, match="image scale"):
-        packing.pack(one_big_region, {"Tumor": 1}, packing.PackingParams(), None)
+        _pack(one_big_region, {"Tumor": 1}, packing.PackingParams(), scale=None)
 
 
 def test_circles_cannot_be_packed_into_an_enclosed_island(one_big_region):
@@ -283,8 +290,8 @@ def test_circles_cannot_be_packed_into_an_enclosed_island(one_big_region):
             holed.geometry.iloc[0].exterior, [box(300, 300, 700, 700).exterior]
         )
     ]
-    params = packing.PackingParams(area_per_replicate_um2=50_000, seed=0)
-    result = packing.pack(holed, {"Tumor": 1}, params, SCALE)
+    params = packing.PackingParams(seed=0)
+    result = _pack(holed, {"Tumor": 1}, params, area=50_000)
 
     hole = box(300, 300, 700, 700)
     intruders = [c for c in result.circles.geometry if c.intersects(hole)]
@@ -301,9 +308,9 @@ def test_smoothing_loss_is_measured_not_assumed(one_big_region):
     vertices at the default 1 px tolerance.
     """
     params = packing.PackingParams(
-        area_per_replicate_um2=20_000, min_circle_area_um2=100, max_circle_area_um2=150, seed=0
+        min_circle_area_um2=100, max_circle_area_um2=150, seed=0
     )
-    result = packing.pack(one_big_region, {"Tumor": 1}, params, SCALE)
+    result = _pack(one_big_region, {"Tumor": 1}, params, area=20_000)
     lost, fraction = packing.smoothing_loss(result.circles, 1.0)
 
     assert lost > 0 and fraction > 0.01, (
@@ -320,10 +327,10 @@ def test_a_real_export_packs_to_target(multiclass):
     gdf, _points, _report = multiclass
     patches, _report2 = regions.project(gdf, regions.RegionParams())
     scale = 0.6535
-    params = packing.PackingParams(area_per_replicate_um2=2_000, seed=0)
+    params = packing.PackingParams(seed=0)
     replicates = dict.fromkeys(sorted(set(patches[CLASS_NAME])), 2)
 
-    result = packing.pack(patches, replicates, params, scale)
+    result = _pack(patches, replicates, params, area=2_000, scale=scale)
     assert result.n_circles > 0, "A real export packed no circles at all."
     assert set(result.circles[CLASS_NAME]) <= set(patches[CLASS_NAME]), (
         "Packing invented a class that is not in the file."
@@ -359,10 +366,53 @@ def test_an_empty_result_still_has_its_columns():
 def test_a_region_narrower_than_any_circle_reports_rather_than_raises():
     """Every region too thin to hold a circle is the realistic way to get nothing at all."""
     patches = _patches([(0, 0, 500, 2), (1000, 0, 1500, 2)], ["Tumor"] * 2)
-    params = packing.PackingParams(area_per_replicate_um2=5_000, min_circle_area_um2=100, seed=0)
-    result = packing.pack(patches, {"Tumor": 1}, params, SCALE)
+    params = packing.PackingParams(min_circle_area_um2=100, seed=0)
+    result = _pack(patches, {"Tumor": 1}, params, area=5_000)
     assert result.n_circles == 0, "Circles were placed into regions narrower than themselves."
     assert result.n_regions_too_small == 2, (
         "Neither region was reported as too small, so the user sees an empty result with no "
         "explanation and no idea that lowering the circle size would fix it."
+    )
+
+
+def test_each_class_gets_the_amount_asked_of_it(two_classes_side_by_side):
+    """The amount is per class, because different biologies hold different amounts.
+
+    One global amount forced the same target on a class with a tenth of the tissue, so the user
+    could not ask for what each one could actually give.
+    """
+    budgets = [
+        ClassBudget("Immune cells", 1, 5_000.0),
+        ClassBudget("Tumor", 1, 25_000.0),
+    ]
+    result = packing.pack(
+        two_classes_side_by_side, budgets, packing.PackingParams(seed=0), SCALE
+    )
+    by_class = result.achieved.set_index(CLASS_NAME)["achieved"]
+
+    assert by_class["Immune cells"] >= 5_000, (
+        f"Immune cells got {by_class['Immune cells']:,.0f} µm² of the 5,000 asked for."
+    )
+    assert by_class["Tumor"] >= 25_000, (
+        f"Tumor got {by_class['Tumor']:,.0f} µm² of the 25,000 asked for."
+    )
+    assert by_class["Immune cells"] < by_class["Tumor"] / 2, (
+        "Both classes collected a similar amount despite being asked for very different "
+        "amounts, so the per-class column is not reaching the packer."
+    )
+
+
+def test_a_class_asked_for_nothing_still_appears_in_the_report(one_big_region):
+    """Zero is a legitimate way to exclude a class, and it must not vanish silently.
+
+    A class that disappears from the table looks like a bug, and the user cannot tell whether
+    it was excluded or simply failed.
+    """
+    result = packing.pack(
+        one_big_region, [ClassBudget("Tumor", 2, 0.0)], packing.PackingParams(seed=0), SCALE
+    )
+    assert result.n_circles == 0, "Circles were packed for a class asked for zero tissue."
+    assert len(result.achieved) == 2, (
+        f"The report has {len(result.achieved)} rows for a class with 2 replicates asked for "
+        "nothing. It should still show both, at zero."
     )

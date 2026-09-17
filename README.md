@@ -44,16 +44,20 @@ out, so keeping only the shapes you can actually collect.
 
 **Cellular neighbourhoods** — for when a single cell is too little tissue but you still want to
 collect by cell type. Each cell is given the tissue closest to it, and touching cells of the same
-class are merged into one **region**. Then you set how much tissue you want per replicate, in
-µm², and the app fills the regions with small circles until it reaches that amount. Circles cut
+class are merged into one **region**. Then you set, per class, how many replicates you want and how much
+tissue goes into each one, and the app fills the regions with small circles until it reaches that
+amount. Circles cut
 far faster than one enormous irregular outline, and they let you ask for a measured amount rather
 than all of it. You control the circle size range, the gap left between cuts, and a seed — the
 same seed and settings always give you the same circles, so a collection can be repeated in a
 later session and reported in a methods section. Everything you set is saved in the download.
 
-Before it packs anything the app shows you how much each class can actually hold, which is well
-below its area: randomly placed circles cover about 55% of a region at best, and the gap between
-them cuts that down a lot more. Afterwards it shows what each replicate really got.
+The settings sit beside a live picture of what you are about to cut, so you can see the effect of
+every change without scrolling: the regions are shaded by class, the circles are filled in their
+class colour, and each circle's outline tells you which replicate it belongs to. The app also
+shows how much each class can actually hold, which is well below its area — randomly placed
+circles cover about 55% of a region at best, and the gap between them cuts that down a lot more —
+and afterwards what each replicate really got.
 
 Two things worth knowing. A region covers the space *between* the cells as well, because that is
 the tissue belonging to that class, so it reaches past the outlines QuPath drew — one setting

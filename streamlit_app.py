@@ -28,7 +28,7 @@ DEFAULTS = {
     "minimum_area_um2": None,
     "region_params": None,
     "packing_params": None,
-    "replicates": None,
+    "region_budgets": None,
     "saw": None,
     "use_plate_wells": True,
     "file_name": None,
