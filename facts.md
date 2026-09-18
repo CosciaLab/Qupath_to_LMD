@@ -631,10 +631,34 @@ QuPath wrote for that class, so colours survive the round trip. Called inside
 
 ### Measured cost
 
-| cells | voronoi + cap + clip | dissolve + explode |
+Projection, on a MacBook, after the skips below:
+
+| cells | regions | `project` |
 | --- | --- | --- |
-| 20 000 | 0.79 s | 0.65 s |
-| 100 000 | hull alone 0.09 s | — |
+| 8 411 (the real core) | 684 | **0.34 s** |
+| 25 000 | 5 900 | 1.1 s |
+| 60 000 | 13 800 | 3.0 s |
+| 150 000 | 34 500 | 8.4 s |
+
+Cached on the file fingerprint and the reach, so a rerun costs nothing. Above roughly 60 000
+cells the step is noticeably slow and `ui_shared._report_scale` already warns from 40 000
+(`decisions.md` 051).
+
+**Where the time goes, and what was skipped.** Profiled at 60 000 cells: the cap intersection
+cost 0.67 s and the hull clip 0.38 s, and **only 1.6% of cells need either** — in dense tissue a
+Voronoi cell is far smaller than the cap, and only the rim reaches the hull. Testing first costs
+0.006 s and 0.03 s, so `_cap_and_clip` does that and intersects only what it must. The cap test
+is exact rather than a heuristic: the farthest point of a convex region from a fixed point is an
+extreme point, a cell is contained in its bounding box, and a box is convex — so four corner
+distances decide it.
+`tests/test_regions.py::test_skipping_the_cap_and_clip_changes_no_tissue` compares against doing
+every intersection, by area and symmetric difference rather than `equals`: an intersected cell
+comes back rebuilt by GEOS, which can drop a collinear vertex that a skipped cell keeps. No
+difference in tissue, at most one redundant point in a cut path.
+
+**The floor is `merge_by_class`** — 2.2 s of the 3.0 s at 60 000 cells, being one GEOS union per
+class. `shapely.union_all` + `get_parts` was measured against `dissolve` + `explode` at 2.185 s
+against 2.204 s, so there is nothing to win by rewriting it.
 
 `tissue_hull` uses `shapely.convex_hull` on a geometry collection rather than
 `union_all().convex_hull`: identical answer, **0.09 s against 9.1 s** at 100 000 cells.
@@ -683,6 +707,37 @@ Collision detection is a dict of buckets keyed on `(x // cell, y // cell)` with
 rebuilt a `shapely.STRtree` from every placed circle on every attempt — O(n² log n) over a run
 — and queried it without a predicate, so it compared bounding boxes and rejected legal
 placements.
+
+### Close circles share a well
+
+Two cuts at the minimum gap can shed the strip between them. Into the **same** well that is
+harmless, because the material pools there anyway; into **different** wells it is
+cross-replicate contamination. So `_deal_circles` deals **clusters** — circles within
+`CLUSTER_GAP_FACTOR` of each other — rather than individual circles, using a union-find over an
+`STRtree` `dwithin` query.
+
+`CLUSTER_GAP_FACTOR = 1.5`, chosen by measuring it on the real core:
+
+| factor | clusters | largest | replicate spread | same-class pairs in different wells |
+| --- | --- | --- | --- | --- |
+| 1.0 | 984 | 1 | 1.5% | **46** |
+| **1.5** | 913 | 4 | 1.7% | **0** |
+| 2.0 | 861 | 5 | 1.5% | 0 |
+| 5.0 | 586 | 15 | **8.1%** | 0 |
+
+1.5 is the smallest factor that reaches zero and it costs nothing in balance. Wider is not
+better: a cluster is dealt whole, so at 5x the clusters reach 15 circles and the achieved areas
+spread 8.1%.
+
+**What clustering cannot fix**, and so is reported: a class and its replicates own their own
+wells by definition, so two cuts either side of a *class* boundary always go to different wells.
+`n_near_another_class` counts the circles involved and step 6 states it. Only a wider gap moves
+them apart.
+
+**Why it was noticed at all**: a 5 µm gap is about 3 screen pixels on a whole-core view and the
+replicate ring is 1.5 pt, so same-class circles a gap apart in different wells looked like
+touching circles with different outlines. The look was the symptom; the well assignment was the
+problem.
 
 ### How much a region can actually hold
 

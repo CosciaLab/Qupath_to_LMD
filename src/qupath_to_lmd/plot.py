@@ -50,10 +50,12 @@ REPLICATE_COLORMAP = "tab10"
 # A circle is a class-coloured disc with a replicate-coloured ring, and on a whole-core view it
 # is only a few pixels across — so the ring has to carry most of the weight.
 CIRCLE_EDGE_WIDTH = 1.5
-# Regions are the backdrop the cuts are judged against, not the subject. The circles use the
-# same fill palette at full opacity, so the two layers separate by weight rather than by needing
-# a third set of colours.
-REGION_FILL_ALPHA = 0.45
+# Regions carry the class map, so they have to be readable on their own — the first version at
+# 0.45 was too faint to see the tissue. They are drawn at full strength from the app-wide class
+# palette, while the circles keep the tinted fill so a dark replicate ring still reads on them.
+# That separates the two layers by lightness rather than needing a third set of colours
+# (`decisions.md` 074).
+REGION_FILL_ALPHA = 0.85
 
 
 def class_colors(classes: list[str]) -> dict[str, str]:
@@ -267,6 +269,7 @@ def plot_regions_and_circles(
 
     classes = sorted(regions[CLASS_NAME].dropna().unique())
     fills = class_fill_colors(classes)
+    strong = class_colors(classes)
 
     for class_name in classes:
         paths = polygon_paths(regions[regions[CLASS_NAME] == class_name])
@@ -274,8 +277,8 @@ def plot_regions_and_circles(
             axes.add_collection(
                 PathCollection(
                     paths,
-                    facecolors=[fills[class_name]],
-                    edgecolors=[fills[class_name]],
+                    facecolors=[strong[class_name]],
+                    edgecolors=[strong[class_name]],
                     alpha=REGION_FILL_ALPHA,
                     linewidths=0.6,
                     zorder=2,
@@ -313,7 +316,7 @@ def plot_regions_and_circles(
             marker="+", s=90, color="#444444", zorder=4,
         )
 
-    _two_legends(figure, classes, fills, replicates)
+    _two_legends(figure, classes, strong, replicates)
 
     # QuPath image coordinates grow downward, so inverting y makes this look like the view
     # the user annotated in.
@@ -335,8 +338,9 @@ def _two_legends(figure, classes, fills, replicates) -> None:
 
     Both outside the axes: a legend over the tissue hides the thing being judged. Two separate
     keys rather than one combined, because the reader has to be able to tell which channel
-    carries which meaning. The class swatches get a grey edge, since a pale fill on white is
-    otherwise hard to see at legend size.
+    carries which meaning. The class swatches use the region colour, which is what dominates
+    the picture — a swatch matching the paler circle fill left the legend looking washed out
+    beside the map it describes.
     """
     class_handles = [
         Line2D([], [], marker="s", linestyle="", markersize=10, markerfacecolor=fills[name],

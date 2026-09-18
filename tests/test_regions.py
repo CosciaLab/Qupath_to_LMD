@@ -435,3 +435,42 @@ def test_a_gap_wider_than_the_cap_is_left_unassigned():
         f"{400 - 3 * SPACING:.0f} px apart, with the cap at {report.max_radius_px:.0f} px. That "
         "space would be cut and collected as if it were tissue."
     )
+
+
+def test_skipping_the_cap_and_clip_changes_no_tissue(grid):
+    """The projection skips both intersections for cells neither can touch, for speed.
+
+    Measured on 60 000 cells only 1.6% need the cap and 1.6% reach the hull, so intersecting
+    every cell cost about a second to change almost nothing. That is only safe if the tissue is
+    the same, so this compares against doing the work unconditionally rather than trusting the
+    reasoning — a wrong skip would leave a region reaching out onto blank slide.
+
+    Compared by area and by symmetric difference rather than by `equals`: a cell that was
+    intersected comes back rebuilt by GEOS, which may drop a collinear vertex that a skipped
+    cell keeps. That is at most one redundant point in a cut path and no difference in tissue,
+    and asserting it away would be asserting the wrong thing (`decisions.md` 074).
+    """
+    centroids = grid.geometry.centroid
+    xy = numpy.c_[centroids.x.to_numpy(), centroids.y.to_numpy()]
+    hull = regions.tissue_hull(grid)
+    params = regions.RegionParams(radius_factor=1.0)
+    radius, _ = regions.radius_from_spacing(xy, params)
+
+    tessellation = numpy.asarray(
+        shapely.voronoi_polygons(
+            shapely.MultiPoint(xy), ordered=True, extend_to=hull.envelope
+        ).geoms
+    )
+    skipped = regions._cap_and_clip(tessellation, xy, radius, hull)
+    caps = shapely.buffer(shapely.points(xy), radius, quad_segs=regions.CAP_QUAD_SEGS)
+    unskipped = shapely.intersection(shapely.intersection(tessellation, caps), hull)
+
+    for index, (fast, slow) in enumerate(zip(skipped, unskipped, strict=True)):
+        assert fast.area == pytest.approx(slow.area, abs=1e-9), (
+            f"Region {index} covers {fast.area:.6f} px² on the fast path and {slow.area:.6f} "
+            "doing every intersection. Whatever was skipped needed doing."
+        )
+        assert fast.symmetric_difference(slow).area == pytest.approx(0.0, abs=1e-9), (
+            f"Region {index} covers different tissue on the two paths, so the skip is placing "
+            "cuts somewhere the full computation would not."
+        )

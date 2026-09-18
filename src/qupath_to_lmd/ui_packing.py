@@ -161,14 +161,11 @@ def regions_step(
 
     with feedback:
         with st.spinner("Drawing regions..."):
-            figure = plot.plot_regions_and_circles(
-                patches, calibration_array=st.session_state.calib_array
-            )
+            # No calibration triangle here: it is a distraction over the tissue map, and step 3
+            # already reports how much of the collection falls inside it.
+            figure = plot.plot_regions_and_circles(patches)
         st.pyplot(figure, width="stretch")
-        st.caption(
-            "Fill colour is the class. Dashed triangle and crosses are your calibration points; "
-            "regions far outside it are the ones at risk of distortion."
-        )
+        st.caption("Fill colour is the class.")
 
     return patches, report
 
@@ -387,16 +384,12 @@ def _collect_circles(patches, requests, params, pixel_size_um):
 def _draw(patches, circles, replicate_of) -> None:
     """The tissue map with what will be cut on top of it: class by fill, replicate by outline."""
     with st.spinner("Drawing..."):
-        figure = plot.plot_regions_and_circles(
-            patches,
-            circles,
-            replicate_of=replicate_of,
-            calibration_array=st.session_state.calib_array,
-        )
+        figure = plot.plot_regions_and_circles(patches, circles, replicate_of=replicate_of)
     st.pyplot(figure, width="stretch")
     st.caption(
-        "A pale fill is the class, for the regions and the circles alike. A dark outline is the "
-        "replicate. Dashed triangle and crosses are your calibration points."
+        "Fill colour is the class, for the regions and the circles alike. The outline of a "
+        "circle is its replicate. Circles of one class that sit close together always go into "
+        "the same well."
     )
 
 
@@ -452,6 +445,14 @@ def _report_packing(result, requests) -> None:
         st.caption(
             "Randomly placed circles cover about 55% of an area at best, and the gap between "
             "them cuts that down further, so what a region can hold is well below its area."
+        )
+
+    if result.n_near_another_class:
+        st.caption(
+            f"{result.n_near_another_class:,} circles sit within the gap of a circle from a "
+            "different class. Those always go to different wells, because a class owns its "
+            "own, so only a wider gap moves them apart. Circles of the *same* class that close "
+            "together are always collected into the same well."
         )
 
     if result.n_regions_too_small:

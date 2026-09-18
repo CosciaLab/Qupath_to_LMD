@@ -9,7 +9,7 @@ import geopandas
 import numpy
 import pytest
 import shapely
-from shapely.geometry import box
+from shapely.geometry import Point, box
 
 from qupath_to_lmd import packing, regions
 from qupath_to_lmd.model import CLASS_NAME, REPLICATE
@@ -461,4 +461,80 @@ def test_the_wider_of_two_gaps_wins_between_classes():
     assert closest >= 24.9, (
         f"A Narrow circle sits {closest:.2f} µm from a Wide one, inside the 25 µm the Wide class "
         "asked for. Its cuts would be closer together than it specified."
+    )
+
+
+def test_circles_that_sit_close_together_go_into_the_same_well(one_big_region):
+    """Two cuts at the minimum gap can shed the strip between them.
+
+    Into the same well that is harmless — the material pools there anyway. Into different wells
+    it is cross-replicate contamination, and on the real core 46 pairs of same-class circles
+    were landing in different wells before clusters were dealt as units.
+    """
+    result = _pack(one_big_region, {"Tumor": 3}, area=20_000, spacing_um=8.0)
+    circles = result.circles
+    geometries = circles.geometry.to_numpy()
+    tree = shapely.STRtree(geometries)
+    left, right = tree.query(
+        geometries, predicate="dwithin", distance=8.0 * packing.CLUSTER_GAP_FACTOR
+    )
+
+    split = [
+        (int(a), int(b))
+        for a, b in zip(left, right, strict=True)
+        if a < b and circles[REPLICATE].iloc[a] != circles[REPLICATE].iloc[b]
+    ]
+    assert not split, (
+        f"{len(split)} pairs of circles sit within {packing.CLUSTER_GAP_FACTOR}x the gap of each "
+        "other yet go into different wells. The strip between them can detach into either, so "
+        "one replicate would carry the other's material."
+    )
+
+
+def test_dealing_clusters_still_balances_the_replicates(one_big_region):
+    """A cluster is dealt whole, so it could in principle unbalance the replicates.
+
+    Measured: clusters stay tiny at the chosen factor (largest 4 circles of 984 on the real
+    core) and the achieved areas spread 1.7% rather than 1.5%. At 5x the gap they spread 8.1%,
+    which is why the factor is not simply made generous.
+    """
+    result = _pack(one_big_region, {"Tumor": 4}, area=15_000, spacing_um=8.0)
+    achieved = result.achieved["achieved"]
+    spread = (achieved.max() - achieved.min()) / achieved.mean()
+    assert spread < 0.1, (
+        f"Replicates differ by {spread:.1%} once clusters are dealt whole. Replicates that "
+        "unequal are not comparable measurements."
+    )
+    assert (achieved >= 15_000).all(), (
+        f"Replicate areas were {achieved.round(0).tolist()} against a 15,000 µm² target; "
+        "dealing whole clusters must not leave a replicate short."
+    )
+
+
+def test_proximity_to_another_class_is_counted_because_it_cannot_be_dealt_away():
+    """A class owns its wells, so two cuts across a class boundary always go to different ones.
+
+    Only a wider gap moves them apart, so the app reports the count rather than pretending it
+    solved it. Built from circles placed by hand rather than from a packing run: whether a
+    random draw happens to put two classes close is not what is being tested, and on a plain
+    two-region fixture it does not.
+    """
+    circles = geopandas.GeoDataFrame(
+        {CLASS_NAME: ["Tumor", "Tumor", "Immune cells"]},
+        geometry=[
+            Point(0, 0).buffer(5),
+            Point(100, 0).buffer(5),      # far from everything
+            Point(12, 0).buffer(5),       # 2 units from the first Tumor circle
+        ],
+        crs=None,
+    )
+    near = packing._count_near_another_class(circles, spacing_px=2.0)
+    assert near == 2, (
+        f"Reported {near} circles near another class, expected the 2 that are. The user is not "
+        "told about the one proximity the app cannot remove by dealing."
+    )
+
+    same_class_only = circles[circles[CLASS_NAME] == "Tumor"]
+    assert packing._count_near_another_class(same_class_only, spacing_px=2.0) == 0, (
+        "Circles of a single class were counted as being near another class."
     )
