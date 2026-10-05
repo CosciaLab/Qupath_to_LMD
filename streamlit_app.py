@@ -5,7 +5,7 @@ import uuid
 import streamlit as st
 from loguru import logger
 
-from qupath_to_lmd import ui_cells, ui_legacy, ui_shared
+from qupath_to_lmd import ui_cells, ui_legacy, ui_packing, ui_shared
 
 ####################
 ## Page settings ###
@@ -26,6 +26,9 @@ DEFAULTS = {
     "budget_mode": None,
     "budgets": None,
     "minimum_area_um2": None,
+    "region_params": None,
+    "packing_params": None,
+    "region_budgets": None,
     "saw": None,
     "use_plate_wells": True,
     "file_name": None,
@@ -82,6 +85,8 @@ st.divider()
 
 if workflow == "cells":
     ui_cells.render(uploaded_file)
+elif workflow == "regions":
+    ui_packing.render(uploaded_file)
 else:
     ui_legacy.render(uploaded_file)
 

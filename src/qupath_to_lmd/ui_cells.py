@@ -8,25 +8,9 @@ import hashlib
 
 import pandas
 import streamlit as st
-from loguru import logger
 
 from qupath_to_lmd import budget, plate, plot, selection, stats, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, plan_from_selection
-
-
-def _shape_fingerprint(gdf) -> tuple:
-    """A cheap identity for the working shapes, for cache keys.
-
-    Cannot be the filename alone: exploding a class rewrites the class names in place. Cannot
-    hash the frame itself either — Streamlit would walk 150 000 rows on every rerun, which is
-    what the cache is meant to avoid.
-    """
-    return (
-        st.session_state.get("file_name"),
-        len(gdf),
-        tuple(sorted(gdf[CLASS_NAME].dropna().unique())),
-    )
-
 
 MINIMUM_AREA_COLUMN = "Minimum area (µm²)"
 
@@ -35,12 +19,6 @@ MINIMUM_AREA_COLUMN = "Minimum area (µm²)"
 def _filtered_statistics(_pool, floors: tuple, pixel_size_um: float | None):
     """Statistics for the post-filter pool, cached on the floors that produced it."""
     return stats.class_statistics(_pool, pixel_size_um=pixel_size_um)
-
-
-@st.cache_data(show_spinner=False)
-def _cached_statistics(_gdf, cache_key: tuple, pixel_size_um: float | None):
-    """Per-class statistics, cached so a rerun does not recompute them (twice)."""
-    return stats.class_statistics(_gdf, pixel_size_um=pixel_size_um)
 
 
 @st.cache_data(show_spinner="Choosing shapes...")
@@ -52,89 +30,6 @@ def _cached_selection(_gdf, _budgets, _mode, _params, cache_key: tuple, pixel_si
     selection (`decisions.md` 050).
     """
     return selection.select(_gdf, _budgets, _mode, _params, pixel_size_um=pixel_size_um)
-
-
-def class_selection_step(pixel_size_um: float | None, step: str = "5") -> list[str]:
-    """Show what each class holds, then let the user choose which ones to collect."""
-    gdf = st.session_state.gdf
-
-    st.markdown(f"## Step {step}: Choose which classes to collect")
-    _, source = ui_shared.resolve_pixel_size()
-    if pixel_size_um and source == "estimated":
-        st.markdown(
-            f"Areas are computed from the shapes themselves at **{pixel_size_um:.4f} µm/px**, "
-            "estimated from this file's own QuPath measurements. You can change the scale in "
-            "the next step if it is wrong."
-        )
-    elif pixel_size_um:
-        st.markdown(
-            f"Areas are computed from the shapes themselves at **{pixel_size_um:.4f} µm/px**, "
-            "the scale you entered."
-        )
-    else:
-        st.markdown(
-            "This file carries no measurements to estimate an image scale from, so amounts are "
-            "in numbers of shapes. That is all you need to collect a number of cells; enter a "
-            "scale in the next step to work in areas."
-        )
-
-    table = _cached_statistics(gdf, _shape_fingerprint(gdf), pixel_size_um)
-    display = stats.for_display(table)
-    # Columns stay numeric so the table remains sortable; the format only trims the display.
-    st.dataframe(
-        display,
-        width="stretch",
-        column_config={
-            name: st.column_config.NumberColumn(name, format=f"%.{stats.DECIMALS}f")
-            for name in display.columns
-            if name != stats.DISPLAY_COLUMNS["shapes"]
-        },
-    )
-
-    all_classes = table.index.tolist()
-    selected = st.multiselect(
-        "Classes to collect",
-        options=all_classes,
-        default=st.session_state.selected_classes or all_classes,
-        help="Everything after this step works only on the classes you keep here.",
-    )
-
-    if selected != st.session_state.selected_classes:
-        st.session_state.selected_classes = selected
-        logger.info(f"Classes selected: {selected}")
-
-    if not selected:
-        st.warning("No classes selected, so there is nothing to collect yet.")
-        return []
-
-    kept = table.loc[selected]
-    summary = f"**{int(kept['shapes'].sum()):,} shapes** across {len(selected)} classes"
-    if "area_total_um2" in kept.columns:
-        summary += f", totalling **{kept['area_total_um2'].sum():,.{stats.DECIMALS}f} µm²** of tissue"
-    st.write(summary + ".")
-    return selected
-
-
-def overview_step(selected: list[str]) -> None:
-    """Draw the shapes, colouring the chosen classes and greying out the rest."""
-    gdf = st.session_state.gdf
-    with st.spinner("Drawing shapes..."):
-        figure = plot.plot_shapes(
-            gdf,
-            included=selected,
-            calibration_array=st.session_state.calib_array,
-            title=f"{len(gdf)} shapes — coloured classes are the ones you kept",
-        )
-    st.pyplot(figure, width="content")
-    if len(gdf) > plot.SHAPE_LIMIT:
-        st.caption(
-            f"Over {plot.SHAPE_LIMIT:,} shapes, so each one is drawn as a dot rather than "
-            "its outline. The outlines are still what gets cut."
-        )
-    st.caption(
-        "Dashed triangle and crosses are your calibration points. Shapes far outside the "
-        "triangle are the ones at risk of distortion."
-    )
 
 
 def _budget_mode() -> tuple[budget.BudgetMode, float | None]:
@@ -190,18 +85,17 @@ def budgets_step(selected: list[str], step: str = "5") -> tuple[list[budget.Clas
     default_floor = stats.DEFAULT_MINIMUM_AREA_UM2 if pixel_size_um else 0.0
     default_floors = dict.fromkeys(selected, default_floor)
     pool, _excluded = stats.filter_by_minimum_area(gdf, default_floors, pixel_size_um)
-    table = _filtered_statistics(pool, tuple(sorted(default_floors.items())), pixel_size_um)
-    supply = table.reindex(selected)[mode.stats_column].fillna(0)
-
-    # Default to the whole class in a single replicate — the same thing the annotations
-    # workflow would do — so the starting point is neutral rather than an invented number.
+    # Start from what a DVP experiment is normally designed around rather than from the whole
+    # class. Defaulting to everything a class holds meant the feasibility check below could
+    # never fire — a class can always supply all of itself — so the one number that tells the
+    # user whether their plan is possible was silently always green (`decisions.md` 073).
     columns = {
-        budget.DISPLAY_COLUMNS[budget.REPLICATES]: 1,
-        budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: supply.round(stats.DECIMALS),
+        budget.DISPLAY_COLUMNS[budget.REPLICATES]: budget.DEFAULT_REPLICATES,
+        budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: mode.default_per_replicate,
     }
     if pixel_size_um:
         columns[MINIMUM_AREA_COLUMN] = default_floor
-    editable = pandas.DataFrame(columns, index=supply.index)
+    editable = pandas.DataFrame(columns, index=pandas.Index(selected, name=CLASS_NAME))
 
     # A key tied to the selection and mode, so changing either gives a fresh editor rather
     # than leaving rows from the previous one behind.
@@ -211,7 +105,10 @@ def budgets_step(selected: list[str], step: str = "5") -> tuple[list[budget.Clas
             budget.DISPLAY_COLUMNS[budget.REPLICATES], min_value=1, step=1, format="%d"
         ),
         budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: st.column_config.NumberColumn(
-            f"Per replicate ({mode.unit})", min_value=0.0, format=f"%.{stats.DECIMALS}f"
+            f"Per replicate ({mode.unit})",
+            min_value=0.0,
+            step=1_000.0 if mode is budget.BudgetMode.AREA else 10.0,
+            format="localized",
         ),
     }
     if pixel_size_um:
@@ -219,7 +116,7 @@ def budgets_step(selected: list[str], step: str = "5") -> tuple[list[budget.Clas
             MINIMUM_AREA_COLUMN,
             min_value=0.0,
             step=10.0,
-            format=f"%.{stats.DECIMALS}f",
+            format="localized",
             help=(
                 "Shapes smaller than this are left out before anything is counted, so every "
                 "figure below describes tissue you can actually collect. Different biologies "
@@ -269,14 +166,20 @@ def _report_feasibility(
     (`decisions.md` 065).
     """
     check = budget.feasibility(table, budgets, mode, excluded=excluded)
-    display = budget.for_display(check)
-    st.dataframe(
+    # The unit is named in every amount column, not only in "per replicate": a column headed
+    # "Available" tells the reader nothing about whether it counts shapes or µm².
+    display = budget.for_display(check).rename(
+        columns={
+            budget.DISPLAY_COLUMNS[column]: f"{budget.DISPLAY_COLUMNS[column]} ({mode.unit})"
+            for column in (budget.PER_REPLICATE, budget.REQUIRED, budget.AVAILABLE, budget.SHORTFALL)
+        }
+    )
+    ui_shared.show_amounts(
         display,
-        width="stretch",
         column_config={
             budget.DISPLAY_COLUMNS[budget.FILTERED_SHARE]: st.column_config.NumberColumn(
                 budget.DISPLAY_COLUMNS[budget.FILTERED_SHARE],
-                format="%.1f%%",
+                format="%d%%",
                 help=(
                     "Share of this class left out for being under its minimum area. Those "
                     "shapes are gone before anything else here is counted, so every other "
@@ -300,8 +203,8 @@ def _report_feasibility(
     short = check[check[budget.SHORTFALL] > 0]
     if not short.empty:
         lines = "\n".join(
-            f"- **{name}**: asked for {row[budget.REQUIRED]:,.{stats.DECIMALS}f} {mode.unit}, "
-            f"has {row[budget.AVAILABLE]:,.{stats.DECIMALS}f} — enough for "
+            f"- **{name}**: asked for {row[budget.REQUIRED]:,.0f} {mode.unit}, "
+            f"has {row[budget.AVAILABLE]:,.0f} — enough for "
             f"{int(row[budget.ACHIEVABLE])} full replicate(s)"
             for name, row in short.iterrows()
         )
@@ -438,7 +341,7 @@ def selection_step(budgets, settings: dict, pixel_size_um: float | None, pool, s
     # was already told are too small to collect (`decisions.md` 060).
     gdf = pool
     cache_key = (
-        _shape_fingerprint(gdf),
+        ui_shared.shape_fingerprint(gdf),
         tuple(sorted((st.session_state.minimum_area_um2 or {}).items())),
         tuple((item.class_name, item.replicates, item.per_replicate) for item in budgets),
         mode.value,
@@ -466,13 +369,27 @@ def selection_step(budgets, settings: dict, pixel_size_um: float | None, pool, s
 def _report_selection(result: selection.SelectionResult, mode: budget.BudgetMode) -> None:
     """Achieved against requested, per replicate."""
     st.write(f"**{result.n_selected:,} shapes** selected across {len(result.achieved)} replicates.")
-    st.dataframe(result.achieved.round(stats.DECIMALS), width="stretch")
+    # Renamed at render time: the frame carries the library's own column names, and
+    # `area_um2` / `neighbour_also_collected` are identifiers, not something to show a user.
+    ui_shared.show_amounts(
+        result.achieved.rename(
+            columns={
+                CLASS_NAME: "Class",
+                "replicate": "Replicate",
+                "shapes": "Shapes",
+                "area_um2": "Area (µm²)",
+                "requested": f"Asked for ({mode.unit})",
+                "achieved": f"Collected ({mode.unit})",
+                selection.WITH_NEIGHBOUR: "With a collected neighbour",
+            }
+        )
+    )
 
     short = result.shortfalls
     if not short.empty:
         lines = "\n".join(
             f"- **{row[CLASS_NAME]} replicate {int(row['replicate'])}**: got "
-            f"{row['achieved']:,.{stats.DECIMALS}f} of {row['requested']:,.{stats.DECIMALS}f} {mode.unit}"
+            f"{row['achieved']:,.0f} of {row['requested']:,.0f} {mode.unit}"
             for _, row in short.iterrows()
         )
         st.warning(
@@ -557,10 +474,9 @@ def render(uploaded_file) -> None:
 
     pixel_size, _source = ui_shared.resolve_pixel_size()
 
-    selected = class_selection_step(pixel_size, step="4")
+    selected = ui_shared.class_selection_step(pixel_size, step="4")
     if not selected:
         return
-    overview_step(selected)
     st.divider()
 
     budgets, pixel_size, pool = budgets_step(selected, step="5")

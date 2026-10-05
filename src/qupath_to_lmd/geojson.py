@@ -7,6 +7,7 @@ how to present them and so they can be exercised outside Streamlit.
 import ast
 import json
 from dataclasses import dataclass, field
+from typing import Any
 
 import geopandas
 import numpy
@@ -318,6 +319,41 @@ def rewrite_classification(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFram
         return str(as_dict)
 
     gdf["classification"] = gdf.apply(rewrite, axis=1)
+    return gdf
+
+
+def classification_values(gdf: geopandas.GeoDataFrame) -> dict[str, Any]:
+    """The `classification` value QuPath wrote for each class name.
+
+    Used to give shapes this app creates the same class colour the user chose in QuPath, so a
+    re-imported file looks like the one they exported rather than a set of grey outlines.
+    """
+    if "classification" not in gdf.columns or CLASS_NAME not in gdf.columns:
+        return {}
+    first = gdf.dropna(subset=["classification"]).drop_duplicates(subset=[CLASS_NAME])
+    return dict(zip(first[CLASS_NAME], first["classification"], strict=True))
+
+
+def synthesize_qupath_columns(
+    gdf: geopandas.GeoDataFrame, prefix: str, source: geopandas.GeoDataFrame | None = None
+) -> geopandas.GeoDataFrame:
+    """Give shapes this app created the three fields QuPath re-import needs.
+
+    Merged regions and packed circles have no QuPath object behind them, but `sanitize_for_qupath`
+    and the plan frame both require `id`, `objectType` and `classification`. Ids are positional,
+    so the same input always produces the same ids and a collection stays comparable between
+    sessions. `objectType` is `annotation` because that is what QuPath calls a region someone
+    drew, which is what these are.
+    """
+    gdf = gdf.copy()
+    gdf["id"] = [f"{prefix}-{position:06d}" for position in range(len(gdf))]
+    gdf["objectType"] = "annotation"
+
+    known = classification_values(source) if source is not None else {}
+    gdf["classification"] = [
+        known.get(name, str({"name": name})) for name in gdf[CLASS_NAME]
+    ]
+    logger.info(f"Synthesized QuPath fields for {len(gdf)} shapes with prefix {prefix!r}")
     return gdf
 
 

@@ -21,6 +21,15 @@ FILTERED = "filtered_by_area"
 FILTERED_SHARE = "filtered_share"
 
 
+# What a DVP experiment is normally designed around. Three replicates is the smallest number
+# that supports a variance estimate; 25 000 µm² and 150 cells are the per-well amounts in use.
+# Shared by both workflows that collect into replicates, so the figure is one fact rather than
+# two that can drift apart (`decisions.md` 073).
+DEFAULT_REPLICATES = 3
+DEFAULT_AREA_PER_REPLICATE_UM2 = 25_000.0
+DEFAULT_CELLS_PER_REPLICATE = 150
+
+
 class BudgetMode(str, Enum):
     """What a budget counts."""
 
@@ -36,6 +45,20 @@ class BudgetMode(str, Enum):
     def stats_column(self) -> str:
         """Which `stats.class_statistics` column holds the supply for this mode."""
         return "shapes" if self is BudgetMode.CELLS else "area_total_um2"
+
+    @property
+    def default_per_replicate(self) -> float:
+        """How much to offer per replicate before the user changes anything.
+
+        A concrete amount rather than "everything this class holds". The old default asked for
+        the whole class, which is never what an experiment wants and hid the feasibility check —
+        a class can always supply all of itself, so nothing was ever flagged.
+        """
+        return (
+            DEFAULT_CELLS_PER_REPLICATE
+            if self is BudgetMode.CELLS
+            else DEFAULT_AREA_PER_REPLICATE_UM2
+        )
 
 
 @dataclass(frozen=True)

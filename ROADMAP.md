@@ -487,3 +487,140 @@ for correctness — a dropdown cannot produce a typo or a class that does not ex
 4. **Does the estimated pixel size need an audit trail** beyond `provenance.json` — e.g. stated on
    the QC image — given PR 3 makes it the default rather than something the user typed?
 5. **Dilation** is still unanswered from round one, and still shapes what "adjacent" means.
+
+---
+
+# 7. Round three — cellular neighbourhoods and circle packing
+
+Planned 2026-09-17, from Jose's brief. New scope rather than a deferred phase, so it gets its
+own round. Decisions behind it: `decisions.md` 066.
+
+**The experiment it serves.** Collecting by cell type, but as mini-bulk rather than cell by
+cell. A single cell is too little tissue; a whole class outlined by hand is one enormous
+irregular cut the LMD would trace for hours. So: derive the tissue belonging to each class from
+the cells themselves, then fill it with many small circles that cut fast and add up to a chosen
+area per replicate.
+
+```
+cells → Voronoi territory per cell → merge by class → regions
+                                                        │
+                                          PR 1: cut the regions
+                                          PR 2: pack circles into them
+                                                        ▼
+                                                  CollectionPlan → .xml
+```
+
+## PR 1 — regions
+
+> **Done.** Third workflow, `regions.py`, `ui_packing.py`, a `regions` golden case.
+
+Voronoi projection capped at a disc and clipped to the hull of the cell outlines, merge by
+class into one region per contiguous area, area-balanced dealing across replicates, and the
+existing plate and export path. Useful on its own: it collects whole neighbourhoods.
+
+## PR 2 — folded into the same branch
+
+> **Done.** Jose: "without the circle packing the main functionality is half baked… one
+> functionality one PR." So both halves ship together on `feat/circle-packing`.
+
+Ported from the prototype at `PY38_CirclePackingStreamlit`, which is random dart-throwing with
+rejection sampling — the right algorithm here — but which starts from an already-tessellated
+file, has no LMD export, and is not reproducible across sessions. The port is not a copy;
+measured changes, each to be logged:
+
+- `numpy.random.default_rng` rather than the legacy global `numpy.random.seed`, with **one
+  sub-stream per class** — in the prototype the stream is consumed sequentially across classes,
+  so changing one class's spacing silently reshuffles every later class, which makes a
+  feedback loop misleading.
+- **Grid-hashed collision detection** in place of rebuilding a `shapely.STRtree` on every dart.
+  That rebuild is O(n² log n) and is the dominant cost; the replacement is also *more correct*,
+  because `STRtree.query` with no predicate is bounding-box only and rejects legal placements.
+  Measured: 0.04 s for 148 circles, 0.09 s to saturation at 691.
+- Pack **per region** with `shapely.prepare`, distributing a class's target area across its
+  regions in proportion to area, rather than against a class-wide union.
+- Areas from `polygon.area`, not analytic `πr²` — a buffered circle is a polygon and the
+  prototype's accounting is ~0.4% optimistic.
+- **A spacing-aware capacity estimate.** The prototype's flat 0.55 packing density ignores the
+  gap between circles. Measured on a 2000×2000 px square at 0.3467 µm/px, circles 100–500 µm²:
+  54.7% fill at a 0 µm gap, 42.9% at 2, 32.9% at 5, 21.4% at 10, **12.2% at 20**. A flat 0.55
+  would tell a user with a 20 µm gap they had 4.5× more tissue than they do.
+- `n_permutations` (best-of-N restarts) dropped: ×5 cost for a marginal gain, and it makes the
+  random stream depend on it.
+
+**What the measurements turned into, once it was built** — see `decisions.md` 067 and the
+`facts.md` tables. Three bugs only running it could find: regions too narrow for any circle burned
+the whole attempt budget each (119 of 684 on the real core), a one-sided deficit over-packed a
+class by more than twice its target, and packing exactly the total left the last replicate ~5%
+short. 8.6 s and 6-of-9 replicates filled became 0.7 s and 9 of 9.
+
+**The smoothing interaction needs saying on screen.** At the default 1 px tolerance a circle of
+radius ≤ 10 px goes from 65 vertices to 9 and **loses 10% of its area**; at radius ≥ 20 px the
+loss is 2.6%. Area per replicate is this workflow's entire budget, so the achieved figure has
+to describe the geometry that will actually be cut.
+
+The feedback loop is the point: circle sizes, the gap, the seed, the area per replicate and the
+replicate count all live in one step, and the projection and packing caches are what let it
+redraw without re-tessellating.
+
+## Revised after review — `decisions.md` 068 and 069
+
+Jose's two rounds of notes on the working version, and what they changed:
+
+- **The collection step moved above the plate.** The amount and the replicate count are what size
+  the plate, so deciding them first shows the plate once, already correct. The `st.fragment` went
+  with it: a fragment reruns only itself, so the plate and export below the loop would have sat
+  there stale.
+- **Step 6 became side by side** — inputs at a third of the width, a live picture of the
+  collection at two thirds. It is the only step where a user changes a number specifically to see
+  what it does, and scrolling between the two meant nobody tuned at all.
+- **The amount per replicate became per class**, in one table with the replicate count, on
+  `budget.ClassBudget`. On the real core two classes hold ~900 000 µm² each and a third holds
+  220 000, so one global amount could not ask each for what it can give.
+- **Class by fill, replicate by tab20 outline.** Rendering the real core showed both palettes
+  contain an orange, so the fill had to be held back to alpha 0.7 or an orange circle of an
+  orange class hid its own replicate ring.
+- **Removed:** the enclosed-class warning (a non-issue that fired on 21 of 684 regions, so it
+  appeared on an ordinary run) and the "Effort" control (it exposed `max_attempts`, which is how
+  the sampler gives up, not a decision about the experiment).
+- **Every µm² figure is a whole number with a thousands separator.** Areas here run to millions
+  and a tenth of a square micrometre is far below anything the laser can place.
+- **The merge was checked, not argued.** Jose read the picture as a broken merge; the merge was
+  right and the *plot* was wrong — it drew region exteriors only, painting one region over
+  207 000 µm² of the class it surrounds. The invariant (no two regions share any tissue) is now
+  asserted, and holes are drawn as holes.
+- **Colours are measured.** Two full-hue palettes have a fill-outline pair at contrast 1.00 —
+  the same colour. Fills are now tinted toward white and outlines shaded toward black, giving
+  1.78 everywhere with outlines 0.198 apart. Both floors are asserted.
+- **Circle parameters are per class**, in the same table as the replicates and the amount. A
+  sparse class needs smaller circles than a solid one before anything fits.
+
+---
+
+# 8. Round four — generalise the regions UI to the cell workflow
+
+Jose, reviewing round three: *"I like this UI, and should be generalized to the segmentation-based
+workflow as well."*
+
+What the regions workflow got that the cell workflow has not:
+
+- **One per-class table** carrying every number that class needs, instead of a global budget mode
+  plus a separate per-class editor plus separate selection controls.
+- **A live picture directly below the settings**, with a stable encoding — pale fill for the
+  class, dark outline for the replicate — and both legibility floors asserted.
+- **A metrics row** answering "is this a sensible collection?" at a glance.
+- **Whole-number µm² with thousands separators** everywhere. The cell workflow's per-class table
+  still shows two decimals, because `stats.for_display` and `DECIMALS = 2` are shared and asserted
+  by `tests/test_stats.py`. That is the smallest piece of this and could be done on its own.
+
+**First instalment already done** (`decisions.md` 071): `class_selection_step` now draws the
+input beside its own table — every shape in the file, coloured where the class is kept and grey
+where it is not — so the cell workflow has it too and `ui_cells.overview_step` is gone. That step
+was already shared, which made it the cheap half.
+
+**Why the rest is its own PR.** The cell workflow has a minimum-area filter that must run before
+anything is measured (`decisions.md` 060), a budget mode that switches the meaning of a column,
+and a `st.fragment` whose existence depends on the plate sitting *above* it — the opposite of the
+regions order. Converting it means re-deciding all three, and it needs its own manual pass over a
+path that currently carries the most tests in the repo. `tools/golden_harness.py` covers the cell
+output byte-for-byte, so the refactor is safe to attempt; it is the interaction design that needs
+Jose's eye, not the plumbing.
