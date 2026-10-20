@@ -167,3 +167,43 @@ def test_a_look_at_the_tube_holder_does_not_reset_the_plate_margin(monkeypatch):
     assert not [w for w in app.warning if "Session State" in str(w.value)], (
         f"Streamlit warned about the restored values: {[w.value for w in app.warning]}"
     )
+
+
+def test_class_names_with_spaces_reach_their_wells_from_a_hand_typed_file(monkeypatch, tmp_path):
+    """Issue 24, end to end: spaces inside class names, a stray trailing space in QuPath and
+    another in the samples-and-wells file, and every shape still lands in its well."""
+    import json
+
+    document = json.loads((DEMO / "TD_01_verysmall_mIF.geojson").read_text())
+    shapes = [f for f in document["features"] if f["geometry"]["type"] != "Point"]
+    for k, feature in enumerate(shapes):
+        feature["properties"]["classification"] = {"name": ["Immune cells ", "Tumor core"][k % 2], "color": [255, 0, 0]}
+    (tmp_path / "spaced.geojson").write_text(json.dumps(document))
+    (tmp_path / "saw.txt").write_text("{'Immune cells': 'C3', 'Tumor  core ': 'C5'}")
+
+    slide_upload, saw_upload = _Upload(tmp_path / "spaced.geojson"), _Upload(tmp_path / "saw.txt")
+    saw_upload.read = saw_upload.getvalue
+    real = streamlit.file_uploader
+
+    def uploader(label, *args, **kwargs):
+        if kwargs.get("key") == "slide_uploader":
+            return [slide_upload]
+        if kwargs.get("key") == "saw_uploader":
+            return saw_upload
+        return real(label, *args, **kwargs)
+
+    monkeypatch.setattr(streamlit, "file_uploader", uploader)
+    app = AppTest.from_file(str(REPO / "streamlit_app.py"), default_timeout=180)
+    app.run()
+    _confirm_calibration(app)
+    assert not app.exception, f"The app raised: {[e.value for e in app.exception]}"
+    process = [button for button in app.button if "Process" in str(button.label)]
+    assert process, f"No 'Process files' button. Warnings: {[w.value[:200] for w in app.warning]}"
+    process[0].click().run()
+    files = _contents(app)
+    xml = files["spaced.xml"].decode()
+    assert xml.count("<CapID>C3</CapID>") == 3 and xml.count("<CapID>C5</CapID>") == 3, (
+        "Not every shape reached the well its spaced class name was given in the file, so a "
+        "class name with a space would be cut into nothing."
+    )
+    assert not [w for w in app.warning if "no well" in str(w.value)], "A spaced sample was reported as having no well."

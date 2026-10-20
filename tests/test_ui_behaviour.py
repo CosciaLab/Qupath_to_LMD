@@ -194,6 +194,34 @@ def test_a_hard_stop_on_one_of_several_slides_names_that_slide(fake_streamlit, m
     )
 
 
+def test_two_spellings_of_one_class_warn_and_name_their_slides(fake_streamlit):
+    """Issue 24: `Tumor` and `tumor` are collected separately and never pool across slides, which
+    nothing else on screen would reveal."""
+    import pandas
+
+    per_slide = {"A": pandas.DataFrame(index=["Tumor", "Stroma"]), "B": pandas.DataFrame(index=["tumor", "Stroma"])}
+    ui_samples._similar_names(per_slide, several=True)
+    shown = fake_streamlit.shown("warnings")
+    assert "`Tumor` (slide A)" in shown and "`tumor` (slide B)" in shown, (
+        f"The warning does not name both spellings and their slides: {shown[:300]}"
+    )
+    assert "do not pool" in shown, "The warning does not say the slides will not pool."
+
+
+def test_one_spelling_per_class_does_not_warn(fake_streamlit):
+    import pandas
+
+    ui_samples._similar_names({"A": pandas.DataFrame(index=["Tumor", "Immune cells"])}, several=False)
+    assert not fake_streamlit.warnings, f"Distinct classes warned: {fake_streamlit.warnings}"
+
+
+def test_a_misspelt_sample_in_a_custom_file_is_pointed_out():
+    """A sample with no well because the file spells it `tumor_r1` should say so, not just list it."""
+    hint = ui_plates._near_misses(["Tumor_r1", "Stroma_r1"], ["tumor_r1"])
+    assert "`tumor_r1` for `Tumor_r1`" in hint, f"The near miss was not pointed out: {hint!r}"
+    assert ui_plates._near_misses(["Tumor_r1"], ["Stroma_r9"]) == "", "Unrelated names were called a near miss."
+
+
 def test_a_large_file_warns_about_running_locally(fake_streamlit):
     """A whole-slide export needs more memory than the hosted app has, so the user should be
     told before spending ten minutes finding out."""

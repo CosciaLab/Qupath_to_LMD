@@ -11,6 +11,7 @@ import numpy
 import shapely
 from loguru import logger
 
+from qupath_to_lmd.geojson import loose_class_key
 from qupath_to_lmd.plate import acceptable_wells
 
 
@@ -247,3 +248,24 @@ def file_name_qc(file_name: str) -> FileNameReport:
             f"padded {report.padded}; suggested {report.suggestion!r}"
         )
     return report
+
+
+def similar_class_names(classes_by_slide: dict[str, list[str]]) -> list[dict[str, list[str]]]:
+    """Groups of class names that differ only in capitals, spaces, `_` or `-`.
+
+    The app matches class names exactly — that is what decides which shapes share a well — so
+    `Tumor` and `tumor`, or `Immune cells` and `Immune_cells`, are collected as two classes into
+    separate wells, and on several slides they do not pool. Usually that is a typo in QuPath, so
+    it is worth a warning; it is not merged, because only the user knows.
+
+    Returns:
+        One `{class name: [slides holding it]}` per group of two or more spellings.
+    """
+    groups: dict[str, dict[str, list[str]]] = {}
+    for slide, classes in classes_by_slide.items():
+        for name in classes:
+            groups.setdefault(loose_class_key(name), {}).setdefault(name, []).append(slide)
+    similar = [dict(sorted(group.items())) for _key, group in sorted(groups.items()) if len(group) > 1]
+    if similar:
+        logger.warning(f"Class names that differ only in case, spaces, _ or -: {[list(g) for g in similar]}")
+    return similar

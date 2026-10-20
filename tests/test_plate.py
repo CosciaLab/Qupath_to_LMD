@@ -164,3 +164,12 @@ def test_starting_later_leaves_room_for_a_second_slide():
     assert not overlap, (
         f"Two slides collected into the same plate reused wells {overlap}, which would mix samples."
     )
+
+
+def test_a_stray_space_in_a_samples_and_wells_file_still_matches():
+    """Issue 24 from the other side: a sample name typed with a trailing or doubled space would
+    otherwise get no well, and look correct in the file."""
+    assignment = plate.assignment_from_scheme({"Immune  cells_r1 ": " C3", "Tumor_r1": "C5"})
+    assert assignment == {"Immune cells_r1": ("Plate1", "C3"), "Tumor_r1": ("Plate1", "C5")}, (
+        f"Whitespace in the file stopped samples matching: {assignment}"
+    )

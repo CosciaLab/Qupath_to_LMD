@@ -2027,3 +2027,25 @@ Jose's notes after clicking through 078.
   `.xml` whose name matches nothing in their QuPath project, and the issue asks for a warning;
   blocking — the collection itself is right, so a stop would cost a user with a long name for no
   gain.
+
+## 087 — spaces in class names: kept inside, tidied at the ends, near-duplicates warned about
+**Date:** 2026-10-20 · **Status:** active · **issue 24**
+- **The problem:** "when users have spaces, they get removed and they no longer match." That was
+  the pre-refactor samples-and-wells parser, which ran `.replace(" ", "")` over the file, so
+  `Immune cells` became `Immunecells` and matched no class. The current code removes no spaces;
+  checked end to end, inner spaces reach their wells in every method, in the CSVs and in the
+  QuPath re-import. What still broke, silently, was whitespace nobody can see: `Tumor ` is a
+  different class from `Tumor`, so it pools with nothing on another slide and matches nothing in a
+  hand-typed file, while looking identical on screen.
+- **Decision:** Jose's option 2, allow spaces and tidy only the ends — extended to collapse runs
+  of whitespace (tabs, non-breaking spaces from spreadsheets, double spaces) to one space, since
+  those are invisible in the same way. Done once at read and once on loading a
+  samples-and-wells file, reported in the reading table, and written back into `classification`
+  so QuPath reopens what was collected. Spellings that differ only in case, spaces, `_` or `-`
+  are warned about, with their slides, and named as near misses when a custom file misses a
+  sample.
+- **Rejected:** forbidding spaces (option 1) — they break nothing now, and QuPath's own derived
+  classes contain them (`Tumor: Positive`); merging near-duplicates — `Tumor` and `tumor` are
+  usually a typo, but only the user knows, and a merge would put two classes in one well.
+- **Costs accepted:** a QuPath class that really ends in a space comes back without it after a
+  round trip through the processed GeoJSON.

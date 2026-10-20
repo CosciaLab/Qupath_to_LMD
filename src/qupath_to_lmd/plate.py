@@ -15,6 +15,8 @@ from random import Random
 import pandas
 from loguru import logger
 
+from qupath_to_lmd.geojson import tidy_class_name
+
 
 @dataclass(frozen=True)
 class Collector:
@@ -279,7 +281,9 @@ def assignment_from_scheme(parsed: dict, plate: str = "384") -> dict[str, tuple[
     Reads both shapes the app writes: one collector, `{"Tumor_r1": "C3", ...}`, which is the first
     one; and several, `{"Plate1": {"Tumor_r1": "C3"}, "Plate2": {...}}`, which is
     `samples_and_wells.json` from an experiment download and the all-collectors button of Stage 3.
-    Files from before collectors had names, keyed `P1`, `P2`, load as plates.
+    Files from before collectors had names, keyed `P1`, `P2`, load as plates. Sample names are
+    tidied the way class names are when a file is read (`geojson.tidy_class_name`), so a stray
+    space typed into the file cannot stop a sample matching.
 
     Raises:
         SawParseError: a mixture of the two, names for another kind of collector, or names that
@@ -289,7 +293,7 @@ def assignment_from_scheme(parsed: dict, plate: str = "384") -> dict[str, tuple[
     nested = [isinstance(value, dict) for value in parsed.values()]
     if not any(nested):
         first = plate_names(1, plate)[0]
-        return {str(sample): (first, str(well)) for sample, well in parsed.items()}
+        return {tidy_class_name(sample): (first, str(well).strip()) for sample, well in parsed.items()}
     if not all(nested):
         raise SawParseError(
             f"The file mixes {chosen.noun}s and {chosen.position}s at the top level. Use either "
@@ -321,7 +325,7 @@ def assignment_from_scheme(parsed: dict, plate: str = "384") -> dict[str, tuple[
                 f"{chosen.name_prefix}2, …; this file has {names}."
             )
     return {
-        str(sample): (renamed[str(name)], str(well))
+        tidy_class_name(sample): (renamed[str(name)], str(well).strip())
         for name, scheme in parsed.items()
         for sample, well in scheme.items()
     }

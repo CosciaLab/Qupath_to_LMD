@@ -6,6 +6,7 @@ how to present them and so they can be exercised outside Streamlit.
 
 import ast
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -38,6 +39,10 @@ class GeojsonReport:
     n_unclassified_dropped: int = 0
     n_unnamed_classification_dropped: int = 0
     multiclass_counts: dict[str, int] = field(default_factory=dict)
+    # Class names as QuPath wrote them, mapped to the tidied name the app uses, for the ones
+    # that differed (`decisions.md` 087), and how many shapes carried them.
+    tidied_class_names: dict[str, str] = field(default_factory=dict)
+    n_tidied_shapes: int = 0
     multipolygons: pandas.DataFrame | None = None
     n_shapes_kept: int = 0
     # Derived from QuPath's own area measurements while the file is open, so the measurement
@@ -79,6 +84,13 @@ class GeojsonReport:
                 "More than one class",
                 sum(self.multiclass_counts.values()),
                 "kept, as combined classes joined by --",
+            ),
+            (
+                "Class name with extra spaces",
+                self.n_tidied_shapes,
+                "kept, spaces at the ends removed and doubled spaces made single: "
+                + ", ".join(f"'{raw}' → '{tidy}'" for raw, tidy in list(self.tidied_class_names.items())[:3])
+                + (" ..." if len(self.tidied_class_names) > 3 else ""),
             ),
             (
                 "Several separate outlines",
@@ -146,7 +158,15 @@ def read_and_qc(source) -> tuple[geopandas.GeoDataFrame, dict[str, list[float]],
         gdf = gdf[gdf["classification"].notna()]
 
     gdf = gdf.copy()
-    gdf[CLASS_NAME] = gdf["classification"].apply(_classification_name)
+    names = gdf["classification"].apply(_class_names)
+    gdf[CLASS_NAME] = names.str[0]
+    raw = names.str[1]
+    tidied = gdf[CLASS_NAME].notna() & (raw != gdf[CLASS_NAME])
+    if tidied.any():
+        report.tidied_class_names = dict(zip(raw[tidied], gdf.loc[tidied, CLASS_NAME], strict=True))
+        report.n_tidied_shapes = int(tidied.sum())
+        logger.warning(f"Tidied whitespace in {report.n_tidied_shapes} class names: {report.tidied_class_names}")
+        gdf.loc[tidied, "classification"] = gdf.loc[tidied, "classification"].apply(_tidy_classification)
 
     # QuPath multi-class objects carry `names` (plural) instead of `name`; those are joined
     # into one class below. Anything still unnamed cannot be assigned to a well.
@@ -220,6 +240,65 @@ def implied_pixel_size(gdf: geopandas.GeoDataFrame) -> tuple[float | None, int, 
     return median, int(usable.sum()), spread
 
 
+def tidy_class_name(name: str) -> str:
+    """A class name with no spaces at its ends and every run of whitespace one plain space.
+
+    Spaces inside a name are the user's and stay (`Immune cells`). What goes is whitespace
+    nobody can see — a trailing space, a double space, a tab or a non-breaking space pasted in
+    from a spreadsheet — which made `Tumor ` a different class from `Tumor`: it pooled with
+    nothing on another slide and matched nothing in a samples-and-wells file (issue 24).
+    """
+    return " ".join(str(name).split())
+
+
+def loose_class_key(name: str) -> str:
+    """What two spellings of one class have in common: case, spaces, `_` and `-` ignored.
+
+    Only for spotting near-duplicates to warn about. Classes are always matched exactly.
+    """
+    return re.sub(r"[\s_\-]+", " ", str(name)).strip().casefold()
+
+
+def _class_names(value) -> tuple[str | None, str | None]:
+    """The class name the app uses and the one QuPath wrote, from one parse of the value."""
+    parts = _classification_parts(value)
+    if not parts:
+        return None, None
+    tidy = [tidy_class_name(part) for part in parts]
+    if not all(tidy):
+        return None, None
+    return MULTICLASS_SEPARATOR.join(sorted(tidy)), MULTICLASS_SEPARATOR.join(sorted(parts))
+
+
+def _tidy_classification(value) -> str:
+    """The classification value with its name or names tidied, so QuPath re-opens it as used."""
+    as_dict = ast.literal_eval(value) if isinstance(value, str) else dict(value)
+    if as_dict.get("name"):
+        as_dict["name"] = tidy_class_name(as_dict["name"])
+    if isinstance(as_dict.get("names"), list):
+        as_dict["names"] = [tidy_class_name(part) for part in as_dict["names"]]
+    return str(as_dict)
+
+
+def _classification_parts(value) -> list[str] | None:
+    """The class or classes a QuPath `classification` value names, as written."""
+    if isinstance(value, str):
+        try:
+            value = ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            logger.debug(f"Could not parse classification {value!r}")
+            return None
+    if not isinstance(value, dict):
+        return None
+    name = value.get("name")
+    if name:
+        return [str(name)]
+    names = value.get("names")
+    if isinstance(names, list) and names:
+        return [str(part) for part in names]
+    return None
+
+
 def _classification_name(value) -> str | None:
     """Resolve a QuPath `classification` value to a single class name.
 
@@ -229,23 +308,7 @@ def _classification_name(value) -> str | None:
     `MULTICLASS_SEPARATOR` into a single flat class name — the classes are peers, not a
     hierarchy, and sorting means one set of classes always yields one class name.
     """
-    if isinstance(value, str):
-        try:
-            value = ast.literal_eval(value)
-        except (ValueError, SyntaxError):
-            logger.debug(f"Could not parse classification {value!r}")
-            return None
-    if not isinstance(value, dict):
-        return None
-
-    name = value.get("name")
-    if name:
-        return name
-
-    names = value.get("names")
-    if isinstance(names, list) and names:
-        return MULTICLASS_SEPARATOR.join(sorted(str(part) for part in names))
-    return None
+    return _class_names(value)[0]
 
 
 def _calibration_points(gdf: geopandas.GeoDataFrame) -> dict[str, list[float]]:

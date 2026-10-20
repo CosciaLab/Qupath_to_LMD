@@ -161,3 +161,15 @@ def test_the_longest_safe_name_keeps_the_download_inside_the_windows_path_limit(
         f"A {qc.LONGEST_SAFE_FILE_NAME}-character name gives a {len(longest)}-character path once "
         "unzipped, so a name the app calls safe could still lose its .xml on Windows."
     )
+
+
+def test_spellings_of_one_class_are_grouped_across_slides():
+    """`Tumor` on one slide and `tumor` on another never pool; the user has to be told."""
+    groups = qc.similar_class_names({"A": ["Tumor", "Immune cells", "Stroma"], "B": ["tumor", "Immune_cells", "Stroma"]})
+    assert groups == [{"Immune cells": ["A"], "Immune_cells": ["B"]}, {"Tumor": ["A"], "tumor": ["B"]}], (
+        f"Two spellings of one class were not grouped by slide: {groups}"
+    )
+
+
+def test_distinct_classes_are_not_called_similar():
+    assert not qc.similar_class_names({"A": ["Tumor", "Tumor_core", "T cell", "B cell", "Immune cells--Tumor"]})

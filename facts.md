@@ -117,6 +117,17 @@ Verified against both demo files.
     combined class the user can assign a well to, e.g. `Immune cells--Tumor`. Sorted so one
     set of classes always yields one class name regardless of the order QuPath wrote them.
   - missing entirely — unclassified, dropped with a count
+
+  **Whitespace in class names is tidied at read** (`geojson.tidy_class_name`, `decisions.md`
+  087): spaces at the ends go and any run of whitespace — doubled spaces, tabs, non-breaking
+  spaces — becomes one space, per part before multi-class names are sorted and joined. Spaces
+  inside a name stay (`Immune cells`, `CD8 T cell: PD1 positive`). The `classification` value of
+  a tidied shape is rewritten so the processed GeoJSON reopens in QuPath under the name collected,
+  and the reading table gains a "Class name with extra spaces" row naming what changed. A name of
+  only spaces counts as unnamed. Samples-and-wells files are tidied the same way on load
+  (`plate.assignment_from_scheme`). Names are still matched **exactly**: spellings that differ
+  only in case, spaces, `_` or `-` (`geojson.loose_class_key`) are warned about in Stage 2 by
+  `qc.similar_class_names`, and a custom file's near misses are named in Stage 3, never merged.
 - `name` — set on calibration Points, `None` on annotations and cells. **QuPath omits a
   property entirely when no object in the export has it**, so a file with no calibration
   points has no `name` column at all. That is the single most common shape of a "broken"
