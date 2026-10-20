@@ -624,3 +624,81 @@ regions order. Converting it means re-deciding all three, and it needs its own m
 path that currently carries the most tests in the repo. `tools/golden_harness.py` covers the cell
 output byte-for-byte, so the refactor is safe to attempt; it is the interaction design that needs
 Jose's eye, not the plumbing.
+
+---
+
+# 9. Round five — experiments: several slides, several plates
+
+Planned 2026-10-07, from Jose's brief: *"support users that want to collect tissue from 2+ slides
+into a same well, taking into account the areas from the different slides may differ."* Then,
+reviewing the first plan: *"I would like to already setup the framework where users can design
+multi-slide multi-plate experiments… I am a bit scared the UI/UX will quickly get confusing."*
+Decisions behind it: `decisions.md` 075 and 076.
+
+**The experiment it serves.** Slide A holds 50 000 µm² of Tumor, slide B 40 000, and a replicate
+needs 75 000. Today the app reads one GeoJSON and fills one plate: **Start at well** (061) puts
+slides into *different* wells, and nothing adds an amount up across slides. Separately, an
+experiment with more samples than one plate's usable wells has the surplus reported and dropped.
+
+The unit the app designs becomes the **experiment**:
+
+```
+slides (each: shapes, calibration, scale)
+   │   engines run once per slide, unchanged; only the bookkeeping spans slides
+   ▼
+samples (class_rN: target, available, achieved, µm² per slide)   ← the sample sheet
+   │   balanced across plates by default
+   ▼
+plates (P1, P2, … each with its own wells)
+   │
+   ▼
+one .xml per slide × plate, plus HOW_TO_CUT.txt in the order the user chose
+```
+
+One slide and one plate is the degenerate case and must look, behave and export **exactly** as
+today — the seven existing golden cases pass without re-blessing, and that is the gate.
+
+## Keeping it legible
+
+Jose's worry, so it is a rule set rather than a hope:
+
+1. **Four stages, always in this order:** Slides → Samples → Plates → Cut. What to collect never
+   depends on plate settings.
+2. **Progressive disclosure.** Slide tabs only with 2+ slides; plate tabs only with 2+ plates; the
+   slide strategy only with 2+ slides; the cut-order choice only with 2+ slides and 2+ plates.
+3. **One experiment-at-a-glance line** above the stages, updated live:
+   *"2 slides → 27 samples (9 classes × 3 replicates) → 1 plate, 27 of 54 usable wells"*.
+4. **The sample sheet is the central table**, one row per sample, and every other table is a view of
+   it. It is downloaded as `samples.csv`, which is also what the mass-spec queue needs.
+5. **At most one new control per stage.**
+6. **The pooling assumption is said once, where it bites** — under Samples, when a second slide is
+   added.
+
+## PRs
+
+Each on a branch cut from `origin/dev`. The UI PRs end with a manual pass by Jose before the next
+starts, so the layout can be corrected while it is cheap to change.
+
+| PR | Branch | What | Depends on |
+| --- | --- | --- | --- |
+| 1 | `docs/experiment-design` | This section, `decisions.md` 075–076, glossary *slide*, *sample*, *plate* | — |
+| 2 | `feat/multi-slide-library` | `slides.py`: `Slide`, `read_slides`, `SlideStrategy`, `split_budgets`, `run_across_slides`; `CollectionPlan.split`; golden case `two_slides` | 1 |
+| 3 | `feat/multi-plate-library` | `plate.assign_to_plates`, `PlateDistribution`, `plates_needed`; `export.build_experiment_bundle`; golden case `two_plates` | 2 |
+| 4 | `feat/experiment-ui-cells` | Four stages, at-a-glance line, slide tabs, sample sheet, shared `plates_step`, export UX — cell workflow, which also serves annotations up to a threshold | 3 |
+| 5 | `feat/experiment-ui-regions` | The regions workflow on the same stages; `QuPath_scripts/export_for_lmd.groovy`; zip upload documented | 4 |
+
+**Overlap with round four.** Round four moves the cell workflow's plate below its collection step
+and gives it the regions-style per-class table. PR 4 needs the first of those — Samples before
+Plates is rule 1 above — so, per Jose, PR 4 is done as part of round four rather than after it.
+
+**Not in this round:** the annotations workflow (frozen; it keeps one slide and one plate, and
+points to the selection workflow for amounts across slides); mixed plate types in one experiment;
+reading a `.qpproj` directly; a sidecar carrying QuPath's own pixel size.
+
+## Open, to be decided during implementation and logged
+
+- Area targets overshoot by up to one shape **per slide** per replicate rather than once. Reported
+  in the achieved columns, not corrected.
+- In priority mode the slide order defaults to upload order and is editable.
+- What BALANCED does when a class has fewer replicates than there are plates: that class cannot
+  be on every plate, and the plate stage says which plates lack it.

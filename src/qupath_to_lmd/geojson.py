@@ -283,11 +283,16 @@ def _named_point_count(gdf: geopandas.GeoDataFrame) -> int:
     return int(sum(1 for label in points["name"] if label and not pandas.isna(label)))
 
 
-def explode_classes(gdf: geopandas.GeoDataFrame, classes: list[str]) -> geopandas.GeoDataFrame:
+def explode_classes(
+    gdf: geopandas.GeoDataFrame, classes: list[str], label: str | None = None
+) -> geopandas.GeoDataFrame:
     """Give every shape of the named classes its own numbered class, for single-cell collection.
 
     `T-Cell` becomes `T-Cell_001`, `T-Cell_002`, ... Re-running is safe: the original name
     is remembered, so matching is always done against it rather than against the last result.
+
+    With several slides, pass the slide name as `label` — `T-Cell_A_001` — or the first cell of
+    every slide would share a name, and so a well.
     """
     logger.info(f"Exploding classes into per-shape names: {classes}")
     gdf = gdf.copy()
@@ -298,7 +303,8 @@ def explode_classes(gdf: geopandas.GeoDataFrame, classes: list[str]) -> geopanda
     for class_name in classes:
         matching = gdf.index[gdf["original_classification_name"] == class_name]
         for i, idx in enumerate(matching, start=1):
-            gdf.loc[idx, CLASS_NAME] = f"{class_name}_{str(i).zfill(3)}"
+            stem = f"{class_name}_{label}" if label else class_name
+            gdf.loc[idx, CLASS_NAME] = f"{stem}_{str(i).zfill(3)}"
 
     gdf = rewrite_classification(gdf)
     logger.success(f"Exploded {len(classes)} class(es)")

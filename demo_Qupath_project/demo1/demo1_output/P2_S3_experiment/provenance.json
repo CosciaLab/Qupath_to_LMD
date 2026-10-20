@@ -1,0 +1,676 @@
+{
+    "experiment": {
+        "workflow": "cells",
+        "slides": [
+            "P2_S3",
+            "P2_S2",
+            "P2_S1",
+            "P1_S3",
+            "P1_S2",
+            "P1_S1"
+        ],
+        "selection_mode": "spread",
+        "avoid_adjacent": true,
+        "neighbour_distance_px": 1.0,
+        "seed": 0,
+        "budget_mode": "area",
+        "minimum_area_um2": {
+            "P1_Cancer": 100.0,
+            "P1_Immune": 100.0,
+            "P1_Stroma": 100.0,
+            "P2_Cancer": 100.0,
+            "P2_Immune": 100.0,
+            "P2_Stroma": 100.0
+        },
+        "budgets": [
+            {
+                "class_name": "P1_Cancer",
+                "replicates": 2,
+                "per_replicate": 150000.0
+            },
+            {
+                "class_name": "P1_Immune",
+                "replicates": 2,
+                "per_replicate": 50000.0
+            },
+            {
+                "class_name": "P1_Stroma",
+                "replicates": 2,
+                "per_replicate": 350000.0
+            },
+            {
+                "class_name": "P2_Cancer",
+                "replicates": 2,
+                "per_replicate": 150000.0
+            },
+            {
+                "class_name": "P2_Immune",
+                "replicates": 2,
+                "per_replicate": 50000.0
+            },
+            {
+                "class_name": "P2_Stroma",
+                "replicates": 2,
+                "per_replicate": 350000.0
+            }
+        ],
+        "slide_strategy": "proportional",
+        "slide_order": [
+            "P2_S3",
+            "P2_S2",
+            "P2_S1",
+            "P1_S3",
+            "P1_S2",
+            "P1_S1"
+        ],
+        "plate": "384",
+        "margins": 2,
+        "step_row": 2,
+        "step_col": 2,
+        "randomize_wells": false,
+        "samples_and_wells_source": "plate builder",
+        "cut_order": "slide"
+    },
+    "cuts": [
+        {
+            "slide": "P2_S3",
+            "plate": "P1",
+            "file": "slide_P2_S3/P2_S3__P1.xml",
+            "workflow": "cells",
+            "source_file": "P2_S3.geojson",
+            "session_id": "74f713cb-029d-40bd-beea-baa9593664a8",
+            "pixel_size_um": 0.5000001088176468,
+            "calibration_points": {
+                "calib1": [
+                    3132.76,
+                    2221.48
+                ],
+                "calib3": [
+                    151.33,
+                    2140.99
+                ],
+                "calib5": [
+                    2604.91,
+                    666.84
+                ]
+            },
+            "parameters": {
+                "selection_mode": "spread",
+                "avoid_adjacent": true,
+                "neighbour_distance_px": 1.0,
+                "seed": 0,
+                "budget_mode": "area",
+                "minimum_area_um2": {
+                    "P1_Cancer": 100.0,
+                    "P1_Immune": 100.0,
+                    "P1_Stroma": 100.0,
+                    "P2_Cancer": 100.0,
+                    "P2_Immune": 100.0,
+                    "P2_Stroma": 100.0
+                },
+                "budgets": [
+                    {
+                        "class_name": "P1_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P1_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P1_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    },
+                    {
+                        "class_name": "P2_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P2_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P2_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    }
+                ],
+                "slide_strategy": "proportional",
+                "slide_order": [
+                    "P2_S3",
+                    "P2_S2",
+                    "P2_S1",
+                    "P1_S3",
+                    "P1_S2",
+                    "P1_S1"
+                ],
+                "plate": "P1",
+                "margins": 2,
+                "step_row": 2,
+                "step_col": 2,
+                "randomize_wells": false,
+                "samples_and_wells_source": "plate builder",
+                "simplify_tolerance_px": 1.0,
+                "path_order": "hilbert",
+                "slide": "P2_S3"
+            },
+            "shapes_total": 1655,
+            "shapes_selected": 1438,
+            "shapes_skipped": 217,
+            "groups": 6,
+            "wells_used": [
+                "C15",
+                "C17",
+                "C19",
+                "C21",
+                "E3",
+                "E5"
+            ]
+        },
+        {
+            "slide": "P2_S2",
+            "plate": "P1",
+            "file": "slide_P2_S2/P2_S2__P1.xml",
+            "workflow": "cells",
+            "source_file": "P2_S2.geojson",
+            "session_id": "74f713cb-029d-40bd-beea-baa9593664a8",
+            "pixel_size_um": 0.49999993339563237,
+            "calibration_points": {
+                "calib2": [
+                    1673.95,
+                    3076.26
+                ],
+                "calib3": [
+                    220.68,
+                    2067.54
+                ],
+                "calib4": [
+                    849.51,
+                    550.94
+                ]
+            },
+            "parameters": {
+                "selection_mode": "spread",
+                "avoid_adjacent": true,
+                "neighbour_distance_px": 1.0,
+                "seed": 0,
+                "budget_mode": "area",
+                "minimum_area_um2": {
+                    "P1_Cancer": 100.0,
+                    "P1_Immune": 100.0,
+                    "P1_Stroma": 100.0,
+                    "P2_Cancer": 100.0,
+                    "P2_Immune": 100.0,
+                    "P2_Stroma": 100.0
+                },
+                "budgets": [
+                    {
+                        "class_name": "P1_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P1_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P1_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    },
+                    {
+                        "class_name": "P2_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P2_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P2_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    }
+                ],
+                "slide_strategy": "proportional",
+                "slide_order": [
+                    "P2_S3",
+                    "P2_S2",
+                    "P2_S1",
+                    "P1_S3",
+                    "P1_S2",
+                    "P1_S1"
+                ],
+                "plate": "P1",
+                "margins": 2,
+                "step_row": 2,
+                "step_col": 2,
+                "randomize_wells": false,
+                "samples_and_wells_source": "plate builder",
+                "simplify_tolerance_px": 1.0,
+                "path_order": "hilbert",
+                "slide": "P2_S2"
+            },
+            "shapes_total": 1588,
+            "shapes_selected": 1367,
+            "shapes_skipped": 221,
+            "groups": 6,
+            "wells_used": [
+                "C15",
+                "C17",
+                "C19",
+                "C21",
+                "E3",
+                "E5"
+            ]
+        },
+        {
+            "slide": "P2_S1",
+            "plate": "P1",
+            "file": "slide_P2_S1/P2_S1__P1.xml",
+            "workflow": "cells",
+            "source_file": "P2_S1.geojson",
+            "session_id": "74f713cb-029d-40bd-beea-baa9593664a8",
+            "pixel_size_um": 0.4999999052571208,
+            "calibration_points": {
+                "calib2": [
+                    1796.33,
+                    3058.07
+                ],
+                "calib1": [
+                    3225.28,
+                    2015.18
+                ],
+                "calib5": [
+                    2560.68,
+                    513.92
+                ]
+            },
+            "parameters": {
+                "selection_mode": "spread",
+                "avoid_adjacent": true,
+                "neighbour_distance_px": 1.0,
+                "seed": 0,
+                "budget_mode": "area",
+                "minimum_area_um2": {
+                    "P1_Cancer": 100.0,
+                    "P1_Immune": 100.0,
+                    "P1_Stroma": 100.0,
+                    "P2_Cancer": 100.0,
+                    "P2_Immune": 100.0,
+                    "P2_Stroma": 100.0
+                },
+                "budgets": [
+                    {
+                        "class_name": "P1_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P1_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P1_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    },
+                    {
+                        "class_name": "P2_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P2_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P2_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    }
+                ],
+                "slide_strategy": "proportional",
+                "slide_order": [
+                    "P2_S3",
+                    "P2_S2",
+                    "P2_S1",
+                    "P1_S3",
+                    "P1_S2",
+                    "P1_S1"
+                ],
+                "plate": "P1",
+                "margins": 2,
+                "step_row": 2,
+                "step_col": 2,
+                "randomize_wells": false,
+                "samples_and_wells_source": "plate builder",
+                "simplify_tolerance_px": 1.0,
+                "path_order": "hilbert",
+                "slide": "P2_S1"
+            },
+            "shapes_total": 1657,
+            "shapes_selected": 1436,
+            "shapes_skipped": 221,
+            "groups": 6,
+            "wells_used": [
+                "C15",
+                "C17",
+                "C19",
+                "C21",
+                "E3",
+                "E5"
+            ]
+        },
+        {
+            "slide": "P1_S3",
+            "plate": "P1",
+            "file": "slide_P1_S3/P1_S3__P1.xml",
+            "workflow": "cells",
+            "source_file": "P1_S3.geojson",
+            "session_id": "74f713cb-029d-40bd-beea-baa9593664a8",
+            "pixel_size_um": 0.5000000362235899,
+            "calibration_points": {
+                "calib1": [
+                    3177.56,
+                    2137.71
+                ],
+                "calib3": [
+                    196.48,
+                    2045.25
+                ],
+                "calib5": [
+                    2654.04,
+                    642.89
+                ]
+            },
+            "parameters": {
+                "selection_mode": "spread",
+                "avoid_adjacent": true,
+                "neighbour_distance_px": 1.0,
+                "seed": 0,
+                "budget_mode": "area",
+                "minimum_area_um2": {
+                    "P1_Cancer": 100.0,
+                    "P1_Immune": 100.0,
+                    "P1_Stroma": 100.0,
+                    "P2_Cancer": 100.0,
+                    "P2_Immune": 100.0,
+                    "P2_Stroma": 100.0
+                },
+                "budgets": [
+                    {
+                        "class_name": "P1_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P1_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P1_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    },
+                    {
+                        "class_name": "P2_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P2_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P2_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    }
+                ],
+                "slide_strategy": "proportional",
+                "slide_order": [
+                    "P2_S3",
+                    "P2_S2",
+                    "P2_S1",
+                    "P1_S3",
+                    "P1_S2",
+                    "P1_S1"
+                ],
+                "plate": "P1",
+                "margins": 2,
+                "step_row": 2,
+                "step_col": 2,
+                "randomize_wells": false,
+                "samples_and_wells_source": "plate builder",
+                "simplify_tolerance_px": 1.0,
+                "path_order": "hilbert",
+                "slide": "P1_S3"
+            },
+            "shapes_total": 1724,
+            "shapes_selected": 1440,
+            "shapes_skipped": 284,
+            "groups": 6,
+            "wells_used": [
+                "C11",
+                "C13",
+                "C3",
+                "C5",
+                "C7",
+                "C9"
+            ]
+        },
+        {
+            "slide": "P1_S2",
+            "plate": "P1",
+            "file": "slide_P1_S2/P1_S2__P1.xml",
+            "workflow": "cells",
+            "source_file": "P1_S2.geojson",
+            "session_id": "74f713cb-029d-40bd-beea-baa9593664a8",
+            "pixel_size_um": 0.500000023906975,
+            "calibration_points": {
+                "calib3": [
+                    228.3,
+                    2156.8
+                ],
+                "calib1": [
+                    3208.55,
+                    2040.62
+                ],
+                "calib5": [
+                    2581.8,
+                    586.06
+                ]
+            },
+            "parameters": {
+                "selection_mode": "spread",
+                "avoid_adjacent": true,
+                "neighbour_distance_px": 1.0,
+                "seed": 0,
+                "budget_mode": "area",
+                "minimum_area_um2": {
+                    "P1_Cancer": 100.0,
+                    "P1_Immune": 100.0,
+                    "P1_Stroma": 100.0,
+                    "P2_Cancer": 100.0,
+                    "P2_Immune": 100.0,
+                    "P2_Stroma": 100.0
+                },
+                "budgets": [
+                    {
+                        "class_name": "P1_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P1_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P1_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    },
+                    {
+                        "class_name": "P2_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P2_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P2_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    }
+                ],
+                "slide_strategy": "proportional",
+                "slide_order": [
+                    "P2_S3",
+                    "P2_S2",
+                    "P2_S1",
+                    "P1_S3",
+                    "P1_S2",
+                    "P1_S1"
+                ],
+                "plate": "P1",
+                "margins": 2,
+                "step_row": 2,
+                "step_col": 2,
+                "randomize_wells": false,
+                "samples_and_wells_source": "plate builder",
+                "simplify_tolerance_px": 1.0,
+                "path_order": "hilbert",
+                "slide": "P1_S2"
+            },
+            "shapes_total": 1679,
+            "shapes_selected": 1398,
+            "shapes_skipped": 281,
+            "groups": 6,
+            "wells_used": [
+                "C11",
+                "C13",
+                "C3",
+                "C5",
+                "C7",
+                "C9"
+            ]
+        },
+        {
+            "slide": "P1_S1",
+            "plate": "P1",
+            "file": "slide_P1_S1/P1_S1__P1.xml",
+            "workflow": "cells",
+            "source_file": "P1_S1.geojson",
+            "session_id": "74f713cb-029d-40bd-beea-baa9593664a8",
+            "pixel_size_um": 0.5000000411778643,
+            "calibration_points": {
+                "calib1": [
+                    3211.03,
+                    2109.41
+                ],
+                "calib3": [
+                    230.49,
+                    2001.06
+                ],
+                "calib5": [
+                    2695.49,
+                    611.83
+                ]
+            },
+            "parameters": {
+                "selection_mode": "spread",
+                "avoid_adjacent": true,
+                "neighbour_distance_px": 1.0,
+                "seed": 0,
+                "budget_mode": "area",
+                "minimum_area_um2": {
+                    "P1_Cancer": 100.0,
+                    "P1_Immune": 100.0,
+                    "P1_Stroma": 100.0,
+                    "P2_Cancer": 100.0,
+                    "P2_Immune": 100.0,
+                    "P2_Stroma": 100.0
+                },
+                "budgets": [
+                    {
+                        "class_name": "P1_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P1_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P1_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    },
+                    {
+                        "class_name": "P2_Cancer",
+                        "replicates": 2,
+                        "per_replicate": 150000.0
+                    },
+                    {
+                        "class_name": "P2_Immune",
+                        "replicates": 2,
+                        "per_replicate": 50000.0
+                    },
+                    {
+                        "class_name": "P2_Stroma",
+                        "replicates": 2,
+                        "per_replicate": 350000.0
+                    }
+                ],
+                "slide_strategy": "proportional",
+                "slide_order": [
+                    "P2_S3",
+                    "P2_S2",
+                    "P2_S1",
+                    "P1_S3",
+                    "P1_S2",
+                    "P1_S1"
+                ],
+                "plate": "P1",
+                "margins": 2,
+                "step_row": 2,
+                "step_col": 2,
+                "randomize_wells": false,
+                "samples_and_wells_source": "plate builder",
+                "simplify_tolerance_px": 1.0,
+                "path_order": "hilbert",
+                "slide": "P1_S1"
+            },
+            "shapes_total": 1658,
+            "shapes_selected": 1389,
+            "shapes_skipped": 269,
+            "groups": 6,
+            "wells_used": [
+                "C11",
+                "C13",
+                "C3",
+                "C5",
+                "C7",
+                "C9"
+            ]
+        }
+    ]
+}

@@ -12,6 +12,9 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SOURCE = sorted((ROOT / "src" / "qupath_to_lmd").glob("*.py")) + [ROOT / "streamlit_app.py"]
 GLOSSARY = ROOT / "GLOSSARY.md"
+# Every module that shows the user text: all of the UI layer, found rather than listed, so a new
+# stage or collection method is checked without anyone remembering to add it.
+UI_MODULES = sorted(path.name for path in (ROOT / "src" / "qupath_to_lmd").glob("ui_*.py"))
 
 
 def _sources_without_mock():
@@ -61,7 +64,7 @@ def test_plate_dimensions_does_not_borrow_the_word_shape():
 @pytest.mark.parametrize(
     "term",
     ["shape", "object", "polygon", "class", "group", "replicate", "well",
-     "calibration point", "pixel size", "neighbour", "collection"],
+     "calibration point", "pixel size", "neighbour", "collection", "collector", "tube"],
 )
 def test_the_glossary_defines_every_canonical_term(term):
     """A term used in the interface but absent from the glossary is a term nobody can look up."""
@@ -104,7 +107,7 @@ def _ui_strings(path: pathlib.Path) -> list[tuple[int, str]]:
     ]
 
 
-@pytest.mark.parametrize("module", ["ui_shared.py", "ui_cells.py", "ui_legacy.py"])
+@pytest.mark.parametrize("module", UI_MODULES)
 def test_no_user_facing_text_says_object(module):
     """A user reading one screen should not see three words for the same thing.
 
@@ -126,7 +129,7 @@ def test_no_user_facing_text_says_object(module):
     )
 
 
-@pytest.mark.parametrize("module", ["ui_shared.py", "ui_cells.py", "ui_legacy.py"])
+@pytest.mark.parametrize("module", UI_MODULES)
 def test_no_user_facing_text_leads_with_a_geometry_type(module):
     """"14145 Polygons" told the user about shapely, not about their tissue.
 

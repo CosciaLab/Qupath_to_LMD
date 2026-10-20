@@ -1,0 +1,19 @@
+6 slides, 1 plate, 6 .xml files.
+
+1. Mount slide P2_S3.
+   a. Put plate P1 in the collector. Import slide_P2_S3/P2_S3__P1.xml and locate calib1, calib3, calib5. Cut (1438 shapes into 6 wells).
+
+2. Mount slide P2_S2.
+   a. Put plate P1 in the collector. Import slide_P2_S2/P2_S2__P1.xml and locate calib2, calib3, calib4. Cut (1367 shapes into 6 wells).
+
+3. Mount slide P2_S1.
+   a. Put plate P1 in the collector. Import slide_P2_S1/P2_S1__P1.xml and locate calib2, calib1, calib5. Cut (1436 shapes into 6 wells).
+
+4. Mount slide P1_S3.
+   a. Put plate P1 in the collector. Import slide_P1_S3/P1_S3__P1.xml and locate calib1, calib3, calib5. Cut (1440 shapes into 6 wells).
+
+5. Mount slide P1_S2.
+   a. Put plate P1 in the collector. Import slide_P1_S2/P1_S2__P1.xml and locate calib3, calib1, calib5. Cut (1398 shapes into 6 wells).
+
+6. Mount slide P1_S1.
+   a. Put plate P1 in the collector. Import slide_P1_S1/P1_S1__P1.xml and locate calib1, calib3, calib5. Cut (1389 shapes into 6 wells).

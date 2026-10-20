@@ -39,7 +39,7 @@ from pathlib import Path
 # matplotlib.
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-from qupath_to_lmd import export, geojson, packing, plate, qc, regions
+from qupath_to_lmd import budget, export, geojson, packing, plate, qc, regions, selection, slides
 from qupath_to_lmd.model import CLASS_NAME, REPLICATE, plan_from_class_wells, plan_from_selection
 
 REPO = Path(__file__).resolve().parent.parent
@@ -71,6 +71,33 @@ CASES = {
         "source": DEMO / "multiclass_cells.geojson",
         "replicates": 2,
         "pixel_size_um": 0.6535,
+    },
+    # several slides into the same samples: one .xml per slide, sharing wells. The same file
+    # twice, so the slides overlap exactly in pixel space — the case where mixing them into one
+    # frame would go wrong. An odd shape count splits unevenly, so the two .xml files differ.
+    "two_slides": {
+        "kind": "slides",
+        "sources": [DEMO / "Single_cells.geojson", DEMO / "Single_cells.geojson"],
+        "replicates": 2,
+        "per_replicate": 15,
+    },
+    # several plates: nine samples on six-well plates, balanced so every plate holds every
+    # class. One .xml and one plate map per plate.
+    "two_plates": {
+        "kind": "plates",
+        "source": DEMO / "multiclass_cells.geojson",
+        "replicates": 3,
+        "per_replicate": 2,
+    },
+    # a tube holder: positions are letters, so the CapIDs and the one-column map differ
+    "tubes": {"source": DEMO / "TD_01_verysmall_mIF.geojson", "plate_type": "tubes"},
+    # strip holders: nine samples need two 8-well strips, so collector names reach the files
+    "strips": {
+        "kind": "plates",
+        "source": DEMO / "multiclass_cells.geojson",
+        "replicates": 3,
+        "per_replicate": 2,
+        "plate_type": "strip",
     },
 }
 
@@ -183,23 +210,101 @@ def run_packing_case(
     return result.xml, result.csv
 
 
-def _run(kind: str = "annotations", **kwargs) -> tuple[str, str]:
-    """Dispatch a case to the pipeline it exercises."""
+def run_slides_case(sources, replicates=1, per_replicate=10, plate_type="384", margin=1) -> dict[str, str]:
+    """Drive several slides into shared samples and return one XML per slide plus the plate CSV.
+
+    Shape counts rather than areas, so the split between slides is whole shapes and the case
+    does not depend on a pixel size.
+    """
+    read = slides.read_slides([str(source) for source in sources])
+    pools = {slide.name: slide.gdf for slide in read}
+    scales = dict.fromkeys(pools)
+    budgets = [budget.ClassBudget("single_cells_demo", replicates, per_replicate)]
+    pooled = slides.select_across_slides(
+        pools, budgets, budget.BudgetMode.CELLS, selection.SelectionParams(), scales
+    )
+    samples_and_wells = plate.assign_wells(
+        budget.group_keys(budgets), plate.acceptable_wells(plate=plate_type, margins=margin)
+    )
+    calibration = {}
+    for slide in read:
+        names = list(slide.calibration_points)[:3]
+        calibration[slide.name] = (
+            names, qc.triangle_qc(slide.gdf, slide.calibration_points, names).calibration_array
+        )
+    plans = slides.plans_for_slides(read, pooled, samples_and_wells, calibration, scales, session_id="golden")
+
+    artefacts = {}
+    for name, plan in plans.items():
+        result = export.build_collection(plan, samples_and_wells=samples_and_wells, plate=plate_type)
+        artefacts[f"{name}.xml"] = result.xml
+        artefacts["csv"] = result.csv
+    return artefacts
+
+
+def run_plates_case(source, replicates=1, per_replicate=1, plate_type="96") -> dict[str, str]:
+    """Drive one slide onto two balanced collectors and return each one's XML and map."""
+    read = slides.read_slides([str(source)])
+    pools = {slide.name: slide.gdf for slide in read}
+    scales = dict.fromkeys(pools)
+    classes = sorted(set(read[0].gdf[CLASS_NAME]))
+    budgets = [budget.ClassBudget(name, replicates, per_replicate) for name in classes]
+    pooled = slides.select_across_slides(
+        pools, budgets, budget.BudgetMode.CELLS, selection.SelectionParams(), scales
+    )
+    if plate_type == "96":
+        wells = plate.acceptable_wells(plate="96", margins=3, step_col=2)
+    else:
+        wells = plate.acceptable_wells(plate=plate_type)
+    groups = budget.group_keys(budgets)
+    assignment = plate.assign_to_plates(
+        groups, wells, plate.plates_needed(len(groups), len(wells)), plate=plate_type
+    )
+    names = list(read[0].calibration_points)[:3]
+    calibration = {
+        read[0].name: (names, qc.triangle_qc(read[0].gdf, read[0].calibration_points, names).calibration_array)
+    }
+    samples = slides.selected_samples(pools, pooled, budgets, budget.BudgetMode.CELLS, scales)
+    cuts = slides.cuts_for_experiment(
+        samples, read, assignment, calibration, plate=plate_type, session_id="golden"
+    )
+    artefacts = {}
+    for cut in cuts:
+        artefacts[f"{_golden_label(cut.plate)}.xml"] = cut.result.xml
+        artefacts[f"{_golden_label(cut.plate)}.csv"] = cut.result.csv
+    return artefacts
+
+
+def _golden_label(name: str) -> str:
+    """`Plate1` is filed as `P1`.
+
+    The reference files predate collector names, and renaming them would be editing tools/golden/.
+    """
+    return f"P{name[len('Plate'):]}" if name.startswith("Plate") else name
+
+
+def _run(kind: str = "annotations", **kwargs) -> dict[str, str]:
+    """Dispatch a case to the pipeline it exercises; returns artefacts by file suffix."""
+    if kind == "slides":
+        return run_slides_case(**kwargs)
+    if kind == "plates":
+        return run_plates_case(**kwargs)
     if kind == "regions":
-        return run_regions_case(**kwargs)
-    if kind == "packing":
-        return run_packing_case(**kwargs)
-    return run_case(**kwargs)
+        xml, csv = run_regions_case(**kwargs)
+    elif kind == "packing":
+        xml, csv = run_packing_case(**kwargs)
+    else:
+        xml, csv = run_case(**kwargs)
+    return {"xml": xml, "csv": csv}
 
 
 def capture() -> int:
     """Write current output to tools/golden/, replacing what is there."""
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
     for name, kwargs in CASES.items():
-        xml, csv = _run(**kwargs)
-        (GOLDEN_DIR / f"{name}.xml").write_text(xml)
-        (GOLDEN_DIR / f"{name}.csv").write_text(csv)
-        print(f"captured  {name}  xml={len(xml)}B csv={len(csv)}B")
+        for suffix, content in _run(**kwargs).items():
+            (GOLDEN_DIR / f"{name}.{suffix}").write_text(content)
+            print(f"captured  {name}.{suffix}  {len(content)}B")
     print(f"\nGolden files written to {GOLDEN_DIR.relative_to(REPO)}. Commit them with your change.")
     return 0
 
@@ -211,8 +316,10 @@ def check() -> int:
         return 2
 
     mismatches = []
+    n_artefacts = 0
     for name, kwargs in CASES.items():
-        produced = dict(zip(("xml", "csv"), _run(**kwargs), strict=True))
+        produced = _run(**kwargs)
+        n_artefacts += len(produced)
         for kind, content in produced.items():
             reference_path = GOLDEN_DIR / f"{name}.{kind}"
             if not reference_path.exists():
@@ -231,7 +338,7 @@ def check() -> int:
         print("If this change was meant to alter output, re-run with `capture` and say so in the commit.")
         return 1
 
-    print(f"\nAll {len(CASES) * 2} artefacts identical.")
+    print(f"\nAll {n_artefacts} artefacts identical.")
     return 0
 
 

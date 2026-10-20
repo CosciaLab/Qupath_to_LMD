@@ -7,7 +7,45 @@ Terms are defined in [GLOSSARY.md](GLOSSARY.md); the reasoning behind each choic
 
 ---
 
-## Unreleased
+## v5.0.0
+
+### Polish after the first click-through
+
+- **Confirm each slide's calibration points.** The suggested points are only a suggestion; tick
+  *These are the right calibration points* on every slide to continue. Confirmed slides get a ✅.
+- The **classes table** is full width, with the picture below it — no more sideways scrolling.
+- **Plate files carry the plate's name** (`samples_and_wells_P1.json`), there is a button for all
+  plates at once, and any of them — or the `samples_and_wells.json` from a download — loads back
+  into the Plates stage to change an experiment later.
+- *Order to cut in* is now **Organise the download**: it only arranges folders and names; the
+  `.xml` files are the same either way. `HOW_TO_CUT.txt` is now `COLLECTION_PLAN.txt`.
+- **Extras** have their own page — *Extras* at the top, beside *Collect*.
+- **Every picture colours a class the same way** (tab20), including the preview of what will be
+  cut, which is now coloured by class.
+- New demo data, `demo_Qupath_project/demo1/`: two patients, three serial sections each.
+
+### Several slides, several plates, one page
+
+- **Upload several slides at once** — several `.geojson` files, or a `.zip` of them. Each slide
+  keeps its own calibration points and image scale, and gets its own `.xml`.
+- **Shapes of the same class on different slides go into the same well**, so a well can hold more
+  tissue than one slide has. The app says so as soon as you add a second slide, and names any class
+  that is missing from a slide (usually a spelling difference).
+- **Choose where an amount comes from**: in proportion to what each slide holds (the default), an
+  equal share from each, or the slides in an order you set.
+- **More samples than one plate holds?** The app asks for as many plates as you need and spreads
+  the samples so that every plate holds every class — so a difference between plates can never
+  look like a difference between classes. Filling plate 1 first is still an option.
+- **One page, four stages**: Slides → Samples → Plates → Cut. All three ways to collect use the same
+  stages, and the sidebar shows your experiment at a glance.
+- **The download explains itself**: `samples.csv` (what each well gets from each slide),
+  `COLLECTION_PLAN.txt` (numbered steps in the order you chose — slide by slide or plate by plate), and
+  every `.xml` named for its slide and plate.
+- The annotations workflow is now **Whole shapes**, and no longer needs a *Confirm* click — the
+  plate updates as you change it. What it cuts is unchanged, byte for byte. Your own
+  samples-and-wells file is now an option of the plate stage.
+- If you change anything after processing, the old download is withdrawn until you process again,
+  so you cannot download files that no longer match the screen.
 
 ### New workflow: cellular neighbourhoods
 
