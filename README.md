@@ -1,31 +1,39 @@
 [![Open the QuPath-to-LMD WebApp](https://img.shields.io/badge/Launch%20App-Streamlit-brightgreen?logo=streamlit)](https://qupath-to-lmd-mdcberlin.streamlit.app/)
 
+# [Streamlit Webapp Link](https://qupath-to-lmd.streamlit.app/)
+
 # Introduction
 
 QuPath-to-LMD is the easiest way to go from QuPath annotations to LMD collection!
-With more than 60 unique users, we try to help everyone collect their tissues for DVP.
 
-Three ways to collect: **whole shapes**, the standard where every classified annotation is cut; **selected shapes**, where you ask for a number of cells (or annotations) or an area per replicate and the app picks them; and **regions and circles**, where classified cells are turned into contiguous regions of tissue and small circles are packed inside them to collect a set amount of each.
+Three ways to collect:
+1. **Whole shapes**, the standard where every classified annotation is cut
+2. **Selected shapes**, where you ask for a number of cells (or annotations) or an area per replicate and the app picks them
+3. **Regions and circles**, where classified cells are turned into contiguous regions of tissue and small circles are packed inside them to collect a set amount of each.
 
-All three work across **several slides** — shapes of the same class on different slides go into the same well, so you can collect more tissue than one slide holds — and across **several plates** when your samples do not fit on one.
+## Vignettes
 
-## In QuPath
+### Vignette 1: Manually annotated shapes
 
-0. Create a Qupath Project (optional)
-1. Load images of interest
-2. Draw annotations, or segment cells
-3. Classify them using QuPath classes
-4. Add at least 3 calibration points using the point tool, and **name each one**
-5. Export as a **FeatureCollection** in the **.geojson** format
-6. Load into webapp
+<img src="vignettes/vignette1.svg" alt="Vignette1 Manually Annotated Shapes" width="1000"/>
 
-## Streamlit webapp
+### Vignette 2: Collect segmented cells of different types
 
-Go to [Streamlit Webapp Link](https://qupath-to-lmd.streamlit.app/)
+<img src="vignettes/vignette2.svg" alt="Vignette2 segmented cells" width="1000"/>
 
-<a href="https://qupath-to-lmd-mdcberlin.streamlit.app/">
-  <img src="assets/webapp_cells_workflow.gif" alt="Open WebApp" width="700"/>
-</a>
+### Vignette 3: Create regions of cells from phenotyped, circle pack, and collect
+
+<img src="vignettes/vignette3.svg" alt="Vignette3 segmented cells" width="1000"/>
+
+### Vignette 4: Collect from multiple slides
+
+<img src="vignettes/vignette4.svg" alt="Vignette4 Multiple slide support" width="1000"/>
+
+### Vignette 5: Collect single cells form phenotyped tissue
+
+<img src="vignettes/vignette5.svg" alt="Vignette5 Collect single cells" width="1000"/>
+
+## Streamlit webapp summary
 
 The page has four stages, always in this order, and the sidebar keeps a one-line summary of your
 experiment in view (e.g. *2 slides → 27 samples → 1 plate*):
@@ -39,73 +47,81 @@ experiment in view (e.g. *2 slides → 27 samples → 1 plate*):
    the samples need them, each one its own cutting run. One kind of collector per experiment.
 4. **Cut** — process the files and download them
 
-### How to collect
+<a href="https://qupath-to-lmd-mdcberlin.streamlit.app/">
+  <img src="assets/webapp_cells_workflow.gif" alt="Open WebApp" width="700"/>
+</a>
 
-**Whole shapes** — every classified annotation is cut, one class per well. Optionally split a
+## How to annotate tissues in QuPath
+
+### Option 1: Manually
+
+1. Create a Qupath Project
+2. Load images of interest
+3. Draw annotations
+4. Classify them using QuPath's class system
+5. Add at least 3 calibration points using the point tool, and **name each one**
+6. Export as a **FeatureCollection** in the **.geojson** format
+7. Load into webapp
+
+### Option 2: Classified segmented cells
+
+1. Create a Qupath Project
+2. Load images of interest
+3. Cell detection (optimize segmentation here)
+4. Classify them using [QuPath's tools](https://qupath.readthedocs.io/en/stable/docs/concepts/classifications.html):
+    - For example: Classify -> Object -> Create single measurement classifier
+5. Add at least 3 calibration points using the point tool, and **name each one**
+6. Export as a **FeatureCollection** in the **.geojson** format
+7. Load into webapp
+
+## How to collect
+
+### Whole shapes
+
+Every classified annotation is cut, one class per well. Optionally split a
 class into one shape per well for single-cell collection.
 
-**Selected shapes** — for files with thousands of classified cells, or annotations you want up to an amount. Choose your classes, then
-set replicates and how much goes into each, either as a number of cells or as µm². The app
-spreads the chosen cells across the tissue so a replicate is not one corner of the slide, can
-avoid cells touching another cell you are collecting, and shows you exactly which cells were
-picked before you export. Cells below a minimum area (100 µm² by default, per class) are left
-out, so keeping only the shapes you can actually collect.
+### Selected shapes
 
-**Regions and circles** — for when a single cell is too little tissue but you still want to
-collect by cell type. Each cell is given the tissue nearest to it — up to a distance you set,
-which is what stops a cell at the edge of the tissue claiming the empty slide around it — and
-touching cells of the same class are merged into one **region**. Then, in one table with a row per class, you set how many replicates
-you want, how much tissue goes into each one, the size range of the circles and the gap to leave
-between cuts — and the app fills the regions with circles until it reaches that amount. Those
-settings are per class because a sparse, stringy class needs smaller circles than a solid one
-before anything fits at all. Circles cut
-far faster than one enormous irregular outline, and they let you ask for a measured amount rather
-than all of it. You control the circle size range, the gap left between cuts, and a seed — the
-same seed and settings always give you the same circles, so a collection can be repeated in a
-later session and reported in a methods section. Everything you set is saved in the download.
+For files with thousands of classified cells, or annotations you want up to an amount. Choose your classes, then set replicates and how much goes into each, either as a number of cells or as µm². The app spreads the chosen cells across the tissue so a replicate is not one corner of the slide, can avoid cells touching another cell you are collecting, and shows you exactly which cells were picked before you export. Cells below a minimum area (100 µm² by default, per class) are left out, so keeping only the shapes you can actually collect.
 
-The table sits directly above a live picture of what you are about to cut, so you can see the
-effect of every change without hunting for it: a pale fill is the class, for the regions and the
-circles alike, and a dark outline tells you which replicate a circle belongs to. The app also
-shows how much each class can actually hold, which is well below its area — randomly placed
-circles cover about 55% of a region at best, and the gap between them cuts that down a lot more —
-and afterwards what each replicate really got.
+You decide:
 
-Two things worth knowing. A region covers the space *between* the cells as well, because that is
-the tissue belonging to that class, so it reaches past the outlines QuPath drew — one setting
-controls how far. And smoothing shaves a little area off every circle, so if that adds up to more
-than a few percent the app says so and tells you how to avoid it.
+- How many replicates
+- How much area or shapes per replicate
 
-You set all of this *before* the plate, so by the time you get to the plate the number of wells
-is already settled.
+### Regions and circles
 
-You can also collect **the whole regions** instead of circles, which is what you want if you want
-all of a neighbourhood rather than a measured amount of it.
+Merge neighboring cells of the same class. Neighbor distance criteria is set by you. Then pack the areas with your sampling strategy. You can decide:
+
+- How many replicates
+- How much area per replicate
+- Minimum circle size
+- Maximum circle size
+
+#### Worth knowing:
+
+- Circles cut better than one enormous irregular outline, and they let you ask for a measured amount rather than all of it.
+- A region covers the space *between* the cells as well, because that is the tissue belonging to that class, so it reaches past the outlines QuPath drew.
+- Smoothing shaves a little area off every circle, so if that adds up to more than a few percent the app says so and tells you how to avoid it.
 
 All three let you set the smoothing tolerance and the cutting order, and all download
 the same bundle: the `.xml` for the LMD, the plate scheme, a QC image, your processed
 `.geojson`, and a log.
 
-### The cell segmentation workflow, end to end
+# [Youtube Tutorial Playlist](https://www.youtube.com/playlist?list=PLUgFa3Qqznks)
 
-![Choosing cells and exporting a cutting file](assets/webapp_cells_workflow.gif)
+## QuPath to LMD: Cellular neighborhood collection
 
-A real QuPath export of 14,145 shapes, 8,537 of them classified cells: choose the classes, set
-replicates and amounts, lay out the plate, check which cells were picked, and download the `.xml`.
+[![Watch the video](https://img.youtube.com/vi/epFm49fuIIo/0.jpg)](https://youtu.be/epFm49fuIIo?si=Z_BqP8ZcASR4nkEF)
 
-# Youtube Tutorials
+## QuPath to LMD: Segmentation-based collection
 
-## Introduction to Qupath-to-LMD Version4
-
-[![Watch the video](https://img.youtube.com/vi/K8xOIg6gNCY/0.jpg)](https://youtu.be/K8xOIg6gNCY?si=g6YqzpwnHYZa69qo)
-
-## Qupath-to-LMD v3 tutorial (somewhat old)
-
-[![Watch the video](https://img.youtube.com/vi/jimBIqGUaXg/0.jpg)](https://www.youtube.com/watch?v=jimBIqGUaXg&t=2s)
+[![Watch the video](https://img.youtube.com/vi/dlf01NiVI_U/0.jpg)](https://youtu.be/dlf01NiVI_U?si=UdddnBcltUNA2TPd)
 
 # Contributing
 
-```
+```console
 git clone https://github.com/CosciaLab/Qupath_to_LMD && cd Qupath_to_LMD
 uv sync
 uv run streamlit run streamlit_app.py
