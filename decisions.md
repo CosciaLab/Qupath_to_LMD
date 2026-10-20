@@ -2049,3 +2049,28 @@ Jose's notes after clicking through 078.
   usually a typo, but only the user knows, and a merge would put two classes in one well.
 - **Costs accepted:** a QuPath class that really ends in a space comes back without it after a
   round trip through the processed GeoJSON.
+
+## 088 — shapes can be expanded before cutting, off by default, 1 µm when ticked
+**Date:** 2026-10-20 · **Status:** active · **issue 31, refines 013**
+- **The problem:** for single-cell collection a cut along QuPath's outline burns the cell's own
+  edge — the laser's line has a width, centred on the path — so users want the path moved out.
+  013 left dilation open with the promise that it would be said on screen if it arrived.
+- **Decision:** a Stage 4 option for every method and every polygon, grown with a round buffer
+  before smoothing. Off by default, because what whole shapes produce is frozen and every other
+  method's output should not move unasked; at zero the XML is byte-identical. The distance is in
+  µm where every slide has a scale, px otherwise. What it costs is on screen before download:
+  area added, overlaps between samples (warning), reach into uncollected neighbours (caption),
+  and one shape before and after.
+- **Why 1 µm:** the LMD7's cut line is about 1-2 µm wide at the objectives used for single cells
+  (63×, as in scDVP), so a path 1 µm outside the outline keeps the edge inside the burn's near
+  side. On the 8 411-cell core the outlines are 0.37 µm apart (median), so 1 µm already reaches
+  into 97% of neighbours, mostly into what the beam itself ablates, and costs +42% area per
+  cell; 2 µm costs +90% and takes neighbour tissue the beam does not reach. **The cut width is
+  an assumption, not measured here** — the default should be checked against a real cut on the
+  instrument, and the scDVP paper (Rosenberger et al. 2023) exported contours "without
+  additional shape offset", so the field has no settled figure.
+- **Rejected:** expanding in Stage 2, so amounts and budgets count the grown area — it would mean
+  one implementation per method and would move every budget the user already set; a neighbour-
+  aware dilation that stops at the next cell (py-lmd's note says that belongs in segmentation) —
+  the app does not have the space between cells to share out, only outlines; expanding lines.
+- **Golden:** new case `cells_expanded` (3 px). The other 27 artefacts are unchanged.

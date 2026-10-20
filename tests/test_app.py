@@ -207,3 +207,34 @@ def test_class_names_with_spaces_reach_their_wells_from_a_hand_typed_file(monkey
         "class name with a space would be cut into nothing."
     )
     assert not [w for w in app.warning if "no well" in str(w.value)], "A spaced sample was reported as having no well."
+
+
+def test_expanding_cells_shows_its_cost_and_reaches_the_download(monkeypatch):
+    """Issue 31: off by default, and once ticked the added area, the overlaps and an example are
+    on screen before the download, and the distance is recorded with the collection."""
+    import json
+
+    def expand(app):
+        app.checkbox(key="expand_shapes").check()
+
+    app = _run(monkeypatch, ["Single_cells.geojson"], "cells", [expand])
+    assert any(w.key == "expand_um" and w.value == 1.0 for w in app.number_input), (
+        "With a scale known the expansion should be asked in µm and default to 1 µm."
+    )
+    assert [d for d in app.dataframe if "Added (%)" in d.value.columns], "The added area is not shown before download."
+    assert [w for w in app.warning if "overlap a shape going to a different" in str(w.value)], (
+        "Neighbouring cells in different wells overlap once expanded, and the user was not told."
+    )
+    assert app.get("imgs"), "No before-and-after picture of a shape was shown."
+    provenance = json.loads(_contents(app)["provenance.json"])
+    assert json.dumps(provenance).count('"expand_um": 1.0'), (
+        f"The expansion is not recorded in provenance.json, so the collection cannot be reproduced: {provenance}"
+    )
+
+
+def test_shapes_are_not_expanded_unless_asked(monkeypatch):
+    app = _run(monkeypatch, ["TD_01_verysmall_mIF.geojson"])
+    assert not [w for w in app.number_input if w.key in ("expand_um", "expand_px")], (
+        "The expansion distance is offered before the box is ticked."
+    )
+    assert "expand" not in _contents(app)["provenance.json"].decode(), "An unexpanded collection records an expansion."

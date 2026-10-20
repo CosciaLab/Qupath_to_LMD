@@ -14,6 +14,7 @@ from pathlib import Path
 import geopandas
 import numpy
 import pandas
+import shapely
 from lmd.lib import Collection, tsp_hilbert_solve
 from loguru import logger
 
@@ -26,6 +27,15 @@ from qupath_to_lmd.plate import collector, placement_dataframe, split_position
 ORIENTATION_TRANSFORM = numpy.array([[1, 0], [0, -1]])
 
 DEFAULT_SIMPLIFY_TOLERANCE = 1.0
+
+# What expanding a shape is for (issue 31, `decisions.md` 088). QuPath draws a cell's outline
+# where it found the membrane, and the laser burns a line about 1-2 µm wide centred on its path,
+# so a cut along the outline burns the cell's own edge. Moving the path out by 1 µm keeps that
+# edge in the piece that falls. In dense tissue neighbouring outlines are only ~0.4 µm apart
+# (median, on an 8 411-cell core), so 1 µm already reaches a little into every neighbour;
+# more takes more of them. Off by default: what the app cuts does not change unless asked.
+DEFAULT_EXPANSION_UM = 1.0
+EXPANSION_QUAD_SEGS = 8
 
 # Order of the Hilbert curve used to shorten the cut path. py-lmd suggests at least 4 for a
 # 1x1 mm area and 7 for a whole slide; 7 gave the shortest paths at every size measured.
@@ -111,6 +121,89 @@ def path_stats(selected: geopandas.GeoDataFrame, order: numpy.ndarray) -> tuple[
     return length, int((wells[:-1] != wells[1:]).sum())
 
 
+def expand_shapes(geometry: geopandas.GeoSeries, distance_px: float) -> geopandas.GeoSeries:
+    """Every polygon grown outward by `distance_px`, with rounded corners.
+
+    Lines are left alone: a cut line has no inside to grow, and buffering it would turn it into
+    a loop around the line. Zero or less returns the shapes untouched, so the cut is exactly
+    what it was before expansion existed.
+    """
+    if distance_px <= 0:
+        return geometry
+    is_polygon = geometry.geom_type == "Polygon"
+    grown = geometry.copy()
+    grown[is_polygon] = shapely.buffer(geometry[is_polygon].to_numpy(), distance_px, quad_segs=EXPANSION_QUAD_SEGS)
+    return grown
+
+
+@dataclass
+class ExpansionReport:
+    """What expanding the collected shapes of one slide does, before anything is cut."""
+
+    distance_px: float
+    n_shapes: int = 0
+    area_before_px2: float = 0.0
+    area_after_px2: float = 0.0
+    # collected shapes whose grown outline overlaps another collected shape's grown outline
+    # bound for a different well: the second cut then takes tissue the first one claimed
+    n_into_other_sample: int = 0
+    # collected shapes whose grown outline reaches into a shape that is not being collected
+    n_into_uncollected: int = 0
+
+    @property
+    def added_fraction(self) -> float:
+        """Area the expansion adds, as a share of the area before it."""
+        return self.area_after_px2 / self.area_before_px2 - 1 if self.area_before_px2 else 0.0
+
+
+def expansion_report(
+    shapes: geopandas.GeoDataFrame, destination: pandas.Series, distance_px: float
+) -> ExpansionReport:
+    """Area added, and what the grown outlines reach, for one slide's candidate shapes.
+
+    Args:
+        shapes: every candidate shape on the slide, collected or not.
+        destination: per shape, where it goes (a well, or a collector and well); NA for shapes
+            that are not collected.
+        distance_px: how far each outline moves out.
+
+    Two outlines each grown by d overlap exactly when the originals are less than 2d apart, and a
+    grown outline reaches an untouched shape when they are less than d apart, so both are
+    answered on the original geometry with one spatial query.
+    """
+    report = ExpansionReport(distance_px=distance_px)
+    collected = destination.notna().to_numpy()
+    polygons = (shapes.geom_type == "Polygon").to_numpy()
+    cut = collected & polygons
+    report.n_shapes = int(cut.sum())
+    if distance_px <= 0 or not report.n_shapes:
+        return report
+
+    geometry = shapes.geometry.to_numpy()
+    report.area_before_px2 = float(shapely.area(geometry[cut]).sum())
+    report.area_after_px2 = float(shapely.area(shapely.buffer(geometry[cut], distance_px, quad_segs=EXPANSION_QUAD_SEGS)).sum())
+
+    tree = shapely.STRtree(geometry)
+    left, right = tree.query(geometry[cut], predicate="dwithin", distance=2 * distance_px)
+    left = numpy.flatnonzero(cut)[left]
+    keep = left != right
+    left, right = left[keep], right[keep]
+    gap = shapely.distance(geometry[left], geometry[right])
+    # one integer per destination, -1 for none, so a well held as a (collector, well) pair compares cheaply
+    where, _destinations = pandas.factorize(destination)
+
+    other_sample = collected[right] & (gap < 2 * distance_px) & (where[left] != where[right])
+    report.n_into_other_sample = len(set(left[other_sample].tolist()))
+    uncollected = ~collected[right] & (gap < distance_px)
+    report.n_into_uncollected = len(set(left[uncollected].tolist()))
+
+    logger.info(
+        f"Expanding {report.n_shapes} shapes by {distance_px:.2f}px adds {report.added_fraction:.0%} area; "
+        f"{report.n_into_other_sample} overlap another sample, {report.n_into_uncollected} reach uncollected shapes"
+    )
+    return report
+
+
 @dataclass
 class CollectionResult:
     """The artefacts of one export, and what the cut path looks like."""
@@ -132,6 +225,7 @@ def build_collection(
     simplify_tolerance: float = DEFAULT_SIMPLIFY_TOLERANCE,
     plate: str = "384",
     path_order: PathOrder = DEFAULT_PATH_ORDER,
+    expand_px: float = 0.0,
 ) -> CollectionResult:
     """Build the LMD collection from a plan and render it to XML, CSV and a QC image.
 
@@ -146,6 +240,8 @@ def build_collection(
         path_order: the order shapes are written in, which is the order the LMD cuts them.
             Defaults to `HILBERT`, which minimises stage movement without greedy's
             memory cost.
+        expand_px: how far, in image pixels, to grow every polygon outward before it is
+            smoothed (`expand_shapes`). Zero, the default, cuts the shapes as drawn.
     """
     selected = plan.selected
     if selected.empty:
@@ -164,7 +260,11 @@ def build_collection(
         f"(unordered: {baseline_length:,.0f}px, {baseline_moves} moves)"
     )
 
-    coordinates = selected.geometry.simplify(simplify_tolerance).apply(extract_coordinates)
+    # grown first, then smoothed: smoothing an outline that is about to move would only move it twice
+    outlines = expand_shapes(selected.geometry, expand_px)
+    if expand_px > 0:
+        logger.info(f"Expanded {len(selected)} shapes by {expand_px:.2f}px before smoothing")
+    coordinates = outlines.simplify(simplify_tolerance).apply(extract_coordinates)
     for position in order:
         index = selected.index[position]
         collection.new_shape(coordinates[index], well=selected.at[index, WELL])

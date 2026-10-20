@@ -83,7 +83,7 @@ src/qupath_to_lmd/
   __init__.py                     empty
 tools/
   golden_harness.py               byte-equality regression gate
-  golden/                         27 reference artefacts, 11 cases
+  golden/                         29 reference artefacts, 12 cases
 demo_Qupath_project/              real QuPath project used as test fixture
   TD_01_verysmall_mIF.geojson     9 features: 6 annotation Polygons + 3 calibration Points
   Single_cells.geojson            131 features: 121 cells + 7 annotations + 3 Points
@@ -463,7 +463,8 @@ categoricals × replicate count, cycling 6 hard-coded colours as Java signed int
 
 ## Export parameters (Phase 5)
 
-Both workflows expose the same two, in the shared export step.
+Both workflows expose the same two, in the shared export step. A third, expanding shapes, sits
+under them in Stage 4 and is off by default (below).
 
 - **Smoothing tolerance**, in pixels, default 1.0 — unchanged from what the app has always
   used (`decisions.md` 019). Measured on 900 real shapes: tolerance 0 gives 12 432 vertices,
@@ -506,6 +507,33 @@ Both workflows expose the same two, in the shared export step.
 - The solver prints progress to stdout, which is silenced in `_solve_within_well`, and a
   solver returning anything other than a permutation is logged and ignored rather than allowed
   to drop or duplicate shapes.
+
+## Expanding shapes before cutting (issue 31)
+
+`decisions.md` 088. A checkbox in Stage 4, **off by default**, so no collection changes unless asked.
+
+- `export.expand_shapes(geometry, distance_px)` buffers every **Polygon** outward with round
+  corners (`quad_segs=8`); LineStrings are left alone, since buffering a cut line turns it into a
+  loop. `build_collection(..., expand_px=)` grows the outlines **before** `simplify`, so the path
+  is moved once and then smoothed. At zero the XML is byte-identical, tested.
+- The distance is asked in **µm, default `DEFAULT_EXPANSION_UM` = 1.0**, when every slide has a
+  scale, and converted per slide; otherwise in px, default 2, with a caption saying why.
+  `cuts_for_experiment(..., expand_px={slide: px})` carries it per slide. Recorded in provenance
+  as `expand_um` or `expand_px`, and part of the download signature.
+- Before download, per slide: shapes, area before and after, the share added, and two counts from
+  `export.expansion_report`, answered on the original geometry with one `STRtree` query (two
+  outlines grown by d overlap iff the originals are under 2d apart): collected shapes that then
+  **overlap a collected shape bound for another well** (an `st.warning` — samples trade tissue),
+  and collected shapes that **reach into a shape not collected** (a caption — expected in dense
+  tissue). Below it, one typical shape (median area) drawn as drawn, as cut and with its
+  neighbours, by `plot.plot_expansion`.
+- The sample sheet's areas stay those of the shapes as drawn; a caption says how much expanding
+  adds. The processed GeoJSON for QuPath keeps the drawn outlines too.
+- **Measured on the 8 411-cell core** (0.6535 µm/px, median cell 101 µm²): nearest-neighbour gap
+  between outlines 0.15 / 0.37 / 0.60 µm at the 5th / 50th / 95th percentile, so the outlines
+  already sit on the shared membrane. Grown by d, the median cell gains 10% area at 0.25 µm, 20% at
+  0.5, **42% at 1**, 65% at 1.5, 90% at 2 and 144% at 3; the share of cells whose grown outline
+  reaches an untouched neighbour is 14% at 0.25 µm and 87% at 0.5, 97% from 1 µm on.
 
 ## Regions: the cellular-neighbourhood workflow
 
@@ -1172,23 +1200,24 @@ golden gate for a fast loop. CI runs ruff, the suite and the harness on every pu
 
 ## Regression harness
 
-`tools/golden_harness.py`, with the reference output in `tools/golden/` (21 files).
+`tools/golden_harness.py`, with the reference output in `tools/golden/` (29 files).
 
 ```
 uv run python tools/golden_harness.py check      # compare against the golden files
 uv run python tools/golden_harness.py capture    # re-bless, only when output should change
 ```
 
-Eleven cases, each covering a path where a change could silently move coordinates:
+Twelve cases, each covering a path where a change could silently move coordinates:
 `annotations` (ordinary mini-bulk), `cells` (128 shapes with measurements),
 `cells_exploded` (one well per shape), `annotations_96` (different plate geometry),
 `multiclass_cells` (real QuPath 0.7.0 export shape), `regions` (Voronoi projection and merge,
 where every coordinate is computed rather than read from the file), `packing` (circles placed by
 a seeded random walk), `two_slides` (one `.xml` per slide into shared wells), `two_plates` (nine samples balanced over two
 six-well plates), `tubes` (letter CapIDs and the one-column map of a tube holder), `strips` (nine
-samples over two 8-well strips, so collector names reach the files). Each produces an XML and a
+samples over two 8-well strips, so collector names reach the files), `cells_expanded` (the `cells`
+case grown by 3 px before smoothing, so every coordinate comes from a buffer). Each produces an XML and a
 CSV, except `two_slides`, which produces one XML per slide, and `two_plates` and `strips`, one XML
-and one map per collector — 27 artefacts. `two_plates` files keep their `P1` labels through
+and one map per collector — 29 artefacts. `two_plates` files keep their `P1` labels through
 `_golden_label`, because they predate collector names (`decisions.md` 081).
 
 - `capture` rewrites **every** case, not only a new one, so after adding a case check
