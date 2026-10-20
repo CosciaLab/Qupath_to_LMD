@@ -7,7 +7,7 @@ Terms are defined in [GLOSSARY.md](GLOSSARY.md); the reasoning behind each choic
 
 ---
 
-## Unreleased
+## v5.0.0
 
 ### Polish after the first click-through
 

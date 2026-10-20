@@ -111,6 +111,10 @@ the same bundle: the `.xml` for the LMD, the plate scheme, a QC image, your proc
 
 # [Youtube Tutorial Playlist](https://www.youtube.com/playlist?list=PLUgFa3Qqznks)
 
+## Qupath to LMD: Version 5 Release
+
+[![Watch the video](https://img.youtube.com/vi/vqGrv4z22-w/0.jpg)](https://youtu.be/vqGrv4z22-w)
+
 ## QuPath to LMD: Cellular neighborhood collection
 
 [![Watch the video](https://img.youtube.com/vi/epFm49fuIIo/0.jpg)](https://youtu.be/epFm49fuIIo?si=Z_BqP8ZcASR4nkEF)
