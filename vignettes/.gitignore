@@ -1,0 +1,5 @@
+# Regenerable or redundant: he.npy comes from the committed TD_01 tif (see README), and the
+# PNGs duplicate the SVGs the top-level README shows.
+he.npy
+*.png
+__pycache__/
