@@ -10,7 +10,6 @@ import numpy
 import pandas
 import pytest
 import shapely
-from matplotlib import colormaps
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.collections import PathCollection
 from shapely.geometry import Point, box
@@ -65,43 +64,101 @@ def test_a_replicate_keeps_its_colour_when_another_class_changes():
 
 def test_replicate_colours_cycle_rather_than_run_out():
     """More replicates than the palette has must still each get a colour."""
-    colormap = colormaps[plot.REPLICATE_COLORMAP]
-    colors = plot.replicate_colors(list(range(1, colormap.N + 3)))
-    assert colors[colormap.N + 1] == colors[1], (
+    n = len(plot.REPLICATE_PALETTE)
+    colors = plot.replicate_colors(list(range(1, n + 3)))
+    assert colors[n + 1] == colors[1], (
         "A replicate past the end of the palette did not wrap back to the first colour, so it "
-        "would be drawn with something outside the map."
+        "would be drawn with something outside the palette."
     )
 
 
-def test_an_outline_is_always_visible_against_every_fill():
-    """Hue alone cannot separate the two channels: two full palettes collide exactly somewhere.
+def _every_replicate():
+    return list(plot.replicate_colors(list(range(1, len(plot.REPLICATE_PALETTE) + 1))).values())
 
-    Fills are tinted toward white and outlines shaded toward black so the separation is in
-    lightness, which no pairing can defeat. Without this an orange circle of an orange class
-    hid its own replicate ring — and the ring is the only thing carrying the replicate.
+
+def test_an_outline_is_always_visible_against_every_fill():
+    """A white or yellow ring on a pale fill would vanish; the dark edge behind it carries it.
+
+    Every ring is drawn over a dark edge, so what has to hold is that the edge stands out from
+    every class fill and that each ring stands out from its edge. Without this the ring — the
+    only thing carrying the replicate — disappears into the disc.
     """
     fills = plot.class_fill_colors([f"class {i}" for i in range(len(plot.PALETTE))]).values()
-    outlines = plot.replicate_colors(list(range(1, 11))).values()
+    worst_edge = min(_contrast(plot.REPLICATE_EDGE, fill) for fill in fills)
+    assert worst_edge >= 1.7, (
+        f"The ring edge reaches only {worst_edge:.2f} contrast on the least favourable class fill. "
+        "Below about 1.7 a light ring on that class disappears into the disc."
+    )
+    rings = [ring for ring in _every_replicate() if _contrast(ring, plot.REPLICATE_EDGE) > 1.0]
+    worst_ring = min(_contrast(ring, plot.REPLICATE_EDGE) for ring in rings)
+    assert worst_ring >= 3.0, (
+        f"A ring reaches only {worst_ring:.2f} contrast on its own dark edge, so it reads as a "
+        "thicker edge rather than as its replicate's colour."
+    )
 
-    worst = min(_contrast(outline, fill) for outline in outlines for fill in fills)
-    assert worst >= 1.7, (
-        f"The least contrasting outline-on-fill pair is at {worst:.2f}. Below about 1.7 the ring "
-        "disappears into the disc and the replicate becomes unreadable."
+
+def test_a_ring_never_repeats_its_class_colour():
+    """Jose: the rings matched the classes "making a mess out of the colors" (`decisions.md` 082)."""
+    closest = min(_delta_e(ring, color) for ring in _every_replicate() for color in plot.PALETTE)
+    assert closest >= 25, (
+        f"A replicate ring is only ΔE {closest:.1f} from a class colour, so it would be hard to "
+        "tell from the class fill under it — it would read as part of the class, not as a replicate."
     )
 
 
 def test_replicates_stay_distinguishable_from_each_other():
-    """Shading a palette compresses it, so the outlines must still be far enough apart."""
-    outlines = list(plot.replicate_colors(list(range(1, 11))).values())
+    """Rings must be far enough apart that two replicates never read as one."""
+    outlines = _every_replicate()
     closest = min(
-        sum((a - b) ** 2 for a, b in zip(first, second, strict=True)) ** 0.5
-        for i, first in enumerate(outlines)
-        for second in outlines[i + 1 :]
+        _delta_e(first, second) for i, first in enumerate(outlines) for second in outlines[i + 1 :]
     )
-    assert closest >= 0.18, (
-        f"The two closest replicate outlines are {closest:.3f} apart in RGB. Any closer and two "
+    assert closest >= 25, (
+        f"The two closest replicate rings are ΔE {closest:.1f} apart. Any closer and two "
         "replicates read as the same colour."
     )
+
+
+def test_circles_are_filled_close_to_their_class_colour():
+    assert plot.CLASS_FILL_TINT <= 0.35, (
+        f"Circle fills are tinted {plot.CLASS_FILL_TINT} toward white, so circles go back to "
+        "looking washed out, which Jose asked to fix."
+    )
+
+
+def test_every_ring_is_drawn_over_a_dark_edge(two_regions, circles):
+    figure = plot.plot_regions_and_circles(two_regions, circles, replicate_of=circles[REPLICATE])
+    circle_layers = _collections(figure)[len(two_regions) :]
+    assert circle_layers and all(layer.get_path_effects() for layer in circle_layers), (
+        "A circle was drawn without its dark edge, so a white or yellow ring on a pale class "
+        "would not show."
+    )
+    handles = [legend for legend in figure.legends if "Replicate" in legend.get_title().get_text()]
+    assert handles and all(line.get_path_effects() for line in handles[0].get_lines()), (
+        "The replicate legend draws its rings without the dark edge, so replicate 1's white ring "
+        "is invisible in the key."
+    )
+
+
+def _lab(color):
+    """CIELAB (D65) of an sRGB colour, for perceptual distances."""
+    from matplotlib.colors import to_rgb
+
+    r, g, b = (
+        value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in to_rgb(color)
+    )
+    x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+    y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+
+    def f(t):
+        return t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
+
+    return 116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))
+
+
+def _delta_e(first, second):
+    """CIE76 ΔE: about 2 is just noticeable, 25 and more reads as a different colour."""
+    return sum((a - b) ** 2 for a, b in zip(_lab(first), _lab(second), strict=True)) ** 0.5
 
 
 def _contrast(first, second):

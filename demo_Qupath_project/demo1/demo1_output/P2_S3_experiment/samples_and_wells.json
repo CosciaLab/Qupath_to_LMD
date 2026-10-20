@@ -1,0 +1,16 @@
+{
+    "P1": {
+        "P1_Cancer_r1": "C3",
+        "P1_Cancer_r2": "C5",
+        "P1_Immune_r1": "C7",
+        "P1_Immune_r2": "C9",
+        "P1_Stroma_r1": "C11",
+        "P1_Stroma_r2": "C13",
+        "P2_Cancer_r1": "C15",
+        "P2_Cancer_r2": "C17",
+        "P2_Immune_r1": "C19",
+        "P2_Immune_r2": "C21",
+        "P2_Stroma_r1": "E3",
+        "P2_Stroma_r2": "E5"
+    }
+}

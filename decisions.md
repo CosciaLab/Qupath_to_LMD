@@ -1724,3 +1724,286 @@ since that is what dominates the picture.
 The calibration triangle is gone from both region pictures. It served calibration QC, which step
 3 already reports as a percentage, and over a dense tissue map it is noise. It stays on step 4's
 input drawing, where distortion risk is the thing being judged.
+
+## 075 — several slides into one well: pooled by class name, one engine run per slide
+**Date:** 2026-10-07 · **Status:** planned · **supersedes 061 as the answer to 020** (061 stays,
+for slides that go into different wells)
+**Decision:** the app accepts several slides in one session — several `.geojson` uploads or one
+`.zip` of them — and pools shapes of the **same class name** from every slide into the same
+samples. The amount a sample asks for is split between slides by a **slide strategy**: *priority
+order* (fill from the first slide, top up from the next), *proportional* (each slide supplies a
+share in proportion to what it holds; **the default**), or *equal share* (capped by what a slide
+holds). In every strategy a slide that cannot supply its share passes the shortfall to the next.
+**The pooling assumption is told to the user.** Pooling by class name is only right when the
+slides are the same biological sample — serial sections of one block, classified with the same
+classes. Jose confirmed that is the case this serves. The app says so once, under Samples, when a
+second slide is added, and says how to keep slides apart (distinct class names, e.g.
+`P1_Tumor`). A class present on only some slides is named, because that is usually a spelling
+difference rather than biology.
+**Why the selection and packing engines run once per slide, unchanged:** every slide's pixel
+coordinates start at (0, 0). Stacking slides into one frame would make the spread grid, the
+adjacency graph, the Voronoi projection and the circle collision grid treat shapes on different
+slides as neighbours. Running the existing engines per slide keeps all of that correct and keeps
+Jose's requirement that the sampling strategy does not vary with the number of slides. Only the
+bookkeeping — how much each slide is asked for, and what it achieved — spans slides.
+**Why one `.xml` per slide:** calibration points belong to one image, and a py-lmd `Collection`
+takes one triangle. Each slide also keeps its own scale, and areas are converted per slide before
+they are summed.
+**Why multi-upload plus a QuPath script, not the project folder:** a `.qpproj` folder holds its
+shapes in `data/<n>/data.qpdata`, which is Java-serialised (`file` reports "Java serialization
+data, version 5"). Only QuPath can read it — from Python that means paquo plus a QuPath install
+and a JVM, which Community Cloud cannot run and which would be a second, local-only code path.
+A *Run for project* Groovy script that exports one GeoJSON per image gives the same "whole project
+at once" experience and leaves GeoJSON as the only input contract (CLAUDE.md §4).
+**The annotations workflow is not extended** — it is frozen. Annotations up to an amount already
+work through the cell workflow, because `selection.select` does not filter on `objectType`.
+**Alternatives rejected:** reading `.qpproj` via paquo (above); balancing slides within each
+replicate (not what a same-sample experiment needs); per-slide amounts typed by hand (three
+strategies cover the cases Jose named without a table of numbers per class per slide); one
+combined coordinate frame with slides offset from each other (every engine would then need to
+know the offset is not tissue).
+
+## 076 — several plates, balanced by default; the user chooses the cutting order
+**Date:** 2026-10-07 · **Status:** planned
+**Decision:** an experiment may need more than one plate. The app computes the minimum number of
+plates from the usable wells, lets the user raise it, and distributes samples **balanced across
+plates** by default: each class's replicates are dealt round-robin over the plates, so every plate
+holds every class where the replicate count allows. *Sequential* fill — plate 1 full, then plate 2
+— is the alternative. All plates share one plate type, margin and spacing. **Start at well**
+applies to the first plate.
+**Why balanced is the default:** `plate.assign_wells` sorts groups, so sequential overflow puts
+`Immune_r1…r3` on plate 1 and `Tumor_r1…r3` on plate 2. Plate is then confounded with class, and a
+plate or batch effect downstream reads as biology. Balanced is the design a proteomics batch
+correction can work with.
+**Why one `.xml` per slide × plate pair:** py-lmd writes a well as a bare `<CapID>` (`lmd/lib.py`)
+with no plate identity, so one XML can only target one plate. Two slides on two plates is four
+XMLs, each named for both, so it cannot be loaded against the wrong pair.
+**Why the cutting order is the user's choice:** slide by slide (calibrate a slide once, swap
+plates) and plate by plate (mount a plate once, recalibrate slides) trade different handling
+steps, and which is cheaper depends on the lab. The folder layout of the download and
+`HOW_TO_CUT.txt` follow the choice.
+**How the UI stays legible**, because Jose named that as the risk: four stages in a fixed order
+(Slides → Samples → Plates → Cut); slide and plate controls appear only when there are two or
+more of them; one live experiment-at-a-glance line; the sample sheet as the one central table;
+at most one new control per stage. A single-slide, single-plate user sees nothing new, and the
+seven existing golden cases must pass without re-blessing. `ROADMAP.md` round five has the
+detail.
+**Alternatives rejected:** sequential as the default (the confound above); the user assigning
+plates per class (a choice most users should not have to make, and still possible through the
+editable sample sheet); mixed plate types in one experiment (not asked for).
+
+## 077 — the split between slides is decided once, before selecting
+**Date:** 2026-10-07 · **Status:** active · **refines 075**
+**Decision:** `slides.split_budgets` decides each slide's share from what each slide holds, and
+`select_across_slides` runs the selection once per slide on that share. There is no second pass
+that tops up a short sample from another slide after the run. Every slide uses the same selection
+params and seed.
+**Why:** a top-up pass would call the engine again on a slide's leftover shapes, and that second
+call cannot see the shapes the first call took — so the adjacency preference and the neighbour
+count would both be wrong across the two calls. For shapes the availability is exact (counts and
+areas of collectable shapes), so a split capped by it is delivered to within the last shape and a
+top-up buys nothing. Circles are different: their capacity is an estimate, slightly optimistic, so
+a slide can fall short of its share. That is for the regions PR, where the packer can be asked for
+slack instead.
+**Same seed on every slide:** one number to report in a methods section. Slides with different
+shapes give different selections anyway.
+**Alternatives rejected:** a runtime top-up (above); per-replicate amounts in `ClassBudget` so a
+top-up could be uneven across replicates (changes the engine, which 075 keeps unchanged).
+
+## 078 — one page of four stages; every collection method is a module that returns a SampleSet
+**Date:** 2026-10-07 · **Status:** active · **implements 075–076; supersedes the frozen UI of the
+annotations workflow (CLAUDE.md §5), the cell workflow's fragment (051) and its plate-before-
+selection order (045, 049); does round four's reordering**
+**Decision:** the app is four stages in a fixed order — Slides, Samples, Plates, Cut — one module
+each (`ui_slides`, `ui_samples`, `ui_plates`, `ui_cut`). Each hands the next a plain object:
+`SlidesContext`, then `model.SampleSet`, then `PlateLayout`. The three ways of collecting are
+modules registered in `ui_samples.methods()` — `ui_collect_whole`, `ui_collect_select`,
+`ui_collect_regions` — each with `LABEL`, `HELP` and `render(context) -> SampleSet | None`.
+**Why, in Jose's words:** *"three selection workflows … and various inputs and outputs. Best case
+scenario these are interoperable and modular. So that adding more features is simpler."* Before
+this, each workflow owned its own plate step, export step and session keys, so a feature like
+several slides had to be built three times. Now a new input format touches Stage 1 only, a new way
+of choosing tissue is one new module, and a new output touches Stage 4 only. No stage imports
+another stage.
+**The methods are named by what is cut**, Jose's choice: *Whole shapes* (the annotations
+workflow), *Selected shapes* (the cell workflow, which also serves annotations up to an amount,
+because the selection never looked at `objectType`) and *Regions and circles*.
+**The annotations workflow's UI is no longer frozen; its output still is.** Jose agreed to move it
+into the stages. It loses the *Confirm plate layout* button and the two plate-view buttons — the
+plate now updates live, as the other methods' always did — and the custom samples-and-wells upload
+becomes an option of the Plates stage, open to every method (one plate). What it cuts is guarded
+three ways: the golden harness (the old plan builders now delegate to `model.plan_from_groups`,
+which every method uses), `tests/test_slides.py` (the sample-set route writes the same `.xml` as
+the old builder), and `tests/test_app.py`, which drives the real page with `AppTest` and compares
+the downloaded `.xml` and `.csv` with `tools/golden/annotations.*` byte for byte.
+**Selection now runs before the plate, with no fragment.** Samples before Plates is the rule
+(076), so the fragment of 051 had to go for the reason 068 gave for the regions route: a fragment
+reruns only itself and would leave the plate and the cut below it stale. The selection cache
+carries the cost instead.
+**The sidebar holds the experiment at a glance** (*2 slides → 27 samples → 1 plate*) and a
+checklist of the four stages, filled in as each completes — in view however far the page scrolls.
+**A stale download is withdrawn.** The download is stamped with a hash of the assignment, the
+shapes per sample, the method's parameters and the export settings; if any of them changes after
+processing, the button is replaced with a note to process again. Before, a user could change the
+plate and download the previous files.
+**Several slides, as decided in 075–077,** appear only when there are several: tabs per slide for
+calibration and pictures, a class × slide table, the pooling note, the slide strategy, and a scale
+table instead of one input. A class split into one well per shape carries the slide in its name
+(`T-Cell_A_001`) so cells of different slides never share a well.
+**Alternatives rejected:** tabs per stage (hide earlier decisions and still recompute everything);
+keeping the annotations workflow's own frozen UI beside the stages (two plate steps to maintain,
+and no multi-slide pooling for whole shapes); naming methods by input type (one input type —
+annotations — would have sat under two methods).
+
+## 079 — confirm every slide's calibration, a full-width class table, and plate files that reload
+**Date:** 2026-10-08 · **Status:** active · **refines 078; supersedes 071 for the classes step**
+Jose's notes after clicking through 078.
+- **Calibration points are confirmed, not assumed.** Defaults (the first three points, or the
+  first slide's names) let a user sail past the one choice that decides where every shape is cut.
+  Each slide now has a *These are the right calibration points* checkbox, keyed on the points
+  chosen so that changing one withdraws the confirmation, and nothing after Stage 1 appears until
+  every slide is confirmed. **A gate, not an `st.stop()`** (CLAUDE.md §3): nothing is wrong, the
+  user has not looked yet, so the page simply waits and names the slides still to confirm. The
+  ticks sit in a line above the slide tabs rather than in their labels, because `st.tabs` has no
+  key and relabelling a tab could send the user back to the first one after each confirmation.
+- **The classes table is full width, the picture below it.** Beside the picture (071) the table
+  had a third of the page and needed sideways scrolling, worst with a column per slide.
+- **Whole shapes drop the `class` column** of the sample sheet: a sample is its class there, so it
+  repeated the first column. With replicates they differ and both stay.
+- **Plate files say which plate they are**, `samples_and_wells_P2.json`, and with several plates a
+  second button downloads all of them. **Both load back in**: the Plates-stage upload now reads
+  `{"P1": {...}, "P2": {...}}` as well as `{sample: well}`, so any download's
+  `samples_and_wells.json` reopens an experiment for changes.
+- **The cut order was only ever the download's organisation.** Jose asked what it does: the `.xml`
+  files are identical either way and the LMD user loads them in whatever order they like. So it
+  is now *Organise the download — by slide / by plate*, with a caption saying exactly that, and
+  `HOW_TO_CUT.txt` is `COLLECTION_PLAN.txt` — a plan, not orders.
+- **Extras moved to a sidebar tab**, beside the experiment summary, whose stages now carry emoji.
+- **demo1**, synthetic: two patients × three serial sections, classes prefixed by patient so the
+  sections of one patient pool and the patients never do — the naming the app recommends.
+  Generated by `tools/make_demo1.py`, seeded, so it can be regenerated byte for byte.
+
+## 080 — classes in tab20 across every picture, and Extras on a page of its own
+**Date:** 2026-10-08 · **Status:** active · **refines 070 and 079**
+- **One class palette per experiment, tab20.** Jose: colour the shapes to be collected by class,
+  tab20, matching the classes picture. Two things had to change. The selection preview coloured by
+  replicate; it now colours by class, and the replicate stays in the table above it. And each plot
+  sorted only the classes it drew, so a class changed colour whenever a picture showed a different
+  set; now `ui_samples.class_palette` assigns colours once over every class of every slide and
+  every plot takes that mapping. tab20's strong shades go first, so the first ten classes differ
+  in hue, and its two greys are left out because grey is how the app draws what is not collected.
+- **The circle fill tint went from 0.55 to 0.6.** The legibility floor of 070 — every replicate
+  outline against every class fill at WCAG contrast 1.7 or more — failed with tab20 at 0.55
+  (1.66). 0.6 gives 1.81 without touching the outlines, which keeps their separation floor too.
+- **Extras is a page, not a sidebar tab** (Jose: "the UI in the sidebar … distracts"). Two pages
+  at the top via `st.navigation(position="top")`: Collect and Extras. The sidebar is the
+  experiment summary only. Session state is shared, so going to Extras and back loses nothing.
+- **`COLLECTION_PLAN.txt` is no longer printed after processing**; it is in the download. The
+  per-file cut path review stays.
+
+## 081 — collectors: tube holders and strips beside plates
+**Date:** 2026-10-08 · **Status:** active · **refines 076**
+- **What the LMD cuts into is a collector**, Leica's own word: a 96 or 384 well plate, a holder
+  of four Eppendorf tubes, or a holder of one 8-well strip. Jose: one holder plays the part of a
+  plate — one tube is *not* one plate — and an experiment uses one kind of collector, never a mix.
+- **CapIDs on the holders are letters only**, `A`–`D` for tubes and `A`–`H` for the strip, as
+  Jose gave them. py-lmd writes the well string into `<CapID>` verbatim, so nothing changes there.
+- **A registry, `plate.COLLECTORS`**, says per collector how many rows and columns it has,
+  whether a position carries a column number, and the words for it. Every place that split a well
+  as `well[0]` / `well[1:]` reads it through `plate.split_position` instead. Rejected: tubes as a
+  one-column plate with the `1` stripped at export, which gives every position two names, `A1` in
+  the app and `A` in the `.xml` — the quiet kind of mismatch that sends tissue to the wrong cap.
+- **Collectors are named `Plate1`, `TubeHolder1`, `Strip1`**, explicit because most experiments
+  have only a few (Jose). That renames multi-plate downloads from `P1` to `Plate1` — file and
+  folder names and the keys of `samples_and_wells.json`, never the bytes of an `.xml` or a plate
+  map. Files keyed `P1` from earlier downloads still load, as plates.
+- **Margin and spacing are hidden, not disabled, on the holders.** On four tubes they mean
+  nothing, and a disabled control asks "why can't I?".
+- **The code keeps the name `plate`** (`plate.py`, `plate_type`, `n_plates`): a rename across
+  modules and session keys would bury this change. The interface and the docs say collector.
+- No 1536 plate: its rows run to `AF`, nobody has needed one, and Jose dropped it.
+
+## 082 — replicate rings in colours no class has, over a dark edge; a stronger circle fill
+**Date:** 2026-10-08 · **Status:** active · **supersedes the ring colours and fill tint of 070 and 080**
+- **The problem.** Jose: "the replicate outline color matches the classes making a mess out of the
+  colors." The rings were tab10 shaded 0.25 toward black, and tab10 is exactly tab20's strong
+  half, so replicate *n*'s ring was a darker copy of class *n*'s colour.
+- **Measured before choosing.** Keeping the old rule (a ring must contrast with every fill on its
+  own) and asking for rings ΔE ≥ 35 from all 18 class colours at a fill tint of 0.25 leaves only
+  black, blue, indigo, dark violet and dark slate, which look alike on a small circle. Jose saw
+  the three candidates rendered on demo1 and chose the third.
+- **Chosen:** rings white, yellow, magenta, cyan, black, each over a thin black edge
+  (`patheffects.withStroke`), in the picture and in its legend. Every ring is at least ΔE 26 from
+  every class colour and ΔE 51 from every other ring. The edge, not the ring, carries the contrast
+  against the fill: at least 5.9:1 on every class fill.
+- **Circle fill tint 0.6 → 0.25** (Jose: less transparent). A circle on its own region now nearly
+  matches it, so the ring is what marks the circle out. Accepted, because the ring is where the
+  information is.
+- Five ring colours, cycling after that. Most designs collect fewer replicates, and a sixth colour
+  outside tab20's hues and apart from these five could not be found.
+
+## 083 — what hiding the plate controls costs, and the rest of what the rename touches
+**Date:** 2026-10-08 · **Status:** active · **refines 081**
+- **Hidden controls lose their values in Streamlit.** A keyed widget that is not drawn in a run
+  has its state dropped, so with margin and spacing hidden for the holders (081), a look at the
+  tube holder reset a plate's margin 2 to 1 and its spacing to 1 — the layout would then use the
+  edge wells the user chose to avoid, with nothing to say so. While a holder is chosen,
+  `ui_plates.settings_step` writes `plate_margin`, `plate_step_row` and `plate_step_col` back to
+  session state each run (`PLATE_ONLY_KEYS`), which keeps them. Found in the branch review;
+  `tests/test_app.py` switches to tubes and back and checks both values survive.
+- **The cutting-runs warning counts collectors that receive samples**, not the number box:
+  sequential filling or an uploaded file can leave collectors empty, and an empty one gets no
+  `.xml`. With several slides the runs are per slide, so the warning says so.
+- **The rename to `Plate1` reaches more than file names** in a download of several plates: the
+  `plate` column of `samples.csv`, the wording of `COLLECTION_PLAN.txt` ("Load Plate1." instead of
+  "Put plate P1 in the collector."), and `provenance.json` (`plate: Plate1` per cut, plus
+  `experiment.collector`). A script that matched `P1` in `samples.csv` needs updating. The single
+  slide, single plate download is unchanged.
+
+## 084 — cache keys include a hash of each file's content
+**Date:** 2026-10-09 · **Status:** active · **refines 050**
+- **What was wrong:** the selection, projection, spacing and class-statistics caches keyed on
+  `(slide name, file name, row count, class names)` (050). A QuPath export reclassified and
+  exported again keeps all four, so a re-upload in the same session — or another user's upload of
+  a same-named file, since `st.cache_data` is shared across sessions — got results computed from
+  the old classes. The selection is by row, so a cell now in another class could have been cut
+  into the old class's well. Found while profiling; on demo1's `P1_S1` with 877 of 1 658 cells
+  reclassified, the fingerprint was identical.
+- **Decision:** `slides.read_slides` hashes each file's bytes (blake2b, 128 bits) into
+  `Slide.content_digest`, and the fingerprint includes it. Taken once at read, so a rerun pays
+  nothing: 0.06 s measured on the 84 MB real export, against the seconds the read itself takes.
+- **Rejected:** hashing the frame on every rerun — the cost 050 avoided; and keying on the upload's
+  name and size, which a re-export with the same digit counts in its coordinates also keeps.
+
+## 085 — stages 3 and 4 as one fragment, and pictures drawn once
+**Date:** 2026-10-09 · **Status:** active · **refines 050, 078**
+- **The problem:** Jose — changing the margin with demo1's six slides takes about 5 s. Measured in
+  Chrome, 2.8 s for any widget change, of which the plate code was 50 ms. The rest was drawing:
+  every rerun redrew 12 pictures (six class pictures, six selection previews), and `st.pyplot`
+  saved each at 200 dpi, 2 020 px wide, which Streamlit then decoded, shrank to its 1 460 px
+  display limit and encoded again.
+- **Decision 1, a fragment around stages 3 and 4** (`streamlit_app.collector_and_cut`). A
+  collector or cut setting reruns only those two stages: margin change 2.8 s → 0.2 s. 051's
+  fragment went in 078 because it sat *above* the plate and the export, which a fragment rerun
+  leaves stale. This one has nothing below it, and stages 1 and 2 only ever clear what 3 and 4
+  write, on a new upload, which is a full rerun anyway. The sidebar summary is outside it, so
+  `Summary.forget` withdraws the Collector and Cut lines first: without it, hitting the
+  no-usable-wells stop left the sidebar saying the plate was set.
+- **Decision 2, each picture drawn once per thing it shows** (`ui_shared.show_picture`), kept as
+  a PNG under a hash of the slide's fingerprint (084), the labels, the calibration, the palette
+  and, for regions, their geometry. That covers the full reruns a fragment cannot avoid: a seed
+  change in stage 2, 2.85 s → 0.1–0.4 s, since the six class pictures stay and only the six
+  previews redraw.
+- **Decision 3, rendered to fit 1 460 px.** Caching alone gave 1.07 s, not 0.1 s: Streamlit
+  re-encodes a too-wide image on every rerun even from cached bytes. The dpi is set from the
+  figure's width (143 for the 10-inch shapes pictures, 130 for the 11-inch regions), capped at
+  200. What the browser receives went from a 2 020 px render shrunk to 1 460 to a 1 444 px render
+  drawn directly; side by side the two look the same.
+- **Rejected:** `st.form` for the collector settings — an Apply button, and a plate that no longer
+  follows the controls, for the speed the fragment gives without either. Upgrading Streamlit for
+  per-session caches or fragment keys — nothing here needs them. A one-slide-at-a-time picker
+  instead of tabs would make the first draw after confirming calibration (1.4 s, twelve pictures)
+  about six times cheaper; left for Jose, since it changes the layout.
+- **Costs accepted:** up to 64 pictures of about 0.5 MB in memory, shared by every session, which
+  is safe because the key is the content. A change to `plot.py` reaches the app only after a
+  server restart, since the cache key is what a picture shows, not how it is drawn.

@@ -97,10 +97,11 @@ objects, raises domain exceptions. This is the layer that can be exercised outsi
 
 **UI layer** — Streamlit. May read and write `st.session_state`; that is its job.
 
-- `streamlit_app.py` — session init, logging, and the router. Stays thin.
-- `ui_shared.py` — steps both workflows use (upload, workflow choice, calibration, image
-  scale, plate settings and layout, export, extras)
-- `ui_legacy.py` / `ui_cells.py` — the two workflows
+- `streamlit_app.py` — session init, logging, and the router through the four stages. Stays thin.
+- `ui_slides.py` → `ui_samples.py` → `ui_plates.py` → `ui_cut.py` — the four stages, each
+  handing the next a plain object (`SlidesContext`, `SampleSet`, `PlateLayout`)
+- `ui_collect_*.py` — one module per collection method, registered in `ui_samples.methods()`
+- `ui_shared.py` — helpers several stages use; `ui_summary.py` — the sidebar
 
 Rules that follow from that split:
 
@@ -111,8 +112,9 @@ Rules that follow from that split:
 - A `ui_*` function renders one step and returns what the next step needs.
 - Every new `st.session_state` key is initialised in `DEFAULTS` at the top of
   `streamlit_app.py` and added to the key table in `facts.md`.
-- The legacy workflow is **frozen**: later phases must not change what it produces, and
-  `tools/golden_harness.py` is what enforces that.
+- What the whole-shapes method (the old annotations workflow) **produces is frozen**: later
+  changes must not alter it, and `tools/golden_harness.py` and `tests/test_app.py` enforce that.
+  Its UI lives in the shared stages since `decisions.md` 078.
 
 ## 6. Verification
 

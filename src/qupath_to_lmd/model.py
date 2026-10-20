@@ -124,25 +124,81 @@ def plan_from_class_wells(
     Exploded classes need no special handling here — explosion already rewrote
     `classification_name` per shape, so each exploded shape becomes its own group.
     """
-    shapes = _plan_frame(gdf)
-    shapes[SHAPE_ID] = shapes["id"] if "id" in shapes.columns else shapes.index.astype(str)
-    shapes[REPLICATE] = None
     # Only classes the user put in the scheme get a group. A class they left out was not asked
     # for, which is the same state as an unselected shape in the cell workflow, so both are
     # reported the same way.
-    in_scheme = shapes[CLASS_NAME].isin(samples_and_wells)
-    shapes[GROUP_KEY] = shapes[CLASS_NAME].where(in_scheme)
+    in_scheme = gdf[CLASS_NAME].isin(samples_and_wells)
+    return plan_from_groups(
+        gdf,
+        group_key=gdf[CLASS_NAME].where(in_scheme),
+        replicate=None,
+        samples_and_wells=samples_and_wells,
+        calibration_names=calibration_names,
+        calibration_array=calibration_array,
+        workflow="legacy",
+        source_file=source_file,
+        session_id=session_id,
+        params=params,
+    )
+
+
+def plan_from_groups(
+    gdf: geopandas.GeoDataFrame,
+    group_key: pandas.Series,
+    replicate: pandas.Series | None,
+    samples_and_wells: dict[str, str],
+    calibration_names: list[str],
+    calibration_array: numpy.ndarray,
+    *,
+    workflow: str,
+    source_file: str | None = None,
+    session_id: str | None = None,
+    pixel_size_um: float | None = None,
+    params: dict[str, Any] | None = None,
+) -> CollectionPlan:
+    """Build a plan from shapes that already know their group: every collection method ends here.
+
+    Args:
+        gdf: every candidate shape of one slide.
+        group_key: the sample each shape belongs to, NA for shapes not collected.
+        replicate: replicate number per shape, or None where the method has no replicates.
+        samples_and_wells: sample to well, for the one plate this plan cuts into. A sample
+            absent from it is left without a well and reported, never silently dropped.
+        calibration_names: the three chosen point names.
+        calibration_array: their coordinates.
+        workflow: recorded in provenance, so a bundle says which route produced it.
+        source_file: uploaded filename, for the bundle.
+        session_id: for the log inside the bundle.
+        pixel_size_um: recorded in provenance; may be None.
+        params: everything else that determined the output.
+    """
+    shapes = _plan_frame(gdf)
+    shapes[SHAPE_ID] = shapes["id"] if "id" in shapes.columns else shapes.index.astype(str)
+    shapes[REPLICATE] = None if replicate is None else replicate.reindex(shapes.index)
+    shapes[GROUP_KEY] = group_key.reindex(shapes.index)
     shapes[WELL] = shapes[GROUP_KEY].map(samples_and_wells)
 
     return CollectionPlan(
         shapes=shapes,
         calibration_names=list(calibration_names),
         calibration_array=calibration_array,
-        workflow="legacy",
+        workflow=workflow,
         source_file=source_file,
         session_id=session_id,
+        pixel_size_um=pixel_size_um,
         params=params or {},
     )
+
+
+def groups_from_replicates(gdf: geopandas.GeoDataFrame, replicate: pandas.Series) -> pandas.Series:
+    """`class_r<replicate>` for every shape with a replicate, None for the rest."""
+    replicate = replicate.reindex(gdf.index)
+    selected = replicate.notna()
+    groups = pandas.Series(None, index=gdf.index, dtype=object)
+    groups[selected] = (
+        gdf.loc[selected, CLASS_NAME].astype(str) + "_r" + replicate[selected].astype(int).astype(str)
+    )
+    return groups
 
 
 def plan_from_selection(
@@ -183,39 +239,143 @@ def plan_from_selection(
     Returns:
         The plan, and the group-to-well mapping the export path also needs.
     """
-    shapes = _plan_frame(gdf)
-    shapes[SHAPE_ID] = shapes["id"] if "id" in shapes.columns else shapes.index.astype(str)
-    shapes[REPLICATE] = replicate_of.reindex(shapes.index)
-
-    selected = shapes[REPLICATE].notna()
-    shapes[GROUP_KEY] = None
-    shapes.loc[selected, GROUP_KEY] = (
-        shapes.loc[selected, CLASS_NAME].astype(str)
-        + "_r"
-        + shapes.loc[selected, REPLICATE].astype(int).astype(str)
-    )
+    groups = groups_from_replicates(gdf, replicate_of)
+    present = groups.dropna()
 
     if samples_and_wells is None:
         # Groups are sorted so the same selection always lands in the same wells.
-        groups = sorted(shapes.loc[selected, GROUP_KEY].unique())
-        samples_and_wells = dict(zip(groups, wells, strict=False))
-        if len(groups) > len(wells):
-            logger.warning(f"{len(groups) - len(wells)} groups have no well and will not be cut")
+        ordered = sorted(present.unique())
+        samples_and_wells = dict(zip(ordered, wells, strict=False))
+        if len(ordered) > len(wells):
+            logger.warning(f"{len(ordered) - len(wells)} groups have no well and will not be cut")
     else:
-        missing = sorted(set(shapes.loc[selected, GROUP_KEY]) - set(samples_and_wells))
+        missing = sorted(set(present) - set(samples_and_wells))
         if missing:
             logger.warning(f"{len(missing)} selected groups have no well: {missing[:5]}")
 
-    shapes[WELL] = shapes[GROUP_KEY].map(samples_and_wells)
-
-    plan = CollectionPlan(
-        shapes=shapes,
-        calibration_names=list(calibration_names),
+    plan = plan_from_groups(
+        gdf,
+        group_key=groups,
+        replicate=replicate_of,
+        samples_and_wells=samples_and_wells,
+        calibration_names=calibration_names,
         calibration_array=calibration_array,
         workflow=workflow,
         source_file=source_file,
         session_id=session_id,
         pixel_size_um=pixel_size_um,
-        params=params or {},
+        params=params,
     )
     return plan, samples_and_wells
+
+
+@dataclass
+class SampleSet:
+    """What a collection method decided, for every slide: the seam between Samples and Plates.
+
+    Every method — whole shapes, selected shapes, regions and circles — returns one of these and
+    nothing downstream needs to know which method made it. The plate stage reads `samples`; the
+    cut stage builds one plan per slide and plate from `shapes`.
+
+    Attributes:
+        workflow: recorded in provenance — `legacy`, `cells` or `regions`.
+        shapes: per slide, every candidate shape with its `group_key` (the sample, NA when not
+            collected) and `replicate` columns. Circles and regions are shapes like any other.
+        samples: every sample the plate has to hold, including any that ended up empty, so an
+            empty replicate keeps its well and the plate matches what the user asked for.
+        pixel_sizes: per slide, for areas in the sample sheet.
+        requested: per sample, the amount asked for in `unit`; absent where a method cuts
+            everything it is given.
+        unit: `shapes` or `µm²`.
+        params: everything else that determined the samples, for provenance.
+    """
+
+    workflow: str
+    shapes: dict[str, geopandas.GeoDataFrame]
+    samples: list[str]
+    pixel_sizes: dict[str, float | None] = field(default_factory=dict)
+    requested: dict[str, float] = field(default_factory=dict)
+    unit: str = "shapes"
+    params: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def slide_names(self) -> list[str]:
+        """Slides in the order they were uploaded."""
+        return list(self.shapes)
+
+    def n_collected(self) -> int:
+        """How many shapes are going to be cut, over every slide."""
+        return int(sum(frame[GROUP_KEY].notna().sum() for frame in self.shapes.values()))
+
+    def sheet(self) -> pandas.DataFrame:
+        """The sample sheet: one row per sample, with what each slide gives it.
+
+        Columns: sample, class, replicate, then per slide its shapes and — where the slide has a
+        scale — its µm², then the totals (µm² only when every slide has a scale) and, where the
+        method asks for an amount, the request.
+        """
+        sheet = pandas.DataFrame({"sample": self.samples})
+        total_shapes = pandas.Series(0, index=sheet.index)
+        total_area = pandas.Series(0.0, index=sheet.index)
+        for name, frame in self.shapes.items():
+            collected = frame[frame[GROUP_KEY].notna()]
+            counts = collected.groupby(GROUP_KEY).size()
+            sheet[f"{name} shapes"] = sheet["sample"].map(counts).fillna(0).astype(int)
+            total_shapes += sheet[f"{name} shapes"]
+            scale = self.pixel_sizes.get(name)
+            if scale:
+                areas = (collected.geometry.area * scale**2).groupby(collected[GROUP_KEY]).sum()
+                sheet[f"{name} µm²"] = sheet["sample"].map(areas).fillna(0.0)
+                total_area += sheet[f"{name} µm²"]
+        if len(self.shapes) > 1:
+            sheet["shapes"] = total_shapes
+            # A total that silently leaves out a slide without a scale would understate the sample.
+            if all(self.pixel_sizes.get(name) for name in self.shapes):
+                sheet["µm²"] = total_area
+        if self.requested:
+            sheet[f"asked for ({self.unit})"] = sheet["sample"].map(self.requested)
+
+        if sheet.empty:
+            return sheet
+        classes, replicates = [], []
+        for sample in sheet["sample"]:
+            head, separator, tail = str(sample).rpartition("_r")
+            is_replicate = bool(separator) and tail.isdigit()
+            classes.append(head if is_replicate else sample)
+            replicates.append(int(tail) if is_replicate else None)
+        sheet.insert(1, "class", classes)
+        sheet.insert(2, "replicate", pandas.array(replicates, dtype="Int64"))
+        if sheet["replicate"].isna().all():
+            sheet = sheet.drop(columns=["replicate"])
+        # Whole shapes: a sample *is* its class, so the column would only repeat the first one.
+        if (sheet["class"] == sheet["sample"]).all():
+            sheet = sheet.drop(columns=["class"])
+        return sheet
+
+    def plan(
+        self,
+        slide: str,
+        samples_and_wells: dict[str, str],
+        calibration_names: list[str],
+        calibration_array: numpy.ndarray,
+        *,
+        source_file: str | None = None,
+        session_id: str | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> CollectionPlan:
+        """The plan for one slide into one plate."""
+        frame = self.shapes[slide]
+        replicate = frame[REPLICATE] if REPLICATE in frame.columns else None
+        return plan_from_groups(
+            frame,
+            group_key=frame[GROUP_KEY],
+            replicate=replicate,
+            samples_and_wells=samples_and_wells,
+            calibration_names=calibration_names,
+            calibration_array=calibration_array,
+            workflow=self.workflow,
+            source_file=source_file,
+            session_id=session_id,
+            pixel_size_um=self.pixel_sizes.get(slide),
+            params={**self.params, **(params or {})},
+        )

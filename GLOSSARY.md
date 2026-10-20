@@ -71,8 +71,24 @@ class a neighbouring cut belongs to.
 drawn from across the whole tissue and interleaved with each other, so they are statistical
 repeats rather than samples of different regions.
 
-**well** — a position on the plate, written row-then-column with no padding: `C3`, `B12`. A 384
-plate is rows A–P by columns 1–24; a 96 plate is A–H by 1–12.
+**sample** — what one well receives: one group as the experiment sees it, e.g. `Tumor_r2`.
+With several slides a sample is filled from all of them — shapes of the same class are pooled by
+class name, which assumes the slides are the same biological sample. *Group* stays the word in
+code; *sample* is the word in the interface and in the samples-and-wells scheme.
+
+**collector** — what the LMD collects into: a plate, a tube holder or a strip holder. Leica's own
+word. One kind per experiment. An experiment with more samples than one collector holds uses
+several, named `Plate1`, `Plate2`, …, `TubeHolder1`, …, or `Strip1`, …; each `.xml` targets one
+collector, because the LMD's file names a position but not a collector. In code it is still called
+`plate` (`plate.py`, `plate_type`, `n_plates`) for historical reasons (`decisions.md` 081).
+
+**well** — a position on a plate or a strip. On a plate it is written row-then-column with no
+padding: `C3`, `B12`. A 384 plate is rows A–P by columns 1–24; a 96 plate is A–H by 1–12. On the
+strip it is the letter alone, `A`–`H`.
+
+**tube** — a position on the tube holder: one of four Eppendorf tubes, `A`–`D`.
+
+**plate** — a 96- or 384-well plate: one kind of collector.
 
 **margin** — how many wells to leave unused around the edge of the plate. It exists because the
 LMD7 collects unreliably into the outermost wells of a 384 plate.
@@ -86,6 +102,10 @@ one, and everything downstream — QC, smoothing, cut order, export — reads on
 ---
 
 ## Geometry and scale
+
+**slide** — one QuPath image and its export: its own shapes, its own calibration points and its
+own pixel size. Each slide gets its own `.xml`. The interface says *slide*, never *file*, *image*
+or *section*, even where the upload is technically a file.
 
 **calibration point** — one of three named point annotations that let the LMD map image
 coordinates onto its stage. Three are required, they must not be collinear, and they should sit
@@ -115,6 +135,10 @@ adjacent cells, so a strict intersection test finds almost none of the real neig
 | --- | --- | --- |
 | shape | object (annotation / cell / detection) | shape |
 | class | classification | — |
+| collector | — | — (Leica: collector) |
 | well | — | well / cap |
 | collection | — | Collection |
 | calibration point | point annotation | calibration point |
+| slide | image (in a project) | — |
+| sample | — | — |
+| plate | — | — |

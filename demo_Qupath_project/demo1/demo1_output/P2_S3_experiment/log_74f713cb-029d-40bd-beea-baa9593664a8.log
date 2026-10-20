@@ -1,0 +1,1636 @@
+10:23:43.23 | INFO | New upload: ['P2_S3.geojson', 'P2_S2.geojson', 'P2_S1.geojson', 'P1_S3.geojson', 'P1_S2.geojson', 'P1_S1.geojson']
+10:23:43.23 | INFO | Reading GeoJSON
+10:23:43.36 | INFO | Geometries: {'Polygon': 1655, 'Point': 5}
+10:23:43.36 | INFO | Found 5 calibration points: ['calib1', 'calib2', 'calib3', 'calib4', 'calib5']
+10:23:43.38 | INFO | QuPath areas imply 0.5000 µm/px over 1655 shapes
+10:23:43.38 | INFO | Dropping unused columns ['measurements', 'name'], freeing 0 MB
+10:23:43.38 | SUCCESS | GeoJSON QC complete, 1655 shapes kept
+10:23:43.38 | INFO | Reading GeoJSON
+10:23:43.43 | INFO | Geometries: {'Polygon': 1588, 'Point': 5}
+10:23:43.43 | INFO | Found 5 calibration points: ['calib1', 'calib2', 'calib3', 'calib4', 'calib5']
+10:23:43.45 | INFO | QuPath areas imply 0.5000 µm/px over 1588 shapes
+10:23:43.45 | INFO | Dropping unused columns ['measurements', 'name'], freeing 0 MB
+10:23:43.45 | SUCCESS | GeoJSON QC complete, 1588 shapes kept
+10:23:43.45 | INFO | Reading GeoJSON
+10:23:43.50 | INFO | Geometries: {'Polygon': 1657, 'Point': 5}
+10:23:43.50 | INFO | Found 5 calibration points: ['calib1', 'calib2', 'calib3', 'calib4', 'calib5']
+10:23:43.51 | INFO | QuPath areas imply 0.5000 µm/px over 1657 shapes
+10:23:43.51 | INFO | Dropping unused columns ['measurements', 'name'], freeing 0 MB
+10:23:43.52 | SUCCESS | GeoJSON QC complete, 1657 shapes kept
+10:23:43.52 | INFO | Reading GeoJSON
+10:23:43.56 | INFO | Geometries: {'Polygon': 1724, 'Point': 5}
+10:23:43.56 | INFO | Found 5 calibration points: ['calib1', 'calib2', 'calib3', 'calib4', 'calib5']
+10:23:43.58 | INFO | QuPath areas imply 0.5000 µm/px over 1724 shapes
+10:23:43.58 | INFO | Dropping unused columns ['measurements', 'name'], freeing 0 MB
+10:23:43.58 | SUCCESS | GeoJSON QC complete, 1724 shapes kept
+10:23:43.58 | INFO | Reading GeoJSON
+10:23:43.63 | INFO | Geometries: {'Polygon': 1679, 'Point': 5}
+10:23:43.63 | INFO | Found 5 calibration points: ['calib1', 'calib2', 'calib3', 'calib4', 'calib5']
+10:23:43.65 | INFO | QuPath areas imply 0.5000 µm/px over 1679 shapes
+10:23:43.65 | INFO | Dropping unused columns ['measurements', 'name'], freeing 0 MB
+10:23:43.65 | SUCCESS | GeoJSON QC complete, 1679 shapes kept
+10:23:43.65 | INFO | Reading GeoJSON
+10:23:43.70 | INFO | Geometries: {'Polygon': 1658, 'Point': 5}
+10:23:43.70 | INFO | Found 5 calibration points: ['calib1', 'calib2', 'calib3', 'calib4', 'calib5']
+10:23:43.72 | INFO | QuPath areas imply 0.5000 µm/px over 1658 shapes
+10:23:43.72 | INFO | Dropping unused columns ['measurements', 'name'], freeing 0 MB
+10:23:43.72 | SUCCESS | GeoJSON QC complete, 1658 shapes kept
+10:23:43.72 | INFO | Read 6 slides: ['P2_S3', 'P2_S2', 'P2_S1', 'P1_S3', 'P1_S2', 'P1_S1']
+10:23:43.73 | INFO | Calibration points for P2_S3: ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | 26.34% of shapes intersect the calibration triangle
+10:23:43.73 | INFO | Calibration points for P2_S2: ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | 26.39% of shapes intersect the calibration triangle
+10:23:43.73 | INFO | Calibration points for P2_S1: ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | 25.77% of shapes intersect the calibration triangle
+10:23:43.73 | INFO | Calibration points for P1_S3: ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | 26.91% of shapes intersect the calibration triangle
+10:23:43.73 | INFO | Calibration points for P1_S2: ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:23:43.73 | INFO | 25.55% of shapes intersect the calibration triangle
+10:23:43.74 | INFO | Calibration points for P1_S1: ['calib1', 'calib2', 'calib3']
+10:23:43.74 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:23:43.74 | INFO | 26.54% of shapes intersect the calibration triangle
+10:24:11.31 | INFO | Calibration points for P2_S3: ['calib1', 'calib2', 'calib3']
+10:24:11.31 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:24:11.31 | INFO | 26.34% of shapes intersect the calibration triangle
+10:24:11.31 | INFO | Calibration points for P2_S2: ['calib1', 'calib2', 'calib3']
+10:24:11.31 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:24:11.31 | INFO | 26.39% of shapes intersect the calibration triangle
+10:24:11.32 | INFO | Calibration points for P2_S1: ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | 25.77% of shapes intersect the calibration triangle
+10:24:11.32 | INFO | Calibration points for P1_S3: ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | 26.91% of shapes intersect the calibration triangle
+10:24:11.32 | INFO | Calibration points for P1_S2: ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | 25.55% of shapes intersect the calibration triangle
+10:24:11.32 | INFO | Calibration points for P1_S1: ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | Triangle QC for calibration points ['calib1', 'calib2', 'calib3']
+10:24:11.32 | INFO | 26.54% of shapes intersect the calibration triangle
+10:24:15.46 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib3']
+10:24:15.46 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib3']
+10:24:15.46 | ERROR | Calibration points ['calib1', 'calib3', 'calib3'] do not form a triangle
+10:24:15.46 | ERROR | Stopping: degenerate calibration triangle on P2_S3 from ['calib1', 'calib3', 'calib3']
+10:24:19.08 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:19.08 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:19.09 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:19.09 | INFO | Calibration points for P2_S2: ['calib1', 'calib3', 'calib5']
+10:24:19.09 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:19.09 | INFO | 44.21% of shapes intersect the calibration triangle
+10:24:19.09 | INFO | Calibration points for P2_S1: ['calib1', 'calib3', 'calib5']
+10:24:19.09 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:19.09 | INFO | 44.72% of shapes intersect the calibration triangle
+10:24:19.10 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:19.10 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:19.10 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:19.10 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:19.10 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:19.10 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:19.10 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:19.10 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:19.11 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:25.30 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:25.30 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:25.30 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:25.30 | INFO | Calibration points for P2_S2: ['calib1', 'calib3', 'calib5']
+10:24:25.30 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:25.31 | INFO | 44.21% of shapes intersect the calibration triangle
+10:24:25.31 | INFO | Calibration points for P2_S1: ['calib1', 'calib3', 'calib5']
+10:24:25.31 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:25.31 | INFO | 44.72% of shapes intersect the calibration triangle
+10:24:25.31 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:25.31 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:25.31 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:25.31 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:25.31 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:25.32 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:25.32 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:25.32 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:25.32 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:29.82 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:29.82 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:29.83 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:29.83 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib5']
+10:24:29.83 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib5']
+10:24:29.83 | INFO | 44.90% of shapes intersect the calibration triangle
+10:24:29.83 | INFO | Calibration points for P2_S1: ['calib1', 'calib3', 'calib5']
+10:24:29.83 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:29.83 | INFO | 44.72% of shapes intersect the calibration triangle
+10:24:29.83 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:29.83 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:29.84 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:29.84 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:29.84 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:29.84 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:29.84 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:29.84 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:29.84 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:32.22 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:32.22 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:32.22 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:32.22 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:32.22 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:32.22 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:32.22 | INFO | Calibration points for P2_S1: ['calib1', 'calib3', 'calib5']
+10:24:32.22 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:32.23 | INFO | 44.72% of shapes intersect the calibration triangle
+10:24:32.23 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:32.23 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:32.23 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:32.23 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:32.23 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:32.23 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:32.23 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:32.23 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:32.24 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:34.53 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:34.53 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:34.53 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:34.54 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:34.54 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:34.54 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:34.54 | INFO | Calibration points for P2_S1: ['calib1', 'calib3', 'calib5']
+10:24:34.54 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:34.54 | INFO | 44.72% of shapes intersect the calibration triangle
+10:24:34.54 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:34.54 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:34.54 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:34.54 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:34.54 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:34.55 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:34.55 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:34.55 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:34.55 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:41.49 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:41.49 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:41.49 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:41.49 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:41.49 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:41.50 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:41.50 | INFO | Calibration points for P2_S1: ['calib2', 'calib3', 'calib5']
+10:24:41.50 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib5']
+10:24:41.50 | INFO | 44.48% of shapes intersect the calibration triangle
+10:24:41.50 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:41.50 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:41.50 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:41.50 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:41.50 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:41.51 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:41.51 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:41.51 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:41.51 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:42.85 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:42.85 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:42.86 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:42.86 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:42.86 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:42.86 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:42.86 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:24:42.86 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:24:42.86 | INFO | 26.13% of shapes intersect the calibration triangle
+10:24:42.86 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:42.86 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:42.87 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:42.87 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:42.87 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:42.87 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:42.87 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:42.87 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:42.87 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:45.31 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:45.31 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:45.31 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:45.31 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:45.31 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:45.32 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:45.32 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:24:45.32 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:24:45.32 | INFO | 26.13% of shapes intersect the calibration triangle
+10:24:45.32 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:45.32 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:45.32 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:45.32 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:45.32 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:45.33 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:45.33 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:45.33 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:45.33 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:48.66 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:48.66 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:48.66 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:48.66 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:48.66 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:48.66 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:48.66 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:24:48.66 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:24:48.67 | INFO | 26.13% of shapes intersect the calibration triangle
+10:24:48.67 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:48.67 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:48.67 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:48.67 | INFO | Calibration points for P1_S2: ['calib1', 'calib3', 'calib5']
+10:24:48.67 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:48.67 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:48.67 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:48.67 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:48.68 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:51.16 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:51.16 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:51.16 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:51.17 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:51.17 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:51.17 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:51.17 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:24:51.17 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:24:51.17 | INFO | 26.13% of shapes intersect the calibration triangle
+10:24:51.17 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:51.17 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:51.17 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:51.17 | INFO | Calibration points for P1_S2: ['calib3', 'calib3', 'calib5']
+10:24:51.17 | INFO | Triangle QC for calibration points ['calib3', 'calib3', 'calib5']
+10:24:51.18 | ERROR | Calibration points ['calib3', 'calib3', 'calib5'] do not form a triangle
+10:24:51.18 | ERROR | Stopping: degenerate calibration triangle on P1_S2 from ['calib3', 'calib3', 'calib5']
+10:24:52.70 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:52.70 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:52.70 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:52.70 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:52.70 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:52.71 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:52.71 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:24:52.71 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:24:52.71 | INFO | 26.13% of shapes intersect the calibration triangle
+10:24:52.71 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:52.71 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:52.71 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:52.71 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:24:52.71 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:24:52.72 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:52.72 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:52.72 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:52.72 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:53.76 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:53.76 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:53.76 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:53.76 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:53.76 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:53.76 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:53.76 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:24:53.76 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:24:53.76 | INFO | 26.13% of shapes intersect the calibration triangle
+10:24:53.77 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:53.77 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:53.77 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:53.77 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:24:53.77 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:24:53.77 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:53.77 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:53.77 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:53.77 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:56.44 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:24:56.44 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:56.44 | INFO | 45.44% of shapes intersect the calibration triangle
+10:24:56.44 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:24:56.44 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:24:56.44 | INFO | 25.25% of shapes intersect the calibration triangle
+10:24:56.45 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:24:56.45 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:24:56.45 | INFO | 26.13% of shapes intersect the calibration triangle
+10:24:56.45 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:24:56.45 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:56.45 | INFO | 42.92% of shapes intersect the calibration triangle
+10:24:56.45 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:24:56.45 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:24:56.45 | INFO | 43.36% of shapes intersect the calibration triangle
+10:24:56.46 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:24:56.46 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:24:56.46 | INFO | 44.27% of shapes intersect the calibration triangle
+10:24:56.47 | INFO | Collection method set to cells
+10:24:56.47 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:24:56.47 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:24:56.47 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:24:56.47 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:24:56.47 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:24:56.48 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:24:56.48 | INFO | Classes selected: ['P1_Cancer', 'P1_Immune', 'P1_Stroma', 'P2_Cancer', 'P2_Immune', 'P2_Stroma']
+10:24:56.49 | INFO | Plotting 1655 shapes as polygons
+10:24:56.71 | INFO | Plotting 1588 shapes as polygons
+10:24:56.91 | INFO | Plotting 1657 shapes as polygons
+10:24:57.12 | INFO | Plotting 1724 shapes as polygons
+10:24:57.33 | INFO | Plotting 1679 shapes as polygons
+10:24:57.52 | INFO | Plotting 1658 shapes as polygons
+10:24:57.72 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:24:57.73 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:24:57.73 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:24:57.73 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:24:57.73 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:24:57.73 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:24:57.73 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:24:57.73 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:24:57.73 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:24:57.73 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:24:57.73 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:24:57.74 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:24:57.74 | WARNING | 2 classes cannot supply their budget: ['P1_Immune', 'P2_Immune']
+10:24:57.75 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:24:57.75 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:24:57.75 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:24:57.75 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:24:57.75 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:24:57.75 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:24:57.75 | INFO | P1_Cancer: 150.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=50.0, P1_S2=48.0, P1_S1=52.0
+10:24:57.75 | INFO | P1_Immune: 150.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=52.0, P1_S2=52.0, P1_S1=46.0
+10:24:57.75 | INFO | P1_Stroma: 150.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=52.0, P1_S2=50.0, P1_S1=48.0
+10:24:57.75 | INFO | P2_Cancer: 150.0 per replicate split proportional as P2_S3=51.0, P2_S2=48.0, P2_S1=51.0, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:24:57.75 | INFO | P2_Immune: 150.0 per replicate split proportional as P2_S3=49.0, P2_S2=54.0, P2_S1=47.0, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:24:57.75 | INFO | P2_Stroma: 150.0 per replicate split proportional as P2_S3=51.0, P2_S2=48.0, P2_S1=51.0, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:24:57.75 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in shapes
+10:24:57.76 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:24:57.76 | DEBUG | Grid binning 502 points into 153 bins (wanted 153)
+10:24:57.76 | DEBUG | Grid binning 146 points into 146 bins (wanted 146)
+10:24:57.77 | DEBUG | Grid binning 994 points into 153 bins (wanted 153)
+10:24:57.77 | DEBUG | 0 collected shapes have a collected neighbour
+10:24:57.78 | SUCCESS | Selected 452 shapes across 18 replicates; 0 of them have a collected neighbour
+10:24:57.78 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in shapes
+10:24:57.78 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:24:57.78 | DEBUG | Grid binning 482 points into 144 bins (wanted 144)
+10:24:57.78 | DEBUG | Grid binning 158 points into 158 bins (wanted 158)
+10:24:57.79 | DEBUG | Grid binning 937 points into 144 bins (wanted 144)
+10:24:57.79 | DEBUG | 0 collected shapes have a collected neighbour
+10:24:57.79 | SUCCESS | Selected 446 shapes across 18 replicates; 0 of them have a collected neighbour
+10:24:57.79 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in shapes
+10:24:57.80 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:24:57.80 | DEBUG | Grid binning 511 points into 153 bins (wanted 153)
+10:24:57.80 | DEBUG | Grid binning 139 points into 139 bins (wanted 139)
+10:24:57.81 | DEBUG | Grid binning 995 points into 153 bins (wanted 153)
+10:24:57.81 | DEBUG | 0 collected shapes have a collected neighbour
+10:24:57.81 | SUCCESS | Selected 445 shapes across 18 replicates; 0 of them have a collected neighbour
+10:24:57.81 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in shapes
+10:24:57.82 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:24:57.82 | DEBUG | Grid binning 506 points into 150 bins (wanted 150)
+10:24:57.82 | DEBUG | Grid binning 154 points into 154 bins (wanted 154)
+10:24:57.83 | DEBUG | Grid binning 1055 points into 156 bins (wanted 156)
+10:24:57.84 | DEBUG | 0 collected shapes have a collected neighbour
+10:24:57.84 | SUCCESS | Selected 460 shapes across 18 replicates; 0 of them have a collected neighbour
+10:24:57.84 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in shapes
+10:24:57.84 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:24:57.84 | DEBUG | Grid binning 492 points into 144 bins (wanted 144)
+10:24:57.85 | DEBUG | Grid binning 152 points into 152 bins (wanted 152)
+10:24:57.85 | DEBUG | Grid binning 1024 points into 150 bins (wanted 150)
+10:24:57.86 | DEBUG | 0 collected shapes have a collected neighbour
+10:24:57.86 | SUCCESS | Selected 446 shapes across 18 replicates; 0 of them have a collected neighbour
+10:24:57.86 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in shapes
+10:24:57.86 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:24:57.87 | DEBUG | Grid binning 524 points into 156 bins (wanted 156)
+10:24:57.87 | DEBUG | Grid binning 137 points into 137 bins (wanted 137)
+10:24:57.87 | DEBUG | Grid binning 984 points into 144 bins (wanted 144)
+10:24:57.88 | DEBUG | 0 collected shapes have a collected neighbour
+10:24:57.88 | SUCCESS | Selected 437 shapes across 18 replicates; 0 of them have a collected neighbour
+10:24:57.89 | INFO | Plotting 1655 shapes as polygons
+10:24:58.10 | INFO | Plotting 1588 shapes as polygons
+10:24:58.32 | INFO | Plotting 1657 shapes as polygons
+10:24:58.53 | INFO | Plotting 1724 shapes as polygons
+10:24:58.74 | INFO | Plotting 1679 shapes as polygons
+10:24:58.95 | INFO | Plotting 1658 shapes as polygons
+10:24:59.19 | INFO | Building placement table for a 384 well plate
+10:29:01.97 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:29:01.97 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:29:01.97 | INFO | 45.44% of shapes intersect the calibration triangle
+10:29:01.97 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:29:01.97 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:29:01.97 | INFO | 25.25% of shapes intersect the calibration triangle
+10:29:01.97 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:29:01.98 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:29:01.98 | INFO | 26.13% of shapes intersect the calibration triangle
+10:29:01.98 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:29:01.98 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:29:01.98 | INFO | 42.92% of shapes intersect the calibration triangle
+10:29:01.98 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:29:01.98 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:29:01.99 | INFO | 43.36% of shapes intersect the calibration triangle
+10:29:01.99 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:29:01.99 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:29:01.99 | INFO | 44.27% of shapes intersect the calibration triangle
+10:29:01.99 | INFO | Collection method set to legacy
+10:29:02.00 | INFO | Plotting 1655 shapes as polygons
+10:29:02.22 | INFO | Plotting 1588 shapes as polygons
+10:29:02.41 | INFO | Plotting 1657 shapes as polygons
+10:29:02.61 | INFO | Plotting 1724 shapes as polygons
+10:29:02.81 | INFO | Plotting 1679 shapes as polygons
+10:29:03.01 | INFO | Plotting 1658 shapes as polygons
+10:29:03.22 | INFO | Building placement table for a 384 well plate
+10:29:17.43 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:29:17.43 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:29:17.43 | INFO | 45.44% of shapes intersect the calibration triangle
+10:29:17.43 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:29:17.43 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:29:17.43 | INFO | 25.25% of shapes intersect the calibration triangle
+10:29:17.44 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:29:17.44 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:29:17.44 | INFO | 26.13% of shapes intersect the calibration triangle
+10:29:17.44 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:29:17.44 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:29:17.44 | INFO | 42.92% of shapes intersect the calibration triangle
+10:29:17.44 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:29:17.44 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:29:17.45 | INFO | 43.36% of shapes intersect the calibration triangle
+10:29:17.45 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:29:17.45 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:29:17.45 | INFO | 44.27% of shapes intersect the calibration triangle
+10:29:17.45 | INFO | Collection method set to cells
+10:29:17.47 | INFO | Plotting 1655 shapes as polygons
+10:29:17.67 | INFO | Plotting 1588 shapes as polygons
+10:29:17.87 | INFO | Plotting 1657 shapes as polygons
+10:29:18.07 | INFO | Plotting 1724 shapes as polygons
+10:29:18.28 | INFO | Plotting 1679 shapes as polygons
+10:29:18.48 | INFO | Plotting 1658 shapes as polygons
+10:29:18.68 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:29:18.68 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:29:18.68 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:29:18.68 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:29:18.68 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:29:18.68 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:29:18.68 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:29:18.68 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:29:18.68 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:29:18.68 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:29:18.69 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:29:18.69 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:29:18.69 | WARNING | 2 classes cannot supply their budget: ['P1_Immune', 'P2_Immune']
+10:29:18.70 | INFO | Plotting 1655 shapes as polygons
+10:29:18.91 | INFO | Plotting 1588 shapes as polygons
+10:29:19.11 | INFO | Plotting 1657 shapes as polygons
+10:29:19.32 | INFO | Plotting 1724 shapes as polygons
+10:29:19.52 | INFO | Plotting 1679 shapes as polygons
+10:29:19.73 | INFO | Plotting 1658 shapes as polygons
+10:29:19.93 | INFO | Building placement table for a 384 well plate
+10:32:36.20 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:32:36.20 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:36.20 | INFO | 45.44% of shapes intersect the calibration triangle
+10:32:36.21 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:32:36.21 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:32:36.21 | INFO | 25.25% of shapes intersect the calibration triangle
+10:32:36.21 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:32:36.21 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:32:36.21 | INFO | 26.13% of shapes intersect the calibration triangle
+10:32:36.21 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:32:36.21 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:36.22 | INFO | 42.92% of shapes intersect the calibration triangle
+10:32:36.22 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:32:36.22 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:32:36.22 | INFO | 43.36% of shapes intersect the calibration triangle
+10:32:36.22 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:32:36.22 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:36.22 | INFO | 44.27% of shapes intersect the calibration triangle
+10:32:36.24 | INFO | Plotting 1655 shapes as polygons
+10:32:36.45 | INFO | Plotting 1588 shapes as polygons
+10:32:36.64 | INFO | Plotting 1657 shapes as polygons
+10:32:36.84 | INFO | Plotting 1724 shapes as polygons
+10:32:37.04 | INFO | Plotting 1679 shapes as polygons
+10:32:37.24 | INFO | Plotting 1658 shapes as polygons
+10:32:37.43 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:32:37.44 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:32:37.44 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:32:37.44 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:32:37.44 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:32:37.44 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:32:37.44 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:32:37.44 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:32:37.44 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:32:37.44 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:32:37.45 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:32:37.45 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:32:37.45 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:32:37.46 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:32:37.46 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:32:37.46 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:32:37.46 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:32:37.46 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:32:37.46 | INFO | P1_Cancer: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8246.9, P1_S2=8095.8, P1_S1=8657.3
+10:32:37.46 | INFO | P1_Immune: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8543.7, P1_S2=8616.3, P1_S1=7839.9
+10:32:37.46 | INFO | P1_Stroma: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8528.0, P1_S2=8312.2, P1_S1=8159.8
+10:32:37.46 | INFO | P2_Cancer: 25000.0 per replicate split proportional as P2_S3=8344.0, P2_S2=7986.1, P2_S1=8669.9, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:37.46 | INFO | P2_Immune: 25000.0 per replicate split proportional as P2_S3=8193.4, P2_S2=8823.9, P2_S1=7982.7, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:37.46 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:37.46 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:37.47 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:32:37.47 | DEBUG | Grid binning 502 points into 114 bins (wanted 114)
+10:32:37.47 | DEBUG | Grid binning 146 points into 92 bins (wanted 92)
+10:32:37.48 | DEBUG | Grid binning 994 points into 107 bins (wanted 107)
+10:32:37.48 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:37.48 | SUCCESS | Selected 286 shapes across 18 replicates; 0 of them have a collected neighbour
+10:32:37.48 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:37.49 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:32:37.49 | DEBUG | Grid binning 482 points into 108 bins (wanted 108)
+10:32:37.49 | DEBUG | Grid binning 158 points into 95 bins (wanted 95)
+10:32:37.50 | DEBUG | Grid binning 937 points into 99 bins (wanted 99)
+10:32:37.50 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:37.50 | SUCCESS | Selected 274 shapes across 18 replicates; 0 of them have a collected neighbour
+10:32:37.50 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:37.51 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:32:37.51 | DEBUG | Grid binning 511 points into 111 bins (wanted 111)
+10:32:37.51 | DEBUG | Grid binning 139 points into 91 bins (wanted 91)
+10:32:37.52 | DEBUG | Grid binning 995 points into 108 bins (wanted 108)
+10:32:37.52 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:37.52 | SUCCESS | Selected 280 shapes across 18 replicates; 0 of them have a collected neighbour
+10:32:37.52 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:37.53 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:32:37.53 | DEBUG | Grid binning 506 points into 106 bins (wanted 106)
+10:32:37.54 | DEBUG | Grid binning 154 points into 87 bins (wanted 87)
+10:32:37.54 | DEBUG | Grid binning 1055 points into 110 bins (wanted 110)
+10:32:37.55 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:37.55 | SUCCESS | Selected 289 shapes across 18 replicates; 0 of them have a collected neighbour
+10:32:37.55 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:37.55 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:32:37.55 | DEBUG | Grid binning 492 points into 105 bins (wanted 105)
+10:32:37.56 | DEBUG | Grid binning 152 points into 92 bins (wanted 92)
+10:32:37.56 | DEBUG | Grid binning 1024 points into 106 bins (wanted 106)
+10:32:37.57 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:37.57 | SUCCESS | Selected 280 shapes across 18 replicates; 0 of them have a collected neighbour
+10:32:37.57 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:37.57 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:32:37.57 | DEBUG | Grid binning 524 points into 114 bins (wanted 114)
+10:32:37.58 | DEBUG | Grid binning 137 points into 79 bins (wanted 79)
+10:32:37.58 | DEBUG | Grid binning 984 points into 103 bins (wanted 103)
+10:32:37.59 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:37.59 | SUCCESS | Selected 265 shapes across 18 replicates; 0 of them have a collected neighbour
+10:32:37.60 | INFO | Plotting 1655 shapes as polygons
+10:32:37.80 | INFO | Plotting 1588 shapes as polygons
+10:32:38.00 | INFO | Plotting 1657 shapes as polygons
+10:32:38.21 | INFO | Plotting 1724 shapes as polygons
+10:32:38.41 | INFO | Plotting 1679 shapes as polygons
+10:32:38.60 | INFO | Plotting 1658 shapes as polygons
+10:32:38.80 | INFO | Building placement table for a 384 well plate
+10:32:49.98 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:32:49.98 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:49.98 | INFO | 45.44% of shapes intersect the calibration triangle
+10:32:49.98 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:32:49.98 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:32:49.98 | INFO | 25.25% of shapes intersect the calibration triangle
+10:32:49.99 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:32:49.99 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:32:49.99 | INFO | 26.13% of shapes intersect the calibration triangle
+10:32:49.99 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:32:49.99 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:49.99 | INFO | 42.92% of shapes intersect the calibration triangle
+10:32:49.99 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:32:49.99 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:32:50.00 | INFO | 43.36% of shapes intersect the calibration triangle
+10:32:50.00 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:32:50.00 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:50.00 | INFO | 44.27% of shapes intersect the calibration triangle
+10:32:50.02 | INFO | Plotting 1655 shapes as polygons
+10:32:50.22 | INFO | Plotting 1588 shapes as polygons
+10:32:50.41 | INFO | Plotting 1657 shapes as polygons
+10:32:50.60 | INFO | Plotting 1724 shapes as polygons
+10:32:50.80 | INFO | Plotting 1679 shapes as polygons
+10:32:50.99 | INFO | Plotting 1658 shapes as polygons
+10:32:51.19 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:32:51.19 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:32:51.19 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:32:51.19 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:32:51.20 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:32:51.20 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:32:51.20 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:32:51.20 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:32:51.20 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:32:51.20 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:32:51.20 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:32:51.20 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:32:51.21 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:32:51.21 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:32:51.21 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:32:51.21 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:32:51.22 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:32:51.22 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:32:51.22 | INFO | P1_Cancer: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8246.9, P1_S2=8095.8, P1_S1=8657.3
+10:32:51.22 | INFO | P1_Immune: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8543.7, P1_S2=8616.3, P1_S1=7839.9
+10:32:51.22 | INFO | P1_Stroma: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8528.0, P1_S2=8312.2, P1_S1=8159.8
+10:32:51.22 | INFO | P2_Cancer: 25000.0 per replicate split proportional as P2_S3=8344.0, P2_S2=7986.1, P2_S1=8669.9, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:51.22 | INFO | P2_Immune: 25000.0 per replicate split proportional as P2_S3=8193.4, P2_S2=8823.9, P2_S1=7982.7, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:51.22 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:51.22 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:51.22 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:32:51.23 | DEBUG | Grid binning 502 points into 114 bins (wanted 114)
+10:32:51.23 | DEBUG | Grid binning 146 points into 92 bins (wanted 92)
+10:32:51.24 | DEBUG | Grid binning 994 points into 107 bins (wanted 107)
+10:32:51.24 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:51.24 | SUCCESS | Selected 286 shapes across 17 replicates; 0 of them have a collected neighbour
+10:32:51.24 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:51.25 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:32:51.25 | DEBUG | Grid binning 482 points into 108 bins (wanted 108)
+10:32:51.25 | DEBUG | Grid binning 158 points into 95 bins (wanted 95)
+10:32:51.26 | DEBUG | Grid binning 937 points into 99 bins (wanted 99)
+10:32:51.26 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:51.26 | SUCCESS | Selected 274 shapes across 17 replicates; 0 of them have a collected neighbour
+10:32:51.26 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:51.27 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:32:51.27 | DEBUG | Grid binning 511 points into 111 bins (wanted 111)
+10:32:51.27 | DEBUG | Grid binning 139 points into 91 bins (wanted 91)
+10:32:51.28 | DEBUG | Grid binning 995 points into 108 bins (wanted 108)
+10:32:51.28 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:51.28 | SUCCESS | Selected 280 shapes across 17 replicates; 0 of them have a collected neighbour
+10:32:51.28 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:51.29 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:32:51.29 | DEBUG | Grid binning 506 points into 71 bins (wanted 71)
+10:32:51.29 | DEBUG | Grid binning 154 points into 87 bins (wanted 87)
+10:32:51.30 | DEBUG | Grid binning 1055 points into 110 bins (wanted 110)
+10:32:51.30 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:51.30 | SUCCESS | Selected 267 shapes across 17 replicates; 0 of them have a collected neighbour
+10:32:51.30 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:51.31 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:32:51.31 | DEBUG | Grid binning 492 points into 70 bins (wanted 70)
+10:32:51.31 | DEBUG | Grid binning 152 points into 92 bins (wanted 92)
+10:32:51.32 | DEBUG | Grid binning 1024 points into 106 bins (wanted 106)
+10:32:51.32 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:51.32 | SUCCESS | Selected 248 shapes across 17 replicates; 0 of them have a collected neighbour
+10:32:51.32 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:51.33 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:32:51.33 | DEBUG | Grid binning 524 points into 76 bins (wanted 76)
+10:32:51.33 | DEBUG | Grid binning 137 points into 79 bins (wanted 79)
+10:32:51.33 | DEBUG | Grid binning 984 points into 103 bins (wanted 103)
+10:32:51.34 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:51.34 | SUCCESS | Selected 231 shapes across 17 replicates; 0 of them have a collected neighbour
+10:32:51.35 | INFO | Plotting 1655 shapes as polygons
+10:32:51.55 | INFO | Plotting 1588 shapes as polygons
+10:32:51.75 | INFO | Plotting 1657 shapes as polygons
+10:32:51.96 | INFO | Plotting 1724 shapes as polygons
+10:32:52.16 | INFO | Plotting 1679 shapes as polygons
+10:32:52.35 | INFO | Plotting 1658 shapes as polygons
+10:32:52.55 | INFO | Building placement table for a 384 well plate
+10:32:54.88 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:32:54.88 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:54.88 | INFO | 45.44% of shapes intersect the calibration triangle
+10:32:54.88 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:32:54.88 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:32:54.88 | INFO | 25.25% of shapes intersect the calibration triangle
+10:32:54.88 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:32:54.88 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:32:54.89 | INFO | 26.13% of shapes intersect the calibration triangle
+10:32:54.89 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:32:54.89 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:54.89 | INFO | 42.92% of shapes intersect the calibration triangle
+10:32:54.89 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:32:54.89 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:32:54.90 | INFO | 43.36% of shapes intersect the calibration triangle
+10:32:54.90 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:32:54.90 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:54.90 | INFO | 44.27% of shapes intersect the calibration triangle
+10:32:54.92 | INFO | Plotting 1655 shapes as polygons
+10:32:55.12 | INFO | Plotting 1588 shapes as polygons
+10:32:55.31 | INFO | Plotting 1657 shapes as polygons
+10:32:55.50 | INFO | Plotting 1724 shapes as polygons
+10:32:55.70 | INFO | Plotting 1679 shapes as polygons
+10:32:55.84 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:32:55.84 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:55.85 | INFO | 45.44% of shapes intersect the calibration triangle
+10:32:55.85 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:32:55.85 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:32:55.85 | INFO | 25.25% of shapes intersect the calibration triangle
+10:32:55.85 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:32:55.85 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:32:55.85 | INFO | 26.13% of shapes intersect the calibration triangle
+10:32:55.85 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:32:55.85 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:55.85 | INFO | 42.92% of shapes intersect the calibration triangle
+10:32:55.85 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:32:55.85 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:32:55.86 | INFO | 43.36% of shapes intersect the calibration triangle
+10:32:55.86 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:32:55.86 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:55.86 | INFO | 44.27% of shapes intersect the calibration triangle
+10:32:55.87 | INFO | Plotting 1655 shapes as polygons
+10:32:56.12 | INFO | Plotting 1588 shapes as polygons
+10:32:56.32 | INFO | Plotting 1657 shapes as polygons
+10:32:56.48 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:32:56.48 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:56.48 | INFO | 45.44% of shapes intersect the calibration triangle
+10:32:56.48 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:32:56.48 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:32:56.48 | INFO | 25.25% of shapes intersect the calibration triangle
+10:32:56.48 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:32:56.48 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:32:56.49 | INFO | 26.13% of shapes intersect the calibration triangle
+10:32:56.49 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:32:56.49 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:56.49 | INFO | 42.92% of shapes intersect the calibration triangle
+10:32:56.49 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:32:56.49 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:32:56.49 | INFO | 43.36% of shapes intersect the calibration triangle
+10:32:56.49 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:32:56.49 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:56.50 | INFO | 44.27% of shapes intersect the calibration triangle
+10:32:56.51 | INFO | Plotting 1655 shapes as polygons
+10:32:56.76 | INFO | Plotting 1588 shapes as polygons
+10:32:56.96 | INFO | Plotting 1657 shapes as polygons
+10:32:57.16 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:32:57.16 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:57.21 | INFO | 45.44% of shapes intersect the calibration triangle
+10:32:57.21 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:32:57.21 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:32:57.21 | INFO | 25.25% of shapes intersect the calibration triangle
+10:32:57.21 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:32:57.21 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:32:57.22 | INFO | 26.13% of shapes intersect the calibration triangle
+10:32:57.22 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:32:57.22 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:57.22 | INFO | 42.92% of shapes intersect the calibration triangle
+10:32:57.22 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:32:57.22 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:32:57.22 | INFO | 43.36% of shapes intersect the calibration triangle
+10:32:57.22 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:32:57.22 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:57.23 | INFO | 44.27% of shapes intersect the calibration triangle
+10:32:57.24 | INFO | Plotting 1655 shapes as polygons
+10:32:57.44 | INFO | Plotting 1588 shapes as polygons
+10:32:57.64 | INFO | Plotting 1657 shapes as polygons
+10:32:57.76 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:32:57.76 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:57.76 | INFO | 45.44% of shapes intersect the calibration triangle
+10:32:57.76 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:32:57.76 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:32:57.76 | INFO | 25.25% of shapes intersect the calibration triangle
+10:32:57.77 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:32:57.77 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:32:57.77 | INFO | 26.13% of shapes intersect the calibration triangle
+10:32:57.77 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:32:57.77 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:57.77 | INFO | 42.92% of shapes intersect the calibration triangle
+10:32:57.77 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:32:57.77 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:32:57.77 | INFO | 43.36% of shapes intersect the calibration triangle
+10:32:57.78 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:32:57.78 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:32:57.78 | INFO | 44.27% of shapes intersect the calibration triangle
+10:32:57.79 | INFO | Plotting 1655 shapes as polygons
+10:32:58.04 | INFO | Plotting 1588 shapes as polygons
+10:32:58.23 | INFO | Plotting 1657 shapes as polygons
+10:32:58.43 | INFO | Plotting 1724 shapes as polygons
+10:32:58.63 | INFO | Plotting 1679 shapes as polygons
+10:32:58.82 | INFO | Plotting 1658 shapes as polygons
+10:32:59.01 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:32:59.01 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:32:59.01 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:32:59.02 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:32:59.02 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:32:59.02 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:32:59.02 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:32:59.02 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:32:59.02 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:32:59.02 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:32:59.02 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:32:59.02 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:32:59.03 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:32:59.03 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:32:59.03 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:32:59.04 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:32:59.04 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:32:59.04 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:32:59.04 | INFO | P1_Cancer: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8246.9, P1_S2=8095.8, P1_S1=8657.3
+10:32:59.04 | INFO | P1_Immune: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8543.7, P1_S2=8616.3, P1_S1=7839.9
+10:32:59.04 | INFO | P1_Stroma: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8528.0, P1_S2=8312.2, P1_S1=8159.8
+10:32:59.04 | INFO | P2_Cancer: 25000.0 per replicate split proportional as P2_S3=8344.0, P2_S2=7986.1, P2_S1=8669.9, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:59.04 | INFO | P2_Immune: 25000.0 per replicate split proportional as P2_S3=8193.4, P2_S2=8823.9, P2_S1=7982.7, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:59.04 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:32:59.04 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:59.04 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:32:59.05 | DEBUG | Grid binning 502 points into 76 bins (wanted 76)
+10:32:59.05 | DEBUG | Grid binning 146 points into 62 bins (wanted 62)
+10:32:59.06 | DEBUG | Grid binning 994 points into 72 bins (wanted 72)
+10:32:59.06 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:59.06 | SUCCESS | Selected 196 shapes across 12 replicates; 0 of them have a collected neighbour
+10:32:59.06 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:59.07 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:32:59.07 | DEBUG | Grid binning 482 points into 72 bins (wanted 72)
+10:32:59.07 | DEBUG | Grid binning 158 points into 63 bins (wanted 63)
+10:32:59.07 | DEBUG | Grid binning 937 points into 66 bins (wanted 66)
+10:32:59.08 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:59.08 | SUCCESS | Selected 184 shapes across 12 replicates; 0 of them have a collected neighbour
+10:32:59.08 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:59.08 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:32:59.08 | DEBUG | Grid binning 511 points into 74 bins (wanted 74)
+10:32:59.08 | DEBUG | Grid binning 139 points into 61 bins (wanted 61)
+10:32:59.09 | DEBUG | Grid binning 995 points into 72 bins (wanted 72)
+10:32:59.09 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:59.09 | SUCCESS | Selected 185 shapes across 12 replicates; 0 of them have a collected neighbour
+10:32:59.09 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:59.10 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:32:59.10 | DEBUG | Grid binning 506 points into 71 bins (wanted 71)
+10:32:59.10 | DEBUG | Grid binning 154 points into 58 bins (wanted 58)
+10:32:59.11 | DEBUG | Grid binning 1055 points into 74 bins (wanted 74)
+10:32:59.11 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:59.11 | SUCCESS | Selected 206 shapes across 12 replicates; 0 of them have a collected neighbour
+10:32:59.11 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:59.12 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:32:59.12 | DEBUG | Grid binning 492 points into 70 bins (wanted 70)
+10:32:59.12 | DEBUG | Grid binning 152 points into 62 bins (wanted 62)
+10:32:59.13 | DEBUG | Grid binning 1024 points into 71 bins (wanted 71)
+10:32:59.13 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:59.13 | SUCCESS | Selected 186 shapes across 12 replicates; 0 of them have a collected neighbour
+10:32:59.13 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:32:59.13 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:32:59.14 | DEBUG | Grid binning 524 points into 76 bins (wanted 76)
+10:32:59.14 | DEBUG | Grid binning 137 points into 53 bins (wanted 53)
+10:32:59.14 | DEBUG | Grid binning 984 points into 69 bins (wanted 69)
+10:32:59.15 | DEBUG | 0 collected shapes have a collected neighbour
+10:32:59.15 | SUCCESS | Selected 181 shapes across 12 replicates; 0 of them have a collected neighbour
+10:32:59.16 | INFO | Plotting 1655 shapes as polygons
+10:32:59.35 | INFO | Plotting 1588 shapes as polygons
+10:32:59.56 | INFO | Plotting 1657 shapes as polygons
+10:32:59.75 | INFO | Plotting 1724 shapes as polygons
+10:32:59.96 | INFO | Plotting 1679 shapes as polygons
+10:33:00.15 | INFO | Plotting 1658 shapes as polygons
+10:33:00.36 | INFO | Building placement table for a 384 well plate
+10:33:20.71 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:33:20.71 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:20.71 | INFO | 45.44% of shapes intersect the calibration triangle
+10:33:20.71 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:33:20.71 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:33:20.71 | INFO | 25.25% of shapes intersect the calibration triangle
+10:33:20.71 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:33:20.71 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:33:20.72 | INFO | 26.13% of shapes intersect the calibration triangle
+10:33:20.72 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:33:20.72 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:20.72 | INFO | 42.92% of shapes intersect the calibration triangle
+10:33:20.72 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:33:20.72 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:33:20.73 | INFO | 43.36% of shapes intersect the calibration triangle
+10:33:20.73 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:33:20.73 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:20.73 | INFO | 44.27% of shapes intersect the calibration triangle
+10:33:20.74 | INFO | Plotting 1655 shapes as polygons
+10:33:20.95 | INFO | Plotting 1588 shapes as polygons
+10:33:21.14 | INFO | Plotting 1657 shapes as polygons
+10:33:21.33 | INFO | Plotting 1724 shapes as polygons
+10:33:21.53 | INFO | Plotting 1679 shapes as polygons
+10:33:21.73 | INFO | Plotting 1658 shapes as polygons
+10:33:21.93 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:33:21.93 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:33:21.93 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:33:21.93 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:33:21.93 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:33:21.93 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:33:21.94 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:21.94 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:21.94 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:21.94 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:21.94 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:21.94 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:21.95 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:21.95 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:21.95 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:21.95 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:21.95 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:21.95 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:21.96 | INFO | P1_Cancer: 150000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=49481.4, P1_S2=48574.7, P1_S1=51944.0
+10:33:21.96 | INFO | P1_Immune: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8543.7, P1_S2=8616.3, P1_S1=7839.9
+10:33:21.96 | INFO | P1_Stroma: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8528.0, P1_S2=8312.2, P1_S1=8159.8
+10:33:21.96 | INFO | P2_Cancer: 25000.0 per replicate split proportional as P2_S3=8344.0, P2_S2=7986.1, P2_S1=8669.9, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:21.96 | INFO | P2_Immune: 25000.0 per replicate split proportional as P2_S3=8193.4, P2_S2=8823.9, P2_S1=7982.7, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:21.96 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:21.96 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:21.96 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:33:21.96 | DEBUG | Grid binning 502 points into 76 bins (wanted 76)
+10:33:21.97 | DEBUG | Grid binning 146 points into 62 bins (wanted 62)
+10:33:21.97 | DEBUG | Grid binning 994 points into 72 bins (wanted 72)
+10:33:21.97 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:21.97 | SUCCESS | Selected 196 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:21.97 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:21.98 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:33:21.98 | DEBUG | Grid binning 482 points into 72 bins (wanted 72)
+10:33:21.98 | DEBUG | Grid binning 158 points into 63 bins (wanted 63)
+10:33:21.98 | DEBUG | Grid binning 937 points into 66 bins (wanted 66)
+10:33:21.99 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:21.99 | SUCCESS | Selected 184 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:21.99 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:21.99 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:21.99 | DEBUG | Grid binning 511 points into 74 bins (wanted 74)
+10:33:22.00 | DEBUG | Grid binning 139 points into 61 bins (wanted 61)
+10:33:22.00 | DEBUG | Grid binning 995 points into 72 bins (wanted 72)
+10:33:22.00 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:22.00 | SUCCESS | Selected 185 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:22.00 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:22.01 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:33:22.01 | DEBUG | Grid binning 506 points into 421 bins (wanted 421)
+10:33:22.02 | DEBUG | Grid binning 154 points into 58 bins (wanted 58)
+10:33:22.02 | DEBUG | Grid binning 1055 points into 74 bins (wanted 74)
+10:33:22.03 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:22.03 | SUCCESS | Selected 515 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:22.03 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:22.03 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:33:22.03 | DEBUG | Grid binning 492 points into 418 bins (wanted 418)
+10:33:22.04 | DEBUG | Grid binning 152 points into 62 bins (wanted 62)
+10:33:22.04 | DEBUG | Grid binning 1024 points into 71 bins (wanted 71)
+10:33:22.05 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:22.05 | SUCCESS | Selected 488 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:22.05 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:22.05 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:22.06 | DEBUG | Grid binning 524 points into 455 bins (wanted 455)
+10:33:22.06 | DEBUG | Grid binning 137 points into 53 bins (wanted 53)
+10:33:22.06 | DEBUG | Grid binning 984 points into 69 bins (wanted 69)
+10:33:22.07 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:22.07 | SUCCESS | Selected 510 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:22.08 | INFO | Plotting 1655 shapes as polygons
+10:33:22.28 | INFO | Plotting 1588 shapes as polygons
+10:33:22.48 | INFO | Plotting 1657 shapes as polygons
+10:33:22.68 | INFO | Plotting 1724 shapes as polygons
+10:33:22.87 | INFO | Plotting 1679 shapes as polygons
+10:33:23.07 | INFO | Plotting 1658 shapes as polygons
+10:33:23.28 | INFO | Building placement table for a 384 well plate
+10:33:23.90 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:33:23.90 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:23.90 | INFO | 45.44% of shapes intersect the calibration triangle
+10:33:23.90 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:33:23.90 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:33:23.91 | INFO | 25.25% of shapes intersect the calibration triangle
+10:33:23.91 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:33:23.91 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:33:23.91 | INFO | 26.13% of shapes intersect the calibration triangle
+10:33:23.91 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:33:23.91 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:23.91 | INFO | 42.92% of shapes intersect the calibration triangle
+10:33:23.92 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:33:23.92 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:33:23.92 | INFO | 43.36% of shapes intersect the calibration triangle
+10:33:23.92 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:33:23.92 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:23.92 | INFO | 44.27% of shapes intersect the calibration triangle
+10:33:23.94 | INFO | Plotting 1655 shapes as polygons
+10:33:24.14 | INFO | Plotting 1588 shapes as polygons
+10:33:24.33 | INFO | Plotting 1657 shapes as polygons
+10:33:24.53 | INFO | Plotting 1724 shapes as polygons
+10:33:24.73 | INFO | Plotting 1679 shapes as polygons
+10:33:24.93 | INFO | Plotting 1658 shapes as polygons
+10:33:25.13 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:33:25.13 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:33:25.13 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:33:25.13 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:33:25.13 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:33:25.13 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:33:25.13 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:25.14 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:25.14 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:25.14 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:25.14 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:25.14 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:25.15 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:25.15 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:25.15 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:25.15 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:25.15 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:25.15 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:25.16 | INFO | P1_Cancer: 150000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=49481.4, P1_S2=48574.7, P1_S1=51944.0
+10:33:25.16 | INFO | P1_Immune: 50000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=17087.5, P1_S2=17232.7, P1_S1=15679.8
+10:33:25.16 | INFO | P1_Stroma: 25000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=8528.0, P1_S2=8312.2, P1_S1=8159.8
+10:33:25.16 | INFO | P2_Cancer: 25000.0 per replicate split proportional as P2_S3=8344.0, P2_S2=7986.1, P2_S1=8669.9, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:25.16 | INFO | P2_Immune: 25000.0 per replicate split proportional as P2_S3=8193.4, P2_S2=8823.9, P2_S1=7982.7, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:25.16 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:25.16 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:25.16 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:33:25.16 | DEBUG | Grid binning 502 points into 76 bins (wanted 76)
+10:33:25.17 | DEBUG | Grid binning 146 points into 62 bins (wanted 62)
+10:33:25.17 | DEBUG | Grid binning 994 points into 72 bins (wanted 72)
+10:33:25.17 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:25.17 | SUCCESS | Selected 196 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:25.17 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:25.18 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:33:25.18 | DEBUG | Grid binning 482 points into 72 bins (wanted 72)
+10:33:25.18 | DEBUG | Grid binning 158 points into 63 bins (wanted 63)
+10:33:25.19 | DEBUG | Grid binning 937 points into 66 bins (wanted 66)
+10:33:25.19 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:25.19 | SUCCESS | Selected 184 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:25.19 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:25.19 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:25.20 | DEBUG | Grid binning 511 points into 74 bins (wanted 74)
+10:33:25.20 | DEBUG | Grid binning 139 points into 61 bins (wanted 61)
+10:33:25.20 | DEBUG | Grid binning 995 points into 72 bins (wanted 72)
+10:33:25.20 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:25.20 | SUCCESS | Selected 185 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:25.20 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:25.21 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:33:25.21 | DEBUG | Grid binning 506 points into 421 bins (wanted 421)
+10:33:25.22 | DEBUG | Grid binning 154 points into 115 bins (wanted 115)
+10:33:25.22 | DEBUG | Grid binning 1055 points into 74 bins (wanted 74)
+10:33:25.23 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:25.23 | SUCCESS | Selected 568 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:25.23 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:25.23 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:33:25.24 | DEBUG | Grid binning 492 points into 418 bins (wanted 418)
+10:33:25.24 | DEBUG | Grid binning 152 points into 123 bins (wanted 123)
+10:33:25.25 | DEBUG | Grid binning 1024 points into 71 bins (wanted 71)
+10:33:25.25 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:25.25 | SUCCESS | Selected 549 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:25.25 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:25.26 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:25.26 | DEBUG | Grid binning 524 points into 455 bins (wanted 455)
+10:33:25.26 | DEBUG | Grid binning 137 points into 106 bins (wanted 106)
+10:33:25.27 | DEBUG | Grid binning 984 points into 69 bins (wanted 69)
+10:33:25.27 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:25.27 | SUCCESS | Selected 566 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:25.28 | INFO | Plotting 1655 shapes as polygons
+10:33:25.49 | INFO | Plotting 1588 shapes as polygons
+10:33:25.68 | INFO | Plotting 1657 shapes as polygons
+10:33:25.89 | INFO | Plotting 1724 shapes as polygons
+10:33:26.08 | INFO | Plotting 1679 shapes as polygons
+10:33:26.28 | INFO | Plotting 1658 shapes as polygons
+10:33:26.48 | INFO | Building placement table for a 384 well plate
+10:33:30.49 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:33:30.49 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:30.49 | INFO | 45.44% of shapes intersect the calibration triangle
+10:33:30.49 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:33:30.49 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:33:30.49 | INFO | 25.25% of shapes intersect the calibration triangle
+10:33:30.49 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:33:30.49 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:33:30.50 | INFO | 26.13% of shapes intersect the calibration triangle
+10:33:30.50 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:33:30.50 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:30.50 | INFO | 42.92% of shapes intersect the calibration triangle
+10:33:30.50 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:33:30.50 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:33:30.50 | INFO | 43.36% of shapes intersect the calibration triangle
+10:33:30.51 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:33:30.51 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:30.51 | INFO | 44.27% of shapes intersect the calibration triangle
+10:33:30.52 | INFO | Plotting 1655 shapes as polygons
+10:33:30.73 | INFO | Plotting 1588 shapes as polygons
+10:33:30.93 | INFO | Plotting 1657 shapes as polygons
+10:33:31.12 | INFO | Plotting 1724 shapes as polygons
+10:33:31.32 | INFO | Plotting 1679 shapes as polygons
+10:33:31.52 | INFO | Plotting 1658 shapes as polygons
+10:33:31.72 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:33:31.72 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:33:31.73 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:33:31.73 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:33:31.73 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:33:31.73 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:33:31.73 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:31.73 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:31.73 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:31.73 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:31.73 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:31.73 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:31.74 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:31.74 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:31.75 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:31.75 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:31.75 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:31.75 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:31.75 | INFO | P1_Cancer: 150000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=49481.4, P1_S2=48574.7, P1_S1=51944.0
+10:33:31.75 | INFO | P1_Immune: 50000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=17087.5, P1_S2=17232.7, P1_S1=15679.8
+10:33:31.75 | INFO | P1_Stroma: 350000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=119391.5, P1_S2=116371.0, P1_S1=114237.5
+10:33:31.75 | INFO | P2_Cancer: 25000.0 per replicate split proportional as P2_S3=8344.0, P2_S2=7986.1, P2_S1=8669.9, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:31.75 | INFO | P2_Immune: 25000.0 per replicate split proportional as P2_S3=8193.4, P2_S2=8823.9, P2_S1=7982.7, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:31.75 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:31.75 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:31.75 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:33:31.76 | DEBUG | Grid binning 502 points into 76 bins (wanted 76)
+10:33:31.76 | DEBUG | Grid binning 146 points into 62 bins (wanted 62)
+10:33:31.76 | DEBUG | Grid binning 994 points into 72 bins (wanted 72)
+10:33:31.77 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:31.77 | SUCCESS | Selected 196 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:31.77 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:31.77 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:33:31.77 | DEBUG | Grid binning 482 points into 72 bins (wanted 72)
+10:33:31.78 | DEBUG | Grid binning 158 points into 63 bins (wanted 63)
+10:33:31.78 | DEBUG | Grid binning 937 points into 66 bins (wanted 66)
+10:33:31.78 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:31.78 | SUCCESS | Selected 184 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:31.78 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:31.79 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:31.79 | DEBUG | Grid binning 511 points into 74 bins (wanted 74)
+10:33:31.79 | DEBUG | Grid binning 139 points into 61 bins (wanted 61)
+10:33:31.79 | DEBUG | Grid binning 995 points into 72 bins (wanted 72)
+10:33:31.80 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:31.80 | SUCCESS | Selected 185 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:31.80 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:31.80 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:33:31.81 | DEBUG | Grid binning 506 points into 421 bins (wanted 421)
+10:33:31.81 | DEBUG | Grid binning 154 points into 115 bins (wanted 115)
+10:33:31.82 | DEBUG | Grid binning 1055 points into 1027 bins (wanted 1027)
+10:33:31.84 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:31.84 | SUCCESS | Selected 1440 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:31.84 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:31.84 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:33:31.84 | DEBUG | Grid binning 492 points into 418 bins (wanted 418)
+10:33:31.85 | DEBUG | Grid binning 152 points into 123 bins (wanted 123)
+10:33:31.86 | DEBUG | Grid binning 1024 points into 983 bins (wanted 983)
+10:33:31.87 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:31.87 | SUCCESS | Selected 1398 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:31.87 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:31.88 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:31.88 | DEBUG | Grid binning 524 points into 455 bins (wanted 455)
+10:33:31.89 | DEBUG | Grid binning 137 points into 106 bins (wanted 106)
+10:33:31.89 | DEBUG | Grid binning 984 points into 953 bins (wanted 953)
+10:33:31.90 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:31.90 | SUCCESS | Selected 1389 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:31.91 | INFO | Plotting 1655 shapes as polygons
+10:33:32.12 | INFO | Plotting 1588 shapes as polygons
+10:33:32.32 | INFO | Plotting 1657 shapes as polygons
+10:33:32.52 | INFO | Plotting 1724 shapes as polygons
+10:33:32.71 | INFO | Plotting 1679 shapes as polygons
+10:33:32.91 | INFO | Plotting 1658 shapes as polygons
+10:33:33.11 | INFO | Building placement table for a 384 well plate
+10:33:36.10 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:33:36.10 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:36.10 | INFO | 45.44% of shapes intersect the calibration triangle
+10:33:36.10 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:33:36.10 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:33:36.11 | INFO | 25.25% of shapes intersect the calibration triangle
+10:33:36.11 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:33:36.11 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:33:36.11 | INFO | 26.13% of shapes intersect the calibration triangle
+10:33:36.12 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:33:36.12 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:36.12 | INFO | 42.92% of shapes intersect the calibration triangle
+10:33:36.12 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:33:36.12 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:33:36.12 | INFO | 43.36% of shapes intersect the calibration triangle
+10:33:36.13 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:33:36.13 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:36.13 | INFO | 44.27% of shapes intersect the calibration triangle
+10:33:36.14 | INFO | Plotting 1655 shapes as polygons
+10:33:36.35 | INFO | Plotting 1588 shapes as polygons
+10:33:36.54 | INFO | Plotting 1657 shapes as polygons
+10:33:36.74 | INFO | Plotting 1724 shapes as polygons
+10:33:36.95 | INFO | Plotting 1679 shapes as polygons
+10:33:37.15 | INFO | Plotting 1658 shapes as polygons
+10:33:37.34 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:33:37.35 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:33:37.35 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:33:37.35 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:33:37.35 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:33:37.35 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:33:37.35 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:37.35 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:37.35 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:37.35 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:37.35 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:37.36 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:37.36 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:37.37 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:37.37 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:37.37 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:37.37 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:37.37 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:37.37 | INFO | P1_Cancer: 150000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=49481.4, P1_S2=48574.7, P1_S1=51944.0
+10:33:37.37 | INFO | P1_Immune: 50000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=17087.5, P1_S2=17232.7, P1_S1=15679.8
+10:33:37.37 | INFO | P1_Stroma: 350000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=119391.5, P1_S2=116371.0, P1_S1=114237.5
+10:33:37.37 | INFO | P2_Cancer: 150000.0 per replicate split proportional as P2_S3=50063.8, P2_S2=47916.6, P2_S1=52019.6, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:37.37 | INFO | P2_Immune: 25000.0 per replicate split proportional as P2_S3=8193.4, P2_S2=8823.9, P2_S1=7982.7, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:37.37 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:37.37 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:37.38 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:33:37.38 | DEBUG | Grid binning 502 points into 453 bins (wanted 453)
+10:33:37.39 | DEBUG | Grid binning 146 points into 62 bins (wanted 62)
+10:33:37.39 | DEBUG | Grid binning 994 points into 72 bins (wanted 72)
+10:33:37.40 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:37.40 | SUCCESS | Selected 524 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:37.40 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:37.40 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:33:37.40 | DEBUG | Grid binning 482 points into 431 bins (wanted 431)
+10:33:37.41 | DEBUG | Grid binning 158 points into 63 bins (wanted 63)
+10:33:37.41 | DEBUG | Grid binning 937 points into 66 bins (wanted 66)
+10:33:37.42 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:37.42 | SUCCESS | Selected 507 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:37.42 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:37.42 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:37.42 | DEBUG | Grid binning 511 points into 442 bins (wanted 442)
+10:33:37.43 | DEBUG | Grid binning 139 points into 61 bins (wanted 61)
+10:33:37.43 | DEBUG | Grid binning 995 points into 72 bins (wanted 72)
+10:33:37.44 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:37.44 | SUCCESS | Selected 518 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:37.44 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:37.44 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:33:37.45 | DEBUG | Grid binning 506 points into 421 bins (wanted 421)
+10:33:37.45 | DEBUG | Grid binning 154 points into 115 bins (wanted 115)
+10:33:37.46 | DEBUG | Grid binning 1055 points into 1027 bins (wanted 1027)
+10:33:37.47 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:37.47 | SUCCESS | Selected 1440 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:37.47 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:37.48 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:33:37.48 | DEBUG | Grid binning 492 points into 418 bins (wanted 418)
+10:33:37.49 | DEBUG | Grid binning 152 points into 123 bins (wanted 123)
+10:33:37.49 | DEBUG | Grid binning 1024 points into 983 bins (wanted 983)
+10:33:37.51 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:37.51 | SUCCESS | Selected 1398 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:37.51 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:37.51 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:37.52 | DEBUG | Grid binning 524 points into 455 bins (wanted 455)
+10:33:37.52 | DEBUG | Grid binning 137 points into 106 bins (wanted 106)
+10:33:37.53 | DEBUG | Grid binning 984 points into 953 bins (wanted 953)
+10:33:37.54 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:37.54 | SUCCESS | Selected 1389 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:37.55 | INFO | Plotting 1655 shapes as polygons
+10:33:37.75 | INFO | Plotting 1588 shapes as polygons
+10:33:37.96 | INFO | Plotting 1657 shapes as polygons
+10:33:38.15 | INFO | Plotting 1724 shapes as polygons
+10:33:38.23 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:33:38.23 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:38.23 | INFO | 45.44% of shapes intersect the calibration triangle
+10:33:38.24 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:33:38.24 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:33:38.24 | INFO | 25.25% of shapes intersect the calibration triangle
+10:33:38.24 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:33:38.24 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:33:38.24 | INFO | 26.13% of shapes intersect the calibration triangle
+10:33:38.24 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:33:38.24 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:38.24 | INFO | 42.92% of shapes intersect the calibration triangle
+10:33:38.24 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:33:38.24 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:33:38.25 | INFO | 43.36% of shapes intersect the calibration triangle
+10:33:38.25 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:33:38.25 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:38.25 | INFO | 44.27% of shapes intersect the calibration triangle
+10:33:38.26 | INFO | Plotting 1655 shapes as polygons
+10:33:38.52 | INFO | Plotting 1588 shapes as polygons
+10:33:38.72 | INFO | Plotting 1657 shapes as polygons
+10:33:38.91 | INFO | Plotting 1724 shapes as polygons
+10:33:39.11 | INFO | Plotting 1679 shapes as polygons
+10:33:39.31 | INFO | Plotting 1658 shapes as polygons
+10:33:39.51 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:33:39.51 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:33:39.51 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:33:39.51 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:33:39.52 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:33:39.52 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:33:39.52 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:39.52 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:39.52 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:39.52 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:39.52 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:39.52 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:39.53 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:39.53 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:39.53 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:39.53 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:39.54 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:39.54 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:39.54 | INFO | P1_Cancer: 150000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=49481.4, P1_S2=48574.7, P1_S1=51944.0
+10:33:39.54 | INFO | P1_Immune: 50000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=17087.5, P1_S2=17232.7, P1_S1=15679.8
+10:33:39.54 | INFO | P1_Stroma: 350000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=119391.5, P1_S2=116371.0, P1_S1=114237.5
+10:33:39.54 | INFO | P2_Cancer: 150000.0 per replicate split proportional as P2_S3=50063.8, P2_S2=47916.6, P2_S1=52019.6, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:39.54 | INFO | P2_Immune: 50000.0 per replicate split proportional as P2_S3=16386.8, P2_S2=17647.9, P2_S1=15965.4, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:39.54 | INFO | P2_Stroma: 25000.0 per replicate split proportional as P2_S3=8465.2, P2_S2=8032.1, P2_S1=8502.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:39.54 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:39.54 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:33:39.55 | DEBUG | Grid binning 502 points into 453 bins (wanted 453)
+10:33:39.55 | DEBUG | Grid binning 146 points into 123 bins (wanted 123)
+10:33:39.56 | DEBUG | Grid binning 994 points into 72 bins (wanted 72)
+10:33:39.56 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:39.56 | SUCCESS | Selected 585 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:39.56 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:39.57 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:33:39.57 | DEBUG | Grid binning 482 points into 431 bins (wanted 431)
+10:33:39.58 | DEBUG | Grid binning 158 points into 126 bins (wanted 126)
+10:33:39.58 | DEBUG | Grid binning 937 points into 66 bins (wanted 66)
+10:33:39.58 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:39.58 | SUCCESS | Selected 568 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:39.58 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:39.59 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:39.59 | DEBUG | Grid binning 511 points into 442 bins (wanted 442)
+10:33:39.60 | DEBUG | Grid binning 139 points into 121 bins (wanted 121)
+10:33:39.60 | DEBUG | Grid binning 995 points into 72 bins (wanted 72)
+10:33:39.61 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:39.61 | SUCCESS | Selected 574 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:39.61 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:39.61 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:33:39.61 | DEBUG | Grid binning 506 points into 421 bins (wanted 421)
+10:33:39.62 | DEBUG | Grid binning 154 points into 115 bins (wanted 115)
+10:33:39.63 | DEBUG | Grid binning 1055 points into 1027 bins (wanted 1027)
+10:33:39.64 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:39.64 | SUCCESS | Selected 1440 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:39.64 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:39.65 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:33:39.65 | DEBUG | Grid binning 492 points into 418 bins (wanted 418)
+10:33:39.66 | DEBUG | Grid binning 152 points into 123 bins (wanted 123)
+10:33:39.66 | DEBUG | Grid binning 1024 points into 983 bins (wanted 983)
+10:33:39.68 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:39.68 | SUCCESS | Selected 1398 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:39.68 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:39.68 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:39.68 | DEBUG | Grid binning 524 points into 455 bins (wanted 455)
+10:33:39.69 | DEBUG | Grid binning 137 points into 106 bins (wanted 106)
+10:33:39.70 | DEBUG | Grid binning 984 points into 953 bins (wanted 953)
+10:33:39.71 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:39.71 | SUCCESS | Selected 1389 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:39.72 | INFO | Plotting 1655 shapes as polygons
+10:33:39.92 | INFO | Plotting 1588 shapes as polygons
+10:33:40.13 | INFO | Plotting 1657 shapes as polygons
+10:33:40.33 | INFO | Plotting 1724 shapes as polygons
+10:33:40.54 | INFO | Plotting 1679 shapes as polygons
+10:33:40.73 | INFO | Plotting 1658 shapes as polygons
+10:33:40.94 | INFO | Building placement table for a 384 well plate
+10:33:44.21 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:33:44.21 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:44.21 | INFO | 45.44% of shapes intersect the calibration triangle
+10:33:44.21 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:33:44.21 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:33:44.22 | INFO | 25.25% of shapes intersect the calibration triangle
+10:33:44.22 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:33:44.22 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:33:44.22 | INFO | 26.13% of shapes intersect the calibration triangle
+10:33:44.22 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:33:44.22 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:44.22 | INFO | 42.92% of shapes intersect the calibration triangle
+10:33:44.22 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:33:44.22 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:33:44.23 | INFO | 43.36% of shapes intersect the calibration triangle
+10:33:44.23 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:33:44.23 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:33:44.23 | INFO | 44.27% of shapes intersect the calibration triangle
+10:33:44.24 | INFO | Plotting 1655 shapes as polygons
+10:33:44.45 | INFO | Plotting 1588 shapes as polygons
+10:33:44.64 | INFO | Plotting 1657 shapes as polygons
+10:33:44.84 | INFO | Plotting 1724 shapes as polygons
+10:33:45.04 | INFO | Plotting 1679 shapes as polygons
+10:33:45.24 | INFO | Plotting 1658 shapes as polygons
+10:33:45.44 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:33:45.44 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:33:45.44 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:33:45.44 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:33:45.44 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:33:45.44 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:33:45.44 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:45.44 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:45.45 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:45.45 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:45.45 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:45.45 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:45.46 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:33:45.46 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:33:45.46 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:33:45.46 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:33:45.46 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:33:45.47 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:33:45.47 | INFO | P1_Cancer: 150000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=49481.4, P1_S2=48574.7, P1_S1=51944.0
+10:33:45.47 | INFO | P1_Immune: 50000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=17087.5, P1_S2=17232.7, P1_S1=15679.8
+10:33:45.47 | INFO | P1_Stroma: 350000.0 per replicate split proportional as P2_S3=0.0, P2_S2=0.0, P2_S1=0.0, P1_S3=119391.5, P1_S2=116371.0, P1_S1=114237.5
+10:33:45.47 | INFO | P2_Cancer: 150000.0 per replicate split proportional as P2_S3=50063.8, P2_S2=47916.6, P2_S1=52019.6, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:45.47 | INFO | P2_Immune: 50000.0 per replicate split proportional as P2_S3=16386.8, P2_S2=17647.9, P2_S1=15965.4, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:45.47 | INFO | P2_Stroma: 350000.0 per replicate split proportional as P2_S3=118512.5, P2_S2=112448.7, P2_S1=119038.8, P1_S3=0.0, P1_S2=0.0, P1_S1=0.0
+10:33:45.47 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:45.47 | INFO | Adjacency within 1.0px: 0 of 1642 shapes have a neighbour
+10:33:45.47 | DEBUG | Grid binning 502 points into 453 bins (wanted 453)
+10:33:45.48 | DEBUG | Grid binning 146 points into 123 bins (wanted 123)
+10:33:45.49 | DEBUG | Grid binning 994 points into 994 bins (wanted 994)
+10:33:45.50 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:45.50 | SUCCESS | Selected 1438 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:45.50 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:45.50 | INFO | Adjacency within 1.0px: 0 of 1577 shapes have a neighbour
+10:33:45.51 | DEBUG | Grid binning 482 points into 431 bins (wanted 431)
+10:33:45.51 | DEBUG | Grid binning 158 points into 126 bins (wanted 126)
+10:33:45.52 | DEBUG | Grid binning 937 points into 920 bins (wanted 920)
+10:33:45.53 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:45.53 | SUCCESS | Selected 1367 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:45.53 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:45.54 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:45.54 | DEBUG | Grid binning 511 points into 442 bins (wanted 442)
+10:33:45.55 | DEBUG | Grid binning 139 points into 121 bins (wanted 121)
+10:33:45.55 | DEBUG | Grid binning 995 points into 995 bins (wanted 995)
+10:33:45.57 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:45.57 | SUCCESS | Selected 1436 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:45.57 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:45.57 | INFO | Adjacency within 1.0px: 0 of 1715 shapes have a neighbour
+10:33:45.57 | DEBUG | Grid binning 506 points into 421 bins (wanted 421)
+10:33:45.58 | DEBUG | Grid binning 154 points into 115 bins (wanted 115)
+10:33:45.59 | DEBUG | Grid binning 1055 points into 1027 bins (wanted 1027)
+10:33:45.60 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:45.60 | SUCCESS | Selected 1440 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:45.60 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:45.61 | INFO | Adjacency within 1.0px: 0 of 1668 shapes have a neighbour
+10:33:45.61 | DEBUG | Grid binning 492 points into 418 bins (wanted 418)
+10:33:45.62 | DEBUG | Grid binning 152 points into 123 bins (wanted 123)
+10:33:45.62 | DEBUG | Grid binning 1024 points into 983 bins (wanted 983)
+10:33:45.64 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:45.64 | SUCCESS | Selected 1398 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:45.64 | INFO | Selecting: mode=spread, avoid adjacent=True within 1.0px, seed=0, budget in µm²
+10:33:45.64 | INFO | Adjacency within 1.0px: 0 of 1645 shapes have a neighbour
+10:33:45.64 | DEBUG | Grid binning 524 points into 455 bins (wanted 455)
+10:33:45.65 | DEBUG | Grid binning 137 points into 106 bins (wanted 106)
+10:33:45.66 | DEBUG | Grid binning 984 points into 953 bins (wanted 953)
+10:33:45.67 | DEBUG | 0 collected shapes have a collected neighbour
+10:33:45.67 | SUCCESS | Selected 1389 shapes across 12 replicates; 0 of them have a collected neighbour
+10:33:45.68 | INFO | Plotting 1655 shapes as polygons
+10:33:45.88 | INFO | Plotting 1588 shapes as polygons
+10:33:46.08 | INFO | Plotting 1657 shapes as polygons
+10:33:46.29 | INFO | Plotting 1724 shapes as polygons
+10:33:46.49 | INFO | Plotting 1679 shapes as polygons
+10:33:46.68 | INFO | Plotting 1658 shapes as polygons
+10:33:46.88 | INFO | Building placement table for a 384 well plate
+10:39:25.06 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:39:25.06 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:25.07 | INFO | 45.44% of shapes intersect the calibration triangle
+10:39:25.07 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:39:25.07 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:39:25.07 | INFO | 25.25% of shapes intersect the calibration triangle
+10:39:25.07 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:39:25.07 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:39:25.07 | INFO | 26.13% of shapes intersect the calibration triangle
+10:39:25.07 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:39:25.08 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:25.08 | INFO | 42.92% of shapes intersect the calibration triangle
+10:39:25.08 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:39:25.08 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:39:25.08 | INFO | 43.36% of shapes intersect the calibration triangle
+10:39:25.08 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:39:25.08 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:25.09 | INFO | 44.27% of shapes intersect the calibration triangle
+10:39:25.10 | INFO | Plotting 1655 shapes as polygons
+10:39:25.30 | INFO | Plotting 1588 shapes as polygons
+10:39:25.49 | INFO | Plotting 1657 shapes as polygons
+10:39:25.68 | INFO | Plotting 1724 shapes as polygons
+10:39:25.88 | INFO | Plotting 1679 shapes as polygons
+10:39:26.07 | INFO | Plotting 1658 shapes as polygons
+10:39:26.27 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:39:26.27 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:39:26.27 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:39:26.27 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:39:26.27 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:39:26.28 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:39:26.28 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:39:26.28 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:39:26.28 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:39:26.28 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:39:26.28 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:39:26.28 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:39:26.30 | INFO | Plotting 1655 shapes as polygons
+10:39:26.50 | INFO | Plotting 1588 shapes as polygons
+10:39:26.70 | INFO | Plotting 1657 shapes as polygons
+10:39:26.90 | INFO | Plotting 1724 shapes as polygons
+10:39:27.09 | INFO | Plotting 1679 shapes as polygons
+10:39:27.28 | INFO | Plotting 1658 shapes as polygons
+10:39:27.48 | INFO | Building placement table for a 384 well plate
+10:39:29.55 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:39:29.55 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:29.55 | INFO | 45.44% of shapes intersect the calibration triangle
+10:39:29.55 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:39:29.55 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:39:29.55 | INFO | 25.25% of shapes intersect the calibration triangle
+10:39:29.55 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:39:29.55 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:39:29.56 | INFO | 26.13% of shapes intersect the calibration triangle
+10:39:29.56 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:39:29.56 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:29.56 | INFO | 42.92% of shapes intersect the calibration triangle
+10:39:29.56 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:39:29.56 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:39:29.56 | INFO | 43.36% of shapes intersect the calibration triangle
+10:39:29.57 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:39:29.57 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:29.57 | INFO | 44.27% of shapes intersect the calibration triangle
+10:39:29.58 | INFO | Plotting 1655 shapes as polygons
+10:39:29.79 | INFO | Plotting 1588 shapes as polygons
+10:39:29.98 | INFO | Plotting 1657 shapes as polygons
+10:39:30.18 | INFO | Plotting 1724 shapes as polygons
+10:39:30.37 | INFO | Plotting 1679 shapes as polygons
+10:39:30.57 | INFO | Plotting 1658 shapes as polygons
+10:39:30.77 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:39:30.77 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:39:30.77 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:39:30.77 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:39:30.77 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:39:30.77 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:39:30.77 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:39:30.77 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:39:30.77 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:39:30.77 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:39:30.78 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:39:30.78 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:39:30.79 | INFO | Plotting 1655 shapes as polygons
+10:39:31.00 | INFO | Plotting 1588 shapes as polygons
+10:39:31.19 | INFO | Plotting 1657 shapes as polygons
+10:39:31.39 | INFO | Plotting 1724 shapes as polygons
+10:39:31.59 | INFO | Plotting 1679 shapes as polygons
+10:39:31.78 | INFO | Plotting 1658 shapes as polygons
+10:39:31.98 | INFO | Building placement table for a 384 well plate
+10:39:57.88 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:39:57.88 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:57.88 | INFO | 45.44% of shapes intersect the calibration triangle
+10:39:57.88 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:39:57.88 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:39:57.89 | INFO | 25.25% of shapes intersect the calibration triangle
+10:39:57.89 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:39:57.89 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:39:57.89 | INFO | 26.13% of shapes intersect the calibration triangle
+10:39:57.89 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:39:57.89 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:57.89 | INFO | 42.92% of shapes intersect the calibration triangle
+10:39:57.89 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:39:57.90 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:39:57.90 | INFO | 43.36% of shapes intersect the calibration triangle
+10:39:57.90 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:39:57.90 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:39:57.90 | INFO | 44.27% of shapes intersect the calibration triangle
+10:39:57.92 | INFO | Plotting 1655 shapes as polygons
+10:39:58.12 | INFO | Plotting 1588 shapes as polygons
+10:39:58.32 | INFO | Plotting 1657 shapes as polygons
+10:39:58.50 | INFO | Plotting 1724 shapes as polygons
+10:39:58.70 | INFO | Plotting 1679 shapes as polygons
+10:39:58.90 | INFO | Plotting 1658 shapes as polygons
+10:39:59.09 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:39:59.09 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:39:59.09 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:39:59.09 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:39:59.09 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:39:59.09 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:39:59.09 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:39:59.10 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:39:59.10 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:39:59.10 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:39:59.10 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:39:59.10 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:39:59.12 | INFO | Plotting 1655 shapes as polygons
+10:39:59.32 | INFO | Plotting 1588 shapes as polygons
+10:39:59.52 | INFO | Plotting 1657 shapes as polygons
+10:39:59.71 | INFO | Plotting 1724 shapes as polygons
+10:39:59.90 | INFO | Plotting 1679 shapes as polygons
+10:40:00.09 | INFO | Plotting 1658 shapes as polygons
+10:40:00.28 | INFO | Building placement table for a 384 well plate
+10:40:41.30 | INFO | Calibration points for P2_S3: ['calib1', 'calib3', 'calib5']
+10:40:41.30 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:40:41.30 | INFO | 45.44% of shapes intersect the calibration triangle
+10:40:41.30 | INFO | Calibration points for P2_S2: ['calib2', 'calib3', 'calib4']
+10:40:41.30 | INFO | Triangle QC for calibration points ['calib2', 'calib3', 'calib4']
+10:40:41.30 | INFO | 25.25% of shapes intersect the calibration triangle
+10:40:41.30 | INFO | Calibration points for P2_S1: ['calib2', 'calib1', 'calib5']
+10:40:41.30 | INFO | Triangle QC for calibration points ['calib2', 'calib1', 'calib5']
+10:40:41.31 | INFO | 26.13% of shapes intersect the calibration triangle
+10:40:41.31 | INFO | Calibration points for P1_S3: ['calib1', 'calib3', 'calib5']
+10:40:41.31 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:40:41.31 | INFO | 42.92% of shapes intersect the calibration triangle
+10:40:41.31 | INFO | Calibration points for P1_S2: ['calib3', 'calib1', 'calib5']
+10:40:41.31 | INFO | Triangle QC for calibration points ['calib3', 'calib1', 'calib5']
+10:40:41.32 | INFO | 43.36% of shapes intersect the calibration triangle
+10:40:41.32 | INFO | Calibration points for P1_S1: ['calib1', 'calib3', 'calib5']
+10:40:41.32 | INFO | Triangle QC for calibration points ['calib1', 'calib3', 'calib5']
+10:40:41.32 | INFO | 44.27% of shapes intersect the calibration triangle
+10:40:41.34 | INFO | Plotting 1655 shapes as polygons
+10:40:41.54 | INFO | Plotting 1588 shapes as polygons
+10:40:41.73 | INFO | Plotting 1657 shapes as polygons
+10:40:41.92 | INFO | Plotting 1724 shapes as polygons
+10:40:42.12 | INFO | Plotting 1679 shapes as polygons
+10:40:42.32 | INFO | Plotting 1658 shapes as polygons
+10:40:42.52 | INFO | Minimum area excluded 13 shapes: {'P2_Stroma': 9, 'P2_Cancer': 3, 'P2_Immune': 1}
+10:40:42.52 | INFO | Minimum area excluded 11 shapes: {'P2_Cancer': 6, 'P2_Stroma': 4, 'P2_Immune': 1}
+10:40:42.52 | INFO | Minimum area excluded 12 shapes: {'P2_Stroma': 9, 'P2_Cancer': 2, 'P2_Immune': 1}
+10:40:42.52 | INFO | Minimum area excluded 9 shapes: {'P1_Stroma': 5, 'P1_Cancer': 3, 'P1_Immune': 1}
+10:40:42.52 | INFO | Minimum area excluded 11 shapes: {'P1_Stroma': 9, 'P1_Cancer': 2}
+10:40:42.52 | INFO | Minimum area excluded 13 shapes: {'P1_Stroma': 6, 'P1_Cancer': 5, 'P1_Immune': 2}
+10:40:42.52 | INFO | Computing statistics for 3 classes at 0.5000001088176468 µm/px
+10:40:42.52 | INFO | Computing statistics for 3 classes at 0.49999993339563237 µm/px
+10:40:42.52 | INFO | Computing statistics for 3 classes at 0.4999999052571208 µm/px
+10:40:42.53 | INFO | Computing statistics for 3 classes at 0.5000000362235899 µm/px
+10:40:42.53 | INFO | Computing statistics for 3 classes at 0.500000023906975 µm/px
+10:40:42.53 | INFO | Computing statistics for 3 classes at 0.5000000411778643 µm/px
+10:40:42.55 | INFO | Plotting 1655 shapes as polygons
+10:40:42.75 | INFO | Plotting 1588 shapes as polygons
+10:40:42.94 | INFO | Plotting 1657 shapes as polygons
+10:40:43.15 | INFO | Plotting 1724 shapes as polygons
+10:40:43.34 | INFO | Plotting 1679 shapes as polygons
+10:40:43.53 | INFO | Plotting 1658 shapes as polygons
+10:40:43.73 | INFO | Building placement table for a 384 well plate
+10:40:43.76 | INFO | Process files button clicked
+10:40:43.76 | INFO | Building collection from 1438 shapes, simplify tolerance 1.0px
+10:40:44.81 | INFO | Cut path hilbert: 169,307px and 5 collector moves (unordered: 1,655,339px, 736 moves)
+10:40:44.85 | INFO | Added 1438 shapes, 19625 vertices
+10:40:45.12 | INFO | Building placement table for a 384 well plate
+10:40:45.12 | SUCCESS | Collection built
+10:40:45.12 | INFO | Building collection from 1367 shapes, simplify tolerance 1.0px
+10:40:45.81 | INFO | Cut path hilbert: 165,390px and 5 collector moves (unordered: 1,564,513px, 690 moves)
+10:40:45.85 | INFO | Added 1367 shapes, 18715 vertices
+10:40:46.17 | INFO | Building placement table for a 384 well plate
+10:40:46.17 | SUCCESS | Collection built
+10:40:46.17 | INFO | Building collection from 1436 shapes, simplify tolerance 1.0px
+10:40:46.88 | INFO | Cut path hilbert: 170,340px and 5 collector moves (unordered: 1,641,476px, 716 moves)
+10:40:46.92 | INFO | Added 1436 shapes, 19667 vertices
+10:40:47.26 | INFO | Building placement table for a 384 well plate
+10:40:47.26 | SUCCESS | Collection built
+10:40:47.26 | INFO | Building collection from 1440 shapes, simplify tolerance 1.0px
+10:40:47.97 | INFO | Cut path hilbert: 164,103px and 5 collector moves (unordered: 1,659,408px, 716 moves)
+10:40:48.01 | INFO | Added 1440 shapes, 19648 vertices
+10:40:48.35 | INFO | Building placement table for a 384 well plate
+10:40:48.35 | SUCCESS | Collection built
+10:40:48.35 | INFO | Building collection from 1398 shapes, simplify tolerance 1.0px
+10:40:49.04 | INFO | Cut path hilbert: 162,690px and 5 collector moves (unordered: 1,595,707px, 677 moves)
+10:40:49.08 | INFO | Added 1398 shapes, 19111 vertices
+10:40:49.35 | INFO | Building placement table for a 384 well plate
+10:40:49.35 | SUCCESS | Collection built
+10:40:49.35 | INFO | Building collection from 1389 shapes, simplify tolerance 1.0px
+10:40:50.11 | INFO | Cut path hilbert: 161,976px and 5 collector moves (unordered: 1,611,276px, 698 moves)
+10:40:50.15 | INFO | Added 1389 shapes, 19010 vertices
+10:40:50.41 | INFO | Building placement table for a 384 well plate
+10:40:50.41 | SUCCESS | Collection built
+10:40:50.42 | INFO | 6 cuts: [('P2_S3', 'P1'), ('P2_S2', 'P1'), ('P2_S1', 'P1'), ('P1_S3', 'P1'), ('P1_S2', 'P1'), ('P1_S1', 'P1')]
+10:40:50.42 | INFO | Building placement table for a 384 well plate
+10:40:50.45 | INFO | Sanitizing GeoDataFrame for QuPath re-import
+10:40:50.56 | INFO | Sanitizing GeoDataFrame for QuPath re-import
+10:40:50.67 | INFO | Sanitizing GeoDataFrame for QuPath re-import
+10:40:50.77 | INFO | Sanitizing GeoDataFrame for QuPath re-import
+10:40:50.88 | INFO | Sanitizing GeoDataFrame for QuPath re-import
+10:40:50.99 | INFO | Sanitizing GeoDataFrame for QuPath re-import
