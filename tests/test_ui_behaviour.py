@@ -215,6 +215,28 @@ def test_a_large_file_warns_about_running_locally(fake_streamlit):
     )
 
 
+def test_a_long_file_name_with_odd_characters_is_warned_about(fake_streamlit):
+    """Issue 25: the name is reused in the download, so the user is told before they cut, with a
+    name to rename to — and the app carries on, because nothing about the collection is wrong."""
+    slide = _load(fake_streamlit, "demo_Qupath_project/TD_01_verysmall_mIF.geojson")
+    slide.source_file = "GEOJSON file_01_XP24_sm30BL3_tiles25x19_20x_entiere lung_with stiching 10% maxshift.geojson"
+    ui_slides._file_name(slide, several=False)
+    shown = fake_streamlit.shown("warnings")
+    assert "`%`" in shown, f"The warning does not name the character to remove: {shown[:300]}"
+    assert "characters long" in shown, f"The warning does not say the name is too long: {shown[:300]}"
+    assert "260" in shown, "The warning does not say why length matters (Windows' path limit)."
+    suggestion = ui_slides.qc.file_name_qc(slide.source_file).suggestion
+    assert f"`{suggestion}.geojson`" in shown, "The warning offers no safe name to rename the file to."
+    assert not fake_streamlit.errors, "A file name is a warning, never an error: the collection is still right."
+
+
+def test_an_ordinary_file_name_does_not_warn(fake_streamlit):
+    slide = _load(fake_streamlit, "demo_Qupath_project/TD_01_verysmall_mIF.geojson")
+    slide.source_file = "TD_01_verysmall_mIF.geojson"
+    ui_slides._file_name(slide, several=False)
+    assert not fake_streamlit.warnings, f"An ordinary file name warned: {fake_streamlit.warnings}"
+
+
 def test_a_small_file_does_not_warn(fake_streamlit):
     """Warning on the ordinary case is how warnings stop being read."""
     ui_shared.report_scale(ui_shared.HOSTED_COMFORTABLE_SHAPES - 1)

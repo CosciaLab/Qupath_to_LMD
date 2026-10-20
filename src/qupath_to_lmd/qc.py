@@ -1,6 +1,10 @@
 """Quality checks. These report; they do not decide. The UI layer chooses what to do."""
 
+import re
+import string
+import unicodedata
 from dataclasses import dataclass, field
+from pathlib import PurePath
 
 import geopandas
 import numpy
@@ -175,4 +179,71 @@ def compare_pixel_size(
     if report.is_concerning:
         logger.warning(f"Entered pixel size is {report.ratio:.2f}x the implied value")
 
+    return report
+
+
+# A slide's file name is reused three times in the longest path of an experiment download once
+# Windows unzips it: the folder the zip extracts into, the slide's folder, and its `.xml`
+# (`<name>_experiment/slide_<name>/<name>__TubeHolder1.xml`). With about 70 characters for the
+# user's Downloads folder and the fixed parts, three names of 60 stay inside Windows' 260-character
+# path limit, past which Explorer refuses to extract a file. The LMD computers run Windows.
+LONGEST_SAFE_FILE_NAME = 60
+
+# Letters, digits and the punctuation file names commonly use. `%`, `#`, `&` and the like are read
+# specially by URLs, shells and Windows batch files, and accented letters can be garbled by older
+# Windows zip extraction, which ignores the zip's UTF-8 flag.
+SAFE_FILE_NAME_CHARACTERS = frozenset(string.ascii_letters + string.digits + " _-.()")
+
+
+@dataclass
+class FileNameReport:
+    """Whether an uploaded file's name is safe to reuse for the files in the download."""
+
+    file_name: str
+    stem: str
+    unusual_characters: list[str] = field(default_factory=list)
+
+    @property
+    def too_long(self) -> bool:
+        """Long enough that the download's paths can pass Windows' 260-character limit."""
+        return len(self.stem) > LONGEST_SAFE_FILE_NAME
+
+    @property
+    def padded(self) -> bool:
+        """Spaces at either end, which Windows strips from folder names when it unzips."""
+        return self.stem != self.stem.strip()
+
+    @property
+    def is_concerning(self) -> bool:
+        """Any reason the name may not survive the trip to the LMD computer."""
+        return self.too_long or self.padded or bool(self.unusual_characters)
+
+    @property
+    def suggestion(self) -> str:
+        """A name with the same meaning that passes every check, for the user to rename to."""
+        ascii_only = unicodedata.normalize("NFKD", self.stem).encode("ascii", "ignore").decode()
+        safe = "".join(c if c in SAFE_FILE_NAME_CHARACTERS else "_" for c in ascii_only)
+        safe = re.sub(r"_+", "_", re.sub(r" +", " ", safe)).strip(" _-.")
+        if len(safe) > LONGEST_SAFE_FILE_NAME:
+            cut = safe[: LONGEST_SAFE_FILE_NAME + 1]
+            # end on a whole word where one ends near the limit, rather than mid-word
+            boundary = max(cut.rfind(" "), cut.rfind("_"), cut.rfind("-"))
+            safe = cut[:boundary] if boundary > LONGEST_SAFE_FILE_NAME * 2 // 3 else cut[:-1]
+        return safe.rstrip(" _-.") or "slide"
+
+
+def file_name_qc(file_name: str) -> FileNameReport:
+    """Check an uploaded file's name before it becomes the name of an `.xml` and its folders.
+
+    Reports only: the app carries on with the name as it is, and the user decides whether to
+    rename the file and upload it again.
+    """
+    stem = PurePath(file_name).stem
+    unusual = sorted({c for c in stem if c not in SAFE_FILE_NAME_CHARACTERS})
+    report = FileNameReport(file_name=file_name, stem=stem, unusual_characters=unusual)
+    if report.is_concerning:
+        logger.warning(
+            f"File name {file_name!r}: {len(stem)} characters, unusual characters {unusual}, "
+            f"padded {report.padded}; suggested {report.suggestion!r}"
+        )
     return report

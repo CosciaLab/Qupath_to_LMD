@@ -216,6 +216,14 @@ The reading and QC below is unchanged; it now runs once per uploaded file.
    is about calibration rather than shapes.
    Invariant, asserted in `tests/test_geojson.py`: the rows whose note says "ignored" sum to
    `n_shapes_in_file - n_shapes_kept`, so every dropped shape is accounted for on screen.
+   **The file name is checked too** (`qc.file_name_qc`, `decisions.md` 086), because it becomes
+   the slide's name and is reused for its `.xml`, its folder and the zip. A warning, never a
+   stop, when the stem is over `LONGEST_SAFE_FILE_NAME` (60) characters, starts or ends with a
+   space, or holds a character outside letters, digits and ` _-.()`; it names the characters and
+   suggests a safe name to rename to. 60 is three copies of the name (zip folder, slide folder,
+   `.xml`) plus a Downloads folder inside Windows' 260-character path limit. The app itself copes
+   with any name — issue 25's 105-character name with `%` ran through every stage to a download;
+   what fails is unzipping on the Windows LMD computer.
 1.1 **Calibration selection** — three `st.selectbox`es pick 3 names from the pool, order
    matters. `qc.triangle_qc` returns a `TriangleReport` with the calibration array, the
    triangle area, and the fraction of Polygons/LineStrings intersecting it;

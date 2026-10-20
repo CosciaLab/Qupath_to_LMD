@@ -2007,3 +2007,23 @@ Jose's notes after clicking through 078.
 - **Costs accepted:** up to 64 pictures of about 0.5 MB in memory, shared by every session, which
   is safe because the key is the content. A change to `plot.py` reaches the app only after a
   server restart, since the cache key is what a picture shows, not how it is drawn.
+
+## 086 — file names are checked at upload, and warned about rather than changed
+**Date:** 2026-10-20 · **Status:** active · **issue 25**
+- **The problem:** a user's export, `GEOJSON file_01_XP24_sm30BL3_tiles25x19_20x_entiere lung_with
+  stiching 10% maxshift and % minimal overlap`, "broke". Run through the whole app headlessly with
+  that name (and with `file_02 lung (copy) #2 & ü`), nothing breaks in the app: no exception, every
+  stage, a complete download. The name is reused three times in the experiment download's longest
+  path (`<name>_experiment/slide_<name>/<name>__Plate1.xml`, 229 characters inside the zip alone),
+  and Windows Explorer will not extract a path over 260 characters — the LMD computers run Windows.
+  `%`, `#`, `&` are read specially by URLs, shells and batch files, and older Windows extraction
+  garbles accented names. Whether the Leica software itself objects to any character is not
+  verified.
+- **Decision:** `qc.file_name_qc` reports the length, any character outside letters, digits and
+  ` _-.()`, and spaces at either end; Stage 1 shows one `st.warning` per affected file naming the
+  problem and suggesting a safe name. 60 characters keeps three copies plus a Downloads folder
+  inside 260 (asserted in `tests/test_qc.py`). Spaces inside a name are allowed.
+- **Rejected:** renaming the files in the download automatically — the user would then hold a
+  `.xml` whose name matches nothing in their QuPath project, and the issue asks for a warning;
+  blocking — the collection itself is right, so a stop would cost a user with a long name for no
+  gain.
