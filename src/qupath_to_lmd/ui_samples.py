@@ -12,7 +12,7 @@ import pandas
 import streamlit as st
 from loguru import logger
 
-from qupath_to_lmd import plot, slides, stats, ui_shared
+from qupath_to_lmd import plot, qc, slides, stats, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, SampleSet
 from qupath_to_lmd.ui_slides import SlidesContext, resolve_pixel_size
 
@@ -110,6 +110,8 @@ def class_step(context: SlidesContext) -> list[str]:
         _scale_sentence(context.slides[0], scales[context.names[0]])
         ui_shared.show_amounts(stats.for_display(next(iter(per_slide.values()))))
 
+    _similar_names(per_slide, several=context.several)
+
     all_classes = sorted(set().union(*(set(t.index) for t in per_slide.values())))
     remembered = [name for name in (st.session_state.selected_classes or []) if name in all_classes]
     selected = st.multiselect(
@@ -138,6 +140,25 @@ def class_step(context: SlidesContext) -> list[str]:
             slide = context.slides[0]
             _draw_input(slide, context.calibration[slide.name][1], selected, palette, context.fingerprint(slide.name))
     return selected
+
+
+def _similar_names(per_slide: dict[str, pandas.DataFrame], several: bool) -> None:
+    """Warn about two spellings of what is probably one class: they never share a well (issue 24)."""
+    groups = qc.similar_class_names({name: [str(c) for c in table.index] for name, table in per_slide.items()})
+    if not groups:
+        return
+
+    def spelling(name: str, holders: list[str]) -> str:
+        return f"`{name}`" + (f" (slide {', '.join(holders)})" if several else "")
+
+    lines = [" and ".join(spelling(name, holders) for name, holders in group.items()) for group in groups]
+    st.warning(
+        "Some class names differ only in capitals, spaces, `_` or `-`. The app matches names "
+        "exactly, so each spelling is collected as its own class into its own wells"
+        + (", and they do not pool across slides" if several else "")
+        + ":\n\n" + "\n".join(f"- {line}" for line in lines)
+        + "\n\nIf they are the same class, give them one spelling in QuPath and export again."
+    )
 
 
 def _scale_sentence(slide: slides.Slide, pixel_size_um: float | None) -> None:

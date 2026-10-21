@@ -284,3 +284,18 @@ def test_a_hole_in_a_region_is_not_painted_over():
         "would be drawn over the class it surrounds and the user would read that as a broken "
         "merge."
     )
+
+
+def test_the_expansion_picture_draws_the_shape_its_cut_and_its_neighbours():
+    """The one place a user sees how far an expanded cut reaches; all three layers must be there."""
+    import geopandas
+    from shapely.geometry import box
+
+    from qupath_to_lmd import export
+
+    shape = box(0, 0, 20, 20)
+    grown = export.expand_shapes(geopandas.GeoSeries([shape]), 2.0).iloc[0]
+    figure = plot.plot_expansion(shape, grown, grown.simplify(1.0), [box(21, 0, 40, 20)], plot.PALETTE[0], 0.5)
+    labels = [text.get_text() for legend in figure.legends for text in legend.get_texts()]
+    assert labels == ["as drawn in QuPath", "what the laser cuts", "shapes around it"], f"Legend reads {labels}."
+    assert any("µm" in text.get_text() for text in figure.axes[0].texts), "No scale bar, so the reach cannot be judged."

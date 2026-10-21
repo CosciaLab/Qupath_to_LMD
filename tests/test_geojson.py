@@ -333,3 +333,67 @@ def test_the_summary_explains_every_shape_that_was_dropped(multiclass):
         f"of them ({ignored}). A user reading it would not know where the rest went."
     )
     assert dropped > 0, "This fixture drops shapes, so there is something to explain."
+
+
+def _renamed(tmp_path, names: list, file_name: str = "renamed.geojson"):
+    """TD_01's six annotations, classified in turn by each entry of `names` (a name or a list)."""
+    document = json.loads(open(ANNOTATIONS_FILE).read())
+    shapes = [f for f in document["features"] if f["geometry"]["type"] != "Point"]
+    for feature, name in zip(shapes, names * len(shapes), strict=False):
+        key = "names" if isinstance(name, list) else "name"
+        feature["properties"]["classification"] = {key: name, "color": [255, 0, 0]}
+    path = tmp_path / file_name
+    path.write_text(json.dumps(document))
+    return path
+
+
+def test_spaces_inside_a_class_name_are_kept(tmp_path):
+    """Issue 24: the old samples-and-wells parser removed every space, so `Immune cells` matched
+    nothing. Spaces inside a name are the user's and must reach the wells untouched."""
+    gdf, _points, report = geojson.read_and_qc(_renamed(tmp_path, ["Immune cells", "CD8 T cell: PD1 positive"]))
+    assert set(gdf[CLASS_NAME]) == {"Immune cells", "CD8 T cell: PD1 positive"}, (
+        f"Class names with inner spaces were changed on reading: {set(gdf[CLASS_NAME])}"
+    )
+    assert not report.tidied_class_names, f"Ordinary names were reported as tidied: {report.tidied_class_names}"
+
+
+@pytest.mark.parametrize(
+    ("written", "used"),
+    [("Tumor ", "Tumor"), (" Tumor", "Tumor"), ("Immune  cells", "Immune cells"), ("Immune cells", "Immune cells"),
+     ("Immune\tcells", "Immune cells")],
+)
+def test_invisible_whitespace_in_a_class_name_is_tidied_and_reported(tmp_path, written, used):
+    """`Tumor ` looks like `Tumor` on screen but is a different class: it would pool with nothing
+    on another slide and match nothing in a samples-and-wells file, with no visible reason."""
+    gdf, _points, report = geojson.read_and_qc(_renamed(tmp_path, [written, "Stroma"]))
+    assert set(gdf[CLASS_NAME]) == {used, "Stroma"}, (
+        f"{written!r} was read as {set(gdf[CLASS_NAME]) - {'Stroma'}}, so it is a different class from {used!r}."
+    )
+    assert report.tidied_class_names == {written: used}
+    assert report.n_tidied_shapes == 3, f"Expected the 3 shapes of that class counted, got {report.n_tidied_shapes}."
+    summary = report.summary()
+    assert "Class name with extra spaces" in summary.index, "The tidying is not shown in the reading table."
+    assert f"'{used}'" in summary.loc["Class name with extra spaces", "What happens"]
+
+
+def test_tidied_multiclass_parts_still_sort_into_one_class(tmp_path):
+    """A leading space sorts before every letter, so untidied parts would join in a different order
+    and split one combination across two wells."""
+    gdf, _points, _report = geojson.read_and_qc(_renamed(tmp_path, [[" Tumor", "Immune cells"], ["Tumor", "Immune cells"]]))
+    assert set(gdf[CLASS_NAME]) == {"Immune cells--Tumor"}, f"One combination of classes became {set(gdf[CLASS_NAME])}."
+
+
+def test_a_tidied_name_is_what_reopens_in_qupath(tmp_path):
+    """The processed GeoJSON goes back into QuPath; its classification must carry the name the
+    app collected under, or the re-imported shapes show a class the collection never used."""
+    gdf, _points, _report = geojson.read_and_qc(_renamed(tmp_path, ["Tumor ", ["Immune cells ", " Stroma"]]))
+    written = geojson.sanitize_for_qupath(gdf)["classification"].map(geojson._classification_parts)
+    assert {tuple(parts) for parts in written} == {("Tumor",), ("Immune cells", "Stroma")}, (
+        f"The processed GeoJSON still carries the untidied names: {set(map(tuple, written))}"
+    )
+
+
+def test_a_class_name_of_only_spaces_counts_as_unnamed(tmp_path):
+    gdf, _points, report = geojson.read_and_qc(_renamed(tmp_path, ["   ", "Tumor"]))
+    assert set(gdf[CLASS_NAME]) == {"Tumor"}, "A blank class name became a class of its own, with a well."
+    assert report.n_unnamed_classification_dropped == 3, "The blank-named shapes were not reported as dropped."
