@@ -200,3 +200,79 @@ def test_the_orientation_transform_flips_y(make_plan):
         f"The orientation transform is {export.ORIENTATION_TRANSFORM.tolist()}, not a Y flip. "
         "This silently mis-cuts every collection."
     )
+
+
+def test_no_expansion_cuts_exactly_what_was_cut_before(make_plan):
+    """Expansion is opt-in: at zero the XML must be byte-identical, or every existing user's
+    collection moves without them asking."""
+    plan, samples_and_wells, _result, _budgets = make_plan()
+    assert (
+        export.build_collection(plan, samples_and_wells).xml
+        == export.build_collection(plan, samples_and_wells, expand_px=0.0).xml
+    ), "Expanding by zero changed the cutting file."
+
+
+def test_expanding_moves_every_outline_out_by_the_distance():
+    """The laser path should sit exactly the asked-for distance outside the drawn outline, all the
+    way round — closer and it still burns the cell's edge, further and it takes the neighbour."""
+    import geopandas
+    from shapely.geometry import LineString, box
+
+    square = box(0, 0, 10, 10)
+    grown = export.expand_shapes(geopandas.GeoSeries([square]), 2.0).iloc[0]
+    assert grown.contains(square), "The expanded outline does not contain the shape it came from."
+    # the rounded corners are chords of a circle, so the closest point sits a hair inside 2 px
+    assert square.exterior.distance(grown.exterior) == pytest.approx(2.0, abs=0.02), (
+        "The cut path is not 2 px outside the outline at its closest point."
+    )
+    assert grown.area == pytest.approx(100 + 4 * 10 * 2 + numpy.pi * 4, rel=0.01), (
+        f"A 10 px square grown by 2 px should have rounded corners and area ~192.6, got {grown.area:.1f}."
+    )
+    line = LineString([(0, 0), (10, 0)])
+    assert export.expand_shapes(geopandas.GeoSeries([line]), 2.0).iloc[0].equals(line), (
+        "A cut line was expanded into a loop, so the laser would cut round the line instead of along it."
+    )
+
+
+def test_an_expanded_collection_cuts_wider_outlines(make_plan):
+    plan, samples_and_wells, _result, _budgets = make_plan()
+    plain = export.build_collection(plan, samples_and_wells, path_order=export.PathOrder.NONE)
+    grown = export.build_collection(plan, samples_and_wells, path_order=export.PathOrder.NONE, expand_px=3.0)
+    assert grown.xml != plain.xml, "Expanding by 3 px left the cutting file unchanged."
+    assert _caps(grown.xml) == _caps(plain.xml), "Expanding moved a shape to a different well."
+
+
+def _wells(chain, pattern):
+    import pandas
+
+    return pandas.Series([pattern[i % len(pattern)] for i in range(len(chain))], index=chain.index)
+
+
+def test_expanded_neighbours_in_different_wells_are_counted(near_touching_chain):
+    """Squares 0.5 px apart, alternating wells: grown by more than half the gap, every one overlaps
+    a square bound for the other well, which mixes the two samples."""
+    wells = _wells(near_touching_chain, ["C3", "C5"])
+    overlapping = export.expansion_report(near_touching_chain, wells, 0.3)
+    assert overlapping.n_into_other_sample == len(near_touching_chain), (
+        f"Expected all {len(near_touching_chain)} squares to overlap another sample, got {overlapping.n_into_other_sample}."
+    )
+    clear = export.expansion_report(near_touching_chain, wells, 0.2)
+    assert clear.n_into_other_sample == 0, "Outlines grown by less than half the gap were reported as overlapping."
+    assert clear.added_fraction > 0
+
+
+def test_reaching_into_a_shape_that_is_not_collected_is_counted(near_touching_chain):
+    """Every other square collected, all into one well: grown past the gap each one takes a rim of
+    an uncollected neighbour, but no two samples meet."""
+    import pandas
+
+    wells = _wells(near_touching_chain, ["C3", None]).where(lambda s: s.notna(), pandas.NA)
+    report = export.expansion_report(near_touching_chain, wells, 0.6)
+    assert report.n_shapes == 6
+    assert report.n_into_uncollected == 6, f"Expected all 6 collected squares to reach a neighbour, got {report.n_into_uncollected}."
+    assert report.n_into_other_sample == 0, "Shapes 10.5 px apart in one well were reported as overlapping another sample."
+
+
+def test_the_default_expansion_is_one_micrometre():
+    """Changing it changes what a scientist gets when they tick the box: write a decision first."""
+    assert export.DEFAULT_EXPANSION_UM == 1.0

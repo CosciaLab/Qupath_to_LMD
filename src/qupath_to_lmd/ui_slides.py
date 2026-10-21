@@ -137,6 +137,8 @@ def upload_step() -> list[slides.Slide] | None:
         _describe_one(read[0])
     else:
         _describe_several(read)
+    for slide in read:
+        _file_name(slide, several=len(read) > 1)
     ui_shared.report_scale(sum(slide.report.n_shapes_kept for slide in read))
     return read
 
@@ -185,6 +187,31 @@ def _describe_several(read: list[slides.Slide]) -> None:
         _unnamed_points(slide, several=True)
     total = sum(slide.report.n_shapes_kept for slide in read)
     st.success(f"{len(read)} slides read, {total:,} shapes ready to collect.")
+
+
+def _file_name(slide: slides.Slide, several: bool) -> None:
+    """Warn about a file name that may not survive the trip to the LMD computer (issue 25)."""
+    report = qc.file_name_qc(slide.source_file or slide.name)
+    if not report.is_concerning:
+        return
+    problems = []
+    if report.too_long:
+        problems.append(f"is {len(report.stem)} characters long")
+    if report.unusual_characters:
+        shown = " ".join(f"`{c}`" for c in report.unusual_characters)
+        problems.append(f"contains {shown}")
+    if report.padded:
+        problems.append("starts or ends with a space")
+    subject = f"The file name of slide **{slide.name}**" if several else "The file name"
+    st.warning(
+        f"{subject} {' and '.join(problems)}: `{report.file_name}`. "
+        "That name is reused for the `.xml` and the folders in your download. Windows will not "
+        "unzip a path longer than 260 characters, so a long name can make the cutting files go "
+        "missing when the download is extracted on the LMD computer, and characters such as "
+        "`%`, `#` or `&` or accented letters can be misread or garbled on the way. Nothing about "
+        f"the collection itself changes. To be safe, rename the file — for example to "
+        f"`{report.suggestion}.geojson` — and upload it again."
+    )
 
 
 def _unnamed_points(slide: slides.Slide, several: bool) -> None:

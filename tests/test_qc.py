@@ -110,3 +110,66 @@ def test_triangle_report_survives_having_no_shapes(cells):
     assert report.fraction_inside == 0.0
     assert not report.is_concerning, "An empty frame should not raise a distortion warning."
     assert isinstance(report.calibration_array, numpy.ndarray)
+
+
+ISSUE_25_NAME = (
+    "GEOJSON file_01_XP24_sm30BL3_tiles25x19_20x_entiere lung_with stiching 10% maxshift and % "
+    "minimal overlap.geojson"
+)
+
+
+def test_the_file_name_from_issue_25_is_flagged():
+    """The name a user really uploaded: it becomes paths in the download long enough that Windows
+    will not unzip them, so the cutting file can go missing on the LMD computer."""
+    report = qc.file_name_qc(ISSUE_25_NAME)
+    assert report.too_long, f"A {len(report.stem)}-character name was not flagged as too long."
+    assert report.unusual_characters == ["%"], (
+        f"`%` was not reported, so the user is not told which character to remove: {report.unusual_characters}"
+    )
+    assert report.is_concerning
+
+
+@pytest.mark.parametrize(
+    "name", ["TD_01_verysmall_mIF.geojson", "P1_S1.geojson", "Lung slide 3 (repeat).geojson", "core-A1.v2.geojson"]
+)
+def test_ordinary_file_names_are_not_flagged(name):
+    """Warning on every upload is how warnings stop being read."""
+    report = qc.file_name_qc(name)
+    assert not report.is_concerning, f"{name!r} was flagged: {report}"
+
+
+@pytest.mark.parametrize(
+    "name", [ISSUE_25_NAME, "file_02 lung (copy) #2 & ü.geojson", " padded .geojson", "%%%.geojson", "a" * 90 + ".geojson"]
+)
+def test_the_suggested_name_passes_its_own_check(name):
+    """The warning tells the user what to rename the file to; a suggestion that would itself be
+    flagged sends them round in a circle."""
+    suggestion = qc.file_name_qc(name).suggestion
+    assert suggestion, f"No name was suggested for {name!r}."
+    assert not qc.file_name_qc(suggestion + ".geojson").is_concerning, (
+        f"The name suggested for {name!r}, {suggestion!r}, is flagged by the same check."
+    )
+
+
+def test_the_longest_safe_name_keeps_the_download_inside_the_windows_path_limit():
+    """Three copies of the slide name sit in the longest path of an experiment download, under a
+    Downloads folder; at the limit that path must still fit in Windows' 260 characters."""
+    name = "n" * qc.LONGEST_SAFE_FILE_NAME
+    downloads = "C:\\Users\\lmd-operator\\Downloads\\"
+    longest = f"{downloads}{name}_experiment\\slide_{name}\\{name}__TubeHolder10.xml"
+    assert len(longest) <= 260, (
+        f"A {qc.LONGEST_SAFE_FILE_NAME}-character name gives a {len(longest)}-character path once "
+        "unzipped, so a name the app calls safe could still lose its .xml on Windows."
+    )
+
+
+def test_spellings_of_one_class_are_grouped_across_slides():
+    """`Tumor` on one slide and `tumor` on another never pool; the user has to be told."""
+    groups = qc.similar_class_names({"A": ["Tumor", "Immune cells", "Stroma"], "B": ["tumor", "Immune_cells", "Stroma"]})
+    assert groups == [{"Immune cells": ["A"], "Immune_cells": ["B"]}, {"Tumor": ["A"], "tumor": ["B"]}], (
+        f"Two spellings of one class were not grouped by slide: {groups}"
+    )
+
+
+def test_distinct_classes_are_not_called_similar():
+    assert not qc.similar_class_names({"A": ["Tumor", "Tumor_core", "T cell", "B cell", "Immune cells--Tumor"]})

@@ -383,12 +383,13 @@ def cuts_for_experiment(
     path_order: export.PathOrder = export.DEFAULT_PATH_ORDER,
     session_id: str | None = None,
     params: dict | None = None,
+    expand_px: Mapping[str, float] | None = None,
 ) -> list[export.Cut]:
     """Build every `.xml` of an experiment: one per slide and plate that has something to cut.
 
     Works from a `SampleSet`, so it does not matter which method chose the shapes. A slide that
     sends nothing to a plate gets no file for it, so the instructions never ask the user to mount
-    a slide only to cut nothing.
+    a slide only to cut nothing. `expand_px` is per slide, since each slide has its own scale.
     """
     source_files = {slide.name: slide.source_file for slide in slides}
     cuts = []
@@ -404,7 +405,7 @@ def cuts_for_experiment(
                 continue
             result = export.build_collection(
                 slide_plan, samples_and_wells=scheme, simplify_tolerance=simplify_tolerance,
-                plate=plate, path_order=path_order,
+                plate=plate, path_order=path_order, expand_px=(expand_px or {}).get(slide_name, 0.0),
             )
             cuts.append(export.Cut(slide_name, plate_name, slide_plan, result))
     logger.info(f"{len(cuts)} cuts: {[(cut.slide, cut.plate) for cut in cuts]}")
