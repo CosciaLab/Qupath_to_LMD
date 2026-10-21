@@ -27,7 +27,7 @@ Cites Makhmut et al., *Cell Systems* 14, 1002-1014.e5 (2023).
 - `git remote origin` = `https://github.com/josenimo/Qupath_to_LMD.git`; the README and
   `pyproject.toml` URLs point at `CosciaLab/Qupath_to_LMD`. Branches: `master` (default),
   `dev`.
-- Python `>= 3.11, < 3.14`. Version in `pyproject.toml`: `0.2.0`.
+- Python `>= 3.11, < 3.14`. Version in `pyproject.toml`: `5.1.0`; `CHANGELOG.md` has a section per release.
 
 ## Layout
 
