@@ -2007,3 +2007,70 @@ Jose's notes after clicking through 078.
 - **Costs accepted:** up to 64 pictures of about 0.5 MB in memory, shared by every session, which
   is safe because the key is the content. A change to `plot.py` reaches the app only after a
   server restart, since the cache key is what a picture shows, not how it is drawn.
+
+## 086 — file names are checked at upload, and warned about rather than changed
+**Date:** 2026-10-20 · **Status:** active · **issue 25**
+- **The problem:** a user's export, `GEOJSON file_01_XP24_sm30BL3_tiles25x19_20x_entiere lung_with
+  stiching 10% maxshift and % minimal overlap`, "broke". Run through the whole app headlessly with
+  that name (and with `file_02 lung (copy) #2 & ü`), nothing breaks in the app: no exception, every
+  stage, a complete download. The name is reused three times in the experiment download's longest
+  path (`<name>_experiment/slide_<name>/<name>__Plate1.xml`, 229 characters inside the zip alone),
+  and Windows Explorer will not extract a path over 260 characters — the LMD computers run Windows.
+  `%`, `#`, `&` are read specially by URLs, shells and batch files, and older Windows extraction
+  garbles accented names. Whether the Leica software itself objects to any character is not
+  verified.
+- **Decision:** `qc.file_name_qc` reports the length, any character outside letters, digits and
+  ` _-.()`, and spaces at either end; Stage 1 shows one `st.warning` per affected file naming the
+  problem and suggesting a safe name. 60 characters keeps three copies plus a Downloads folder
+  inside 260 (asserted in `tests/test_qc.py`). Spaces inside a name are allowed.
+- **Rejected:** renaming the files in the download automatically — the user would then hold a
+  `.xml` whose name matches nothing in their QuPath project, and the issue asks for a warning;
+  blocking — the collection itself is right, so a stop would cost a user with a long name for no
+  gain.
+
+## 087 — spaces in class names: kept inside, tidied at the ends, near-duplicates warned about
+**Date:** 2026-10-20 · **Status:** active · **issue 24**
+- **The problem:** "when users have spaces, they get removed and they no longer match." That was
+  the pre-refactor samples-and-wells parser, which ran `.replace(" ", "")` over the file, so
+  `Immune cells` became `Immunecells` and matched no class. The current code removes no spaces;
+  checked end to end, inner spaces reach their wells in every method, in the CSVs and in the
+  QuPath re-import. What still broke, silently, was whitespace nobody can see: `Tumor ` is a
+  different class from `Tumor`, so it pools with nothing on another slide and matches nothing in a
+  hand-typed file, while looking identical on screen.
+- **Decision:** Jose's option 2, allow spaces and tidy only the ends — extended to collapse runs
+  of whitespace (tabs, non-breaking spaces from spreadsheets, double spaces) to one space, since
+  those are invisible in the same way. Done once at read and once on loading a
+  samples-and-wells file, reported in the reading table, and written back into `classification`
+  so QuPath reopens what was collected. Spellings that differ only in case, spaces, `_` or `-`
+  are warned about, with their slides, and named as near misses when a custom file misses a
+  sample.
+- **Rejected:** forbidding spaces (option 1) — they break nothing now, and QuPath's own derived
+  classes contain them (`Tumor: Positive`); merging near-duplicates — `Tumor` and `tumor` are
+  usually a typo, but only the user knows, and a merge would put two classes in one well.
+- **Costs accepted:** a QuPath class that really ends in a space comes back without it after a
+  round trip through the processed GeoJSON.
+
+## 088 — shapes can be expanded before cutting, off by default, 1 µm when ticked
+**Date:** 2026-10-20 · **Status:** active · **issue 31, refines 013**
+- **The problem:** for single-cell collection a cut along QuPath's outline burns the cell's own
+  edge — the laser's line has a width, centred on the path — so users want the path moved out.
+  013 left dilation open with the promise that it would be said on screen if it arrived.
+- **Decision:** a Stage 4 option for every method and every polygon, grown with a round buffer
+  before smoothing. Off by default, because what whole shapes produce is frozen and every other
+  method's output should not move unasked; at zero the XML is byte-identical. The distance is in
+  µm where every slide has a scale, px otherwise. What it costs is on screen before download:
+  area added, overlaps between samples (warning), reach into uncollected neighbours (caption),
+  and one shape before and after.
+- **Why 1 µm:** the LMD7's cut line is about 1-2 µm wide at the objectives used for single cells
+  (63×, as in scDVP), so a path 1 µm outside the outline keeps the edge inside the burn's near
+  side. On the 8 411-cell core the outlines are 0.37 µm apart (median), so 1 µm already reaches
+  into 97% of neighbours, mostly into what the beam itself ablates, and costs +42% area per
+  cell; 2 µm costs +90% and takes neighbour tissue the beam does not reach. **The cut width is
+  an assumption, not measured here** — the default should be checked against a real cut on the
+  instrument, and the scDVP paper (Rosenberger et al. 2023) exported contours "without
+  additional shape offset", so the field has no settled figure.
+- **Rejected:** expanding in Stage 2, so amounts and budgets count the grown area — it would mean
+  one implementation per method and would move every budget the user already set; a neighbour-
+  aware dilation that stops at the next cell (py-lmd's note says that belongs in segmentation) —
+  the app does not have the space between cells to share out, only outlines; expanding lines.
+- **Golden:** new case `cells_expanded` (3 px). The other 27 artefacts are unchanged.

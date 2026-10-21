@@ -382,3 +382,55 @@ def _two_legends(figure, classes, fills, replicates) -> None:
         handles=replicate_handles, title="Replicate (outline)", fontsize=8, title_fontsize=8,
         loc="outside right lower", frameon=False,
     )
+
+
+def plot_expansion(
+    shape,
+    grown,
+    cut,
+    neighbours: list,
+    color: str,
+    pixel_size_um: float | None,
+    figsize: tuple[float, float] = (4.5, 4.5),
+) -> Figure:
+    """One collected shape before and after expanding, with the shapes around it.
+
+    The drawn outline is dashed, the path the laser will follow — grown, then smoothed — is solid,
+    and neighbours are grey, so how far the cut reaches into them is visible at a glance.
+    """
+    figure = Figure(figsize=figsize, layout="constrained")
+    axes = figure.add_subplot()
+    axes.add_collection(PathCollection(polygon_paths(geopandas.GeoSeries([grown])), facecolor=_tint(color, 0.6), edgecolor="none"))
+    if neighbours:
+        # over the grown outline and slightly see-through, so where the cut reaches into a
+        # neighbour shows as tinted grey
+        axes.add_collection(
+            PathCollection(polygon_paths(geopandas.GeoSeries(neighbours)), facecolor=MUTED, edgecolor=MUTED_EDGE, linewidth=0.6, alpha=0.8)
+        )
+    axes.add_collection(PathCollection(polygon_paths(geopandas.GeoSeries([shape])), facecolor=color, edgecolor="black", linewidth=1.0, linestyle="--"))
+    x, y = cut.exterior.xy
+    axes.plot(x, y, color="black", linewidth=1.6)
+
+    x0, y0, x1, y1 = grown.buffer(max(grown.length / 12, 1)).bounds
+    axes.set_xlim(x0, x1)
+    axes.set_ylim(y1, y0)  # QuPath's y grows downward
+    axes.set_aspect("equal")
+    axes.set_xticks([])
+    axes.set_yticks([])
+    if pixel_size_um:
+        bar_um = max(1, round((x1 - x0) * pixel_size_um / 4))
+        bar_px = bar_um / pixel_size_um
+        axes.plot([x0 + (x1 - x0) * 0.05, x0 + (x1 - x0) * 0.05 + bar_px], [y1 - (y1 - y0) * 0.05] * 2, color="black", linewidth=3)
+        axes.text(x0 + (x1 - x0) * 0.05, y1 - (y1 - y0) * 0.08, f"{bar_um} µm", fontsize=8)
+    figure.legend(
+        handles=[
+            Line2D([], [], color="black", linestyle="--", linewidth=1.0, label="as drawn in QuPath"),
+            Line2D([], [], color="black", linewidth=1.6, label="what the laser cuts"),
+            Line2D([], [], marker="s", linestyle="none", markerfacecolor=MUTED, markeredgecolor=MUTED_EDGE, label="shapes around it"),
+        ],
+        loc="outside lower center",
+        ncols=1,
+        fontsize=8,
+        frameon=False,
+    )
+    return figure

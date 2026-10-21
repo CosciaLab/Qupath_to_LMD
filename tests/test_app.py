@@ -167,3 +167,74 @@ def test_a_look_at_the_tube_holder_does_not_reset_the_plate_margin(monkeypatch):
     assert not [w for w in app.warning if "Session State" in str(w.value)], (
         f"Streamlit warned about the restored values: {[w.value for w in app.warning]}"
     )
+
+
+def test_class_names_with_spaces_reach_their_wells_from_a_hand_typed_file(monkeypatch, tmp_path):
+    """Issue 24, end to end: spaces inside class names, a stray trailing space in QuPath and
+    another in the samples-and-wells file, and every shape still lands in its well."""
+    import json
+
+    document = json.loads((DEMO / "TD_01_verysmall_mIF.geojson").read_text())
+    shapes = [f for f in document["features"] if f["geometry"]["type"] != "Point"]
+    for k, feature in enumerate(shapes):
+        feature["properties"]["classification"] = {"name": ["Immune cells ", "Tumor core"][k % 2], "color": [255, 0, 0]}
+    (tmp_path / "spaced.geojson").write_text(json.dumps(document))
+    (tmp_path / "saw.txt").write_text("{'Immune cells': 'C3', 'Tumor  core ': 'C5'}")
+
+    slide_upload, saw_upload = _Upload(tmp_path / "spaced.geojson"), _Upload(tmp_path / "saw.txt")
+    saw_upload.read = saw_upload.getvalue
+    real = streamlit.file_uploader
+
+    def uploader(label, *args, **kwargs):
+        if kwargs.get("key") == "slide_uploader":
+            return [slide_upload]
+        if kwargs.get("key") == "saw_uploader":
+            return saw_upload
+        return real(label, *args, **kwargs)
+
+    monkeypatch.setattr(streamlit, "file_uploader", uploader)
+    app = AppTest.from_file(str(REPO / "streamlit_app.py"), default_timeout=180)
+    app.run()
+    _confirm_calibration(app)
+    assert not app.exception, f"The app raised: {[e.value for e in app.exception]}"
+    process = [button for button in app.button if "Process" in str(button.label)]
+    assert process, f"No 'Process files' button. Warnings: {[w.value[:200] for w in app.warning]}"
+    process[0].click().run()
+    files = _contents(app)
+    xml = files["spaced.xml"].decode()
+    assert xml.count("<CapID>C3</CapID>") == 3 and xml.count("<CapID>C5</CapID>") == 3, (
+        "Not every shape reached the well its spaced class name was given in the file, so a "
+        "class name with a space would be cut into nothing."
+    )
+    assert not [w for w in app.warning if "no well" in str(w.value)], "A spaced sample was reported as having no well."
+
+
+def test_expanding_cells_shows_its_cost_and_reaches_the_download(monkeypatch):
+    """Issue 31: off by default, and once ticked the added area, the overlaps and an example are
+    on screen before the download, and the distance is recorded with the collection."""
+    import json
+
+    def expand(app):
+        app.checkbox(key="expand_shapes").check()
+
+    app = _run(monkeypatch, ["Single_cells.geojson"], "cells", [expand])
+    assert any(w.key == "expand_um" and w.value == 1.0 for w in app.number_input), (
+        "With a scale known the expansion should be asked in µm and default to 1 µm."
+    )
+    assert [d for d in app.dataframe if "Added (%)" in d.value.columns], "The added area is not shown before download."
+    assert [w for w in app.warning if "overlap a shape going to a different" in str(w.value)], (
+        "Neighbouring cells in different wells overlap once expanded, and the user was not told."
+    )
+    assert app.get("imgs"), "No before-and-after picture of a shape was shown."
+    provenance = json.loads(_contents(app)["provenance.json"])
+    assert json.dumps(provenance).count('"expand_um": 1.0'), (
+        f"The expansion is not recorded in provenance.json, so the collection cannot be reproduced: {provenance}"
+    )
+
+
+def test_shapes_are_not_expanded_unless_asked(monkeypatch):
+    app = _run(monkeypatch, ["TD_01_verysmall_mIF.geojson"])
+    assert not [w for w in app.number_input if w.key in ("expand_um", "expand_px")], (
+        "The expansion distance is offered before the box is ticked."
+    )
+    assert "expand" not in _contents(app)["provenance.json"].decode(), "An unexpanded collection records an expansion."

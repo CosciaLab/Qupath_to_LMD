@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -1517,7 +1517,7 @@ wheels = [
 
 [[package]]
 name = "qupath-to-lmd"
-version = "4.0.0"
+version = "5.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "geojson" },

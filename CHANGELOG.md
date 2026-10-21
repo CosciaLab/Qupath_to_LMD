@@ -7,6 +7,22 @@ Terms are defined in [GLOSSARY.md](GLOSSARY.md); the reasoning behind each choic
 
 ---
 
+## v5.1.0
+
+- **Expand shapes before cutting.** A new option in the Cut stage moves every outline outward by a
+  distance you choose — 1 µm by default — so the laser does not burn the edge of the cell you are
+  collecting. Off unless you tick it. Before you download, the app shows how much area it adds,
+  whether expanded shapes now overlap shapes going to another well, and one shape before and after.
+- **Spaces in class names just work.** `Immune cells` stays `Immune cells`. Spaces nobody can see —
+  at the start or end of a name, doubled, or pasted in from a spreadsheet — are tidied when the file
+  is read, so `Tumor ` and `Tumor` are one class; the reading table says when that happened. Names
+  that differ only in capitals, spaces, `_` or `-` (`Tumor` and `tumor`) are pointed out, since they
+  go into separate wells, and a samples-and-wells file that misspells a sample says which one.
+- **A warning about long or unusual file names.** The file name is reused for the `.xml` and the
+  folders in your download, and Windows will not unzip very long paths. Names over 60 characters,
+  or with characters such as `%`, `#`, `&` or accents, get a warning and a suggested name to rename
+  the file to. Nothing is blocked or renamed.
+
 ## v5.0.0
 
 ### Polish after the first click-through

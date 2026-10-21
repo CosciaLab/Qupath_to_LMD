@@ -89,6 +89,9 @@ CASES = {
         "replicates": 3,
         "per_replicate": 2,
     },
+    # shapes grown before smoothing (issue 31): every cut coordinate comes from a buffer, not
+    # from the file, so a change to how outlines are expanded shows here and nowhere else
+    "cells_expanded": {"source": DEMO / "Single_cells.geojson", "expand_px": 3.0},
     # a tube holder: positions are letters, so the CapIDs and the one-column map differ
     "tubes": {"source": DEMO / "TD_01_verysmall_mIF.geojson", "plate_type": "tubes"},
     # strip holders: nine samples need two 8-well strips, so collector names reach the files
@@ -102,7 +105,7 @@ CASES = {
 }
 
 
-def run_case(source, explode=None, plate_type="384", margin=1) -> tuple[str, str]:
+def run_case(source, explode=None, plate_type="384", margin=1, expand_px=0.0) -> tuple[str, str]:
     """Drive the whole pipeline for one case and return its XML and CSV.
 
     Deliberately builds the samples-and-wells scheme from sorted class names rather than
@@ -127,7 +130,7 @@ def run_case(source, explode=None, plate_type="384", margin=1) -> tuple[str, str
         source_file=Path(source).name,
         session_id="golden",
     )
-    result = export.build_collection(plan, samples_and_wells=samples_and_wells, plate=plate_type)
+    result = export.build_collection(plan, samples_and_wells=samples_and_wells, plate=plate_type, expand_px=expand_px)
     return result.xml, result.csv
 
 

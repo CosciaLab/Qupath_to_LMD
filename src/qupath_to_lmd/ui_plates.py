@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import streamlit as st
 from loguru import logger
 
-from qupath_to_lmd import plate, qc, ui_shared
+from qupath_to_lmd import geojson, plate, qc, ui_shared
 from qupath_to_lmd.model import SampleSet
 
 
@@ -229,12 +229,12 @@ def _custom_assignment(samples: list[str], plate_type: str) -> dict[str, tuple[s
         if invalid:
             return None
         missing = [sample for sample in samples if sample not in assignment]
+        unknown = [sample for sample in assignment if sample not in samples]
         if missing:
             st.warning(
                 f"{len(missing)} samples have no {chosen.position} in your file and will not be "
-                f"collected: {', '.join(missing[:10])}"
+                f"collected: {', '.join(missing[:10])}" + _near_misses(missing, unknown)
             )
-        unknown = [sample for sample in assignment if sample not in samples]
         if unknown:
             st.caption(f"Ignored, not samples of this collection: {', '.join(unknown[:10])}")
             assignment = {sample: place for sample, place in assignment.items() if sample in samples}
@@ -243,6 +243,19 @@ def _custom_assignment(samples: list[str], plate_type: str) -> dict[str, tuple[s
             f"Using your samples-and-wells file: {len(assignment)} samples on {n_plates} {chosen.noun}(s)."
         )
         return assignment
+
+
+def _near_misses(missing: list[str], unknown: list[str]) -> str:
+    """Names in the file that are a sample spelled differently — the usual reason for a miss."""
+    by_key = {geojson.loose_class_key(name): name for name in unknown}
+    pairs = [(by_key[key], sample) for sample in missing if (key := geojson.loose_class_key(sample)) in by_key]
+    if not pairs:
+        return ""
+    listed = ", ".join(f"`{written}` for `{sample}`" for written, sample in pairs[:10])
+    return (
+        f". Your file has {listed}: names must match exactly, capitals, spaces, `_` and `-` "
+        "included. Correct the file and upload it again."
+    )
 
 
 def _capacity_report(
