@@ -13,6 +13,7 @@ from shapely.geometry import MultiPolygon, box
 
 from qupath_to_lmd import geojson, outlines, slides
 from qupath_to_lmd.model import CLASS_NAME
+from tests.conftest import OUTLINES_FILE
 
 P1 = box(0, 0, 100, 100)
 P2 = box(200, 0, 300, 100)
@@ -223,4 +224,20 @@ def test_multipolygon_outline_read_from_a_file_groups_shapes(tmp_path):
     grouped, _report = outlines.group_by_outlines(gdf, ["P1"], report.multipolygons)
     assert list(grouped[CLASS_NAME]) == ["P1_gf", "P1_gf"], (
         "A patient outline merged in QuPath grouped nothing after reading; that patient could not be collected."
+    )
+
+
+def test_demo_file_groups_as_the_readme_says():
+    """The README's outlines vignette walks through this file; its numbers must stay true."""
+    gdf, points, report = geojson.read_and_qc(OUTLINES_FILE)
+    grouped, outline_report = outlines.group_by_outlines(gdf, ["P1", "P2"], report.multipolygons)
+    assert len(points) == 3, "The demo needs three named calibration points to get through Stage 1."
+    assert sorted(set(grouped[CLASS_NAME])) == [
+        "P1_Gland", "P1_Stroma", "P1_Vessel", "P2_Gland", "P2_Stroma", "P2_Vessel",
+    ], "The demo no longer gives the six samples the README promises."
+    assert len(grouped) == 18 and outline_report.n_outlines == 2, (
+        f"The README says 2 outlines group 18 shapes; got {outline_report.n_outlines} and {len(grouped)}."
+    )
+    assert _left_out_reasons(outline_report) == {"Gland": outlines.NO_OUTLINE}, (
+        "The README says one Gland between the two pieces is left out; the demo no longer shows that warning."
     )

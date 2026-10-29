@@ -36,6 +36,7 @@ ANNOTATIONS_FILE = f"{DEMO}/TD_01_verysmall_mIF.geojson"       # 6 annotations, 
 CELLS_FILE = f"{DEMO}/Single_cells.geojson"                    # 121 cells, 126 measurement fields
 MULTICLASS_FILE = f"{DEMO}/multiclass_cells.geojson"            # real QuPath 0.7 shapes, no measurements
 SAW_FILE = f"{DEMO}/demo_samples_and_wells.txt"
+OUTLINES_FILE = f"{DEMO}/outlines_two_patients.geojson"     # two patients outlined, 3 classes each
 
 # The scale Single_cells.geojson implies, from its own QuPath measurements.
 CELLS_PIXEL_SIZE = 0.3467
