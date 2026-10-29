@@ -2108,3 +2108,79 @@ Jose's notes after clicking through 078.
   file to QuPath under the download button, where the user is when they need it, and only once
   there is something to download. The example image is redrawn from `extras.class_names`, so it
   shows the names the page actually makes.
+
+## 091 — outlines group shapes, so several patients can share an image
+**Date:** 2026-10-29 · **Status:** active
+- **The problem:** a lab annotating 13 patients × 19 categories by hand, with several patients on
+  one image. Slides pool by class name (075), so `gf` from every patient lands in one well unless
+  every patient × category (× replicate) is its own QuPath class — 200+ classes to pick from while
+  annotating, which is unworkable.
+- **Decision:** a class can be ticked as an **outline** at the top of Samples. Outlines are never
+  cut; every other shape takes the class of the outline it sits in as a prefix, `P1_gf`, before
+  any method sees it, so the methods, plate and export need no change. The label is the outline's
+  **class**, not its `name`: picked from a list, so it cannot be mistyped, and coloured in QuPath.
+  Opt-in and empty by default — nothing ticked hands Stage 2 the same context, so the frozen
+  output cannot move. `ui_samples.render` returns the grouped context, so the Cut stage's
+  pictures use the grouped classes too.
+- **Rejected:** a slide → patient table. Patients sharing one glass slide would have to be split
+  into duplicated images, giving two `.xml` files and two calibrations for one physical slide at
+  the LMD. A QuPath Groovy script that renames classes before export: the step that decides wells
+  would then sit outside the app and its tests.
+
+## 092 — a shape belongs to the outline holding its interior point; leftovers are left out
+**Date:** 2026-10-29 · **Status:** active
+- **Decision:** membership is the shape's `representative_point()` inside an outline, so a
+  structure drawn slightly over the outline's edge still counts and nobody has to redraw outlines
+  tightly. Outlines of **one** class may overlap — one patient, two pieces of tissue — and are not
+  ambiguous; a shape inside outlines of **two** classes is.
+- **Leftovers** — in no outline, or ambiguous — are **left out**, counted per slide and class in
+  a warning, and drawn grey in the classes picture. Not kept under their plain class, which would
+  quietly make a sample of several patients; not blocked, since one stray shape would halt a
+  13-patient experiment (003). Outline classes that hold nothing, appear more than once on a
+  slide, or combine into a name another pair also makes (`P1`+`a_b`, `P1_a`+`b`) are said too.
+
+## 093 — MultiPolygon geometry is kept when reading, for outlines
+**Date:** 2026-10-29 · **Status:** active
+- **Decision:** reading still drops MultiPolygons from the shapes — py-lmd cannot cut them — but
+  `GeojsonReport.multipolygons` now keeps their geometry. Merging two tissue pieces of one patient
+  in QuPath makes a MultiPolygon outline, which is useless as a cut and perfectly good as an
+  area that holds shapes. What is cut is unchanged; the golden harness confirms it.
+
+## 094 — outline review fixes: empty slides, the keyed widget, no cache
+**Date:** 2026-10-29 · **Status:** active · **refines 091**
+- **A slide the outlines leave empty is dropped from the grouped context**, with its warning
+  naming it, unless every slide is empty. Before, the class table across slides crashed on it
+  (`stats.class_statistics` returned a frame with no columns for an empty slide — it now keeps
+  them), and Regions stopped the whole experiment with an error for one slide holding nothing.
+- **The outline multiselect is keyed and seeded once.** With `default` recomputed from session
+  state each run, the widget's identity changed after every click and Streamlit threw the next
+  click away — ticking P1, P2, P3 one at a time kept P1 and P3. `class_step` has the same pattern;
+  left for its own fix.
+- **Grouping is vectorised and not cached.** A per-shape Python lambda made a million cells take
+  27 s; it now takes 1.4 s. At that cost a `st.cache_data` entry — ~300 MB pickled per tick set,
+  unbounded, unpickled again on every rerun — costs more than it saves and could run the
+  deployed app out of memory.
+
+## 095 — replicates and amount are set for every class with a button, not as live defaults
+**Date:** 2026-10-29 · **Status:** active
+- With outlines (091) a lab of 13 patients × 19 categories has over 200 classes, and both
+  per-class tables made each row's replicates and amount an edit of its own. Above each table a
+  row now takes replicates and the amount per replicate, and *Apply to every class* sets those
+  two columns on every row. Minimum area, circle sizes and gap stay per class: nobody asked to
+  set them at once, and they differ by biology.
+- **A button, not live defaults.** Making the inputs the table's starting values would rebuild
+  the table on every change, wiping rows edited one by one after a stray keystroke. With a form
+  and a button nothing reaches the table until Apply; the table's key changes only then.
+- An applied amount remembers its unit, so 150 shapes per replicate never becomes 150 µm² when
+  Selected shapes switches from count to area. Applied values are cleared on a new upload, like
+  every other derived key.
+
+## 096 — *Classes to collect* is keyed and seeded once, like the outline box
+**Date:** 2026-10-29 · **Status:** active · **completes 094**
+- 094 left `ui_samples.class_step` with the pattern it fixed for the outline box: `default`
+  recomputed from `selected_classes` every run changed the widget's identity after each click,
+  so Streamlit dropped the next one. Unticking Gland then P1 kept P1 — a class the user dropped
+  would have been cut. The multiselect now has a key, seeded once.
+- When none of the remembered classes are offered any more, it starts from all classes, as the
+  old `remembered or all_classes` did when outlines renamed every class. Unlike before, a user who
+  unticks every class keeps an empty choice rather than having all of them ticked again.

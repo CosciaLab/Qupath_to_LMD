@@ -5,7 +5,7 @@ format is a change here and nowhere else.
 """
 
 import io
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy
 import pandas
@@ -14,12 +14,13 @@ from loguru import logger
 
 from qupath_to_lmd import geojson, qc, slides, ui_shared
 from qupath_to_lmd.model import CLASS_NAME
+from qupath_to_lmd.outlines import OutlineReport
 
 # Keys holding anything derived from the uploaded slides. A new upload clears them, so a choice
 # made for one experiment never leaks into the next.
 DERIVED_KEYS = (
-    "selected_classes", "budgets", "budget_mode", "minimum_area_um2", "region_params",
-    "packing_params", "region_budgets", "zip_buffer", "bundle_name", "bundle_signature",
+    "selected_classes", "selected_classes_choice", "outline_classes", "outline_classes_choice", "budgets", "budget_mode", "minimum_area_um2", "region_params",
+    "packing_params", "region_budgets", "every_class_select", "every_class_regions", "zip_buffer", "bundle_name", "bundle_signature",
     "collection_image",
 )
 
@@ -30,6 +31,8 @@ class SlidesContext:
 
     slides: list[slides.Slide]
     calibration: dict[str, tuple[list[str], numpy.ndarray]]
+    # Per slide, what grouping by outlines did; empty unless outline classes are ticked in Stage 2.
+    outlines: dict[str, OutlineReport] = field(default_factory=dict)
 
     @property
     def names(self) -> list[str]:

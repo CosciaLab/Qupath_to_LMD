@@ -33,6 +33,15 @@ Three ways to collect:
 
 <img src="vignettes/vignette5.svg" alt="Vignette5 Collect single cells" width="1000"/>
 
+### Vignette 6: Several patients on one image, kept apart by outlines
+
+<img src="vignettes/vignette6.svg" alt="Vignette6 Outlines keep patients apart" width="1000"/>
+
+Annotate with the same few classes for every patient, draw one outline around each patient's
+tissue, and the app names the samples for you: `Gland` inside the `P1` outline becomes
+`P1_Gland`. Try it with `demo_Qupath_project/outlines_two_patients.geojson` — see
+[Several patients or regions on one image](#several-patients-or-regions-on-one-image).
+
 ## Streamlit webapp summary
 
 The page has four stages, always in this order, and the sidebar keeps a one-line summary of your
@@ -74,6 +83,28 @@ experiment in view (e.g. *2 slides → 27 samples → 1 plate*):
 6. Export as a **FeatureCollection** in the **.geojson** format
 7. Load into webapp
 
+### Several patients or regions on one image
+
+When one image holds tissue from several patients (or cores, or regions you want kept apart),
+you do not need a QuPath class for every patient × category combination:
+
+1. Make one class per patient (`P1`, `P2`, …) and draw **one outline** around each patient's
+   tissue with it. A patient in two pieces can have two outlines of the same class.
+2. Annotate the structures with your categories only (`Gland`, `Stroma`, …), the same for every
+   patient.
+3. In the app, at the top of **Samples**, tick `P1`, `P2`, … under *Classes that outline a group of
+   shapes*.
+
+Every shape is then named after the outline it sits in — `Gland` inside `P1` becomes `P1_Gland` —
+and outlines themselves are never cut. With several slides, `P1_Gland` from every slide goes into
+the same well, so a patient spread over several images pools together and patients never mix.
+Replicates are set later, in the collection method, as usual.
+
+A shape that sits in no outline, or inside outlines of two different patients, is **not
+collected**: the app says how many, per class, and draws them grey so you can fix the outline in
+QuPath. The demo file `demo_Qupath_project/outlines_two_patients.geojson` has two patients, three
+classes each, and one stray shape between them to show that warning.
+
 ## How to collect
 
 ### Whole shapes
@@ -90,12 +121,15 @@ You decide:
 - How many replicates
 - How much area or shapes per replicate
 
+Both can be set once for every class with *Apply to every class* above the table, then changed
+for single classes in the table.
+
 ### Regions and circles
 
 Merge neighboring cells of the same class. Neighbor distance criteria is set by you. Then pack the areas with your sampling strategy. You can decide:
 
-- How many replicates
-- How much area per replicate
+- How many replicates (once for every class, or per class)
+- How much area per replicate (once for every class, or per class)
 - Minimum circle size
 - Maximum circle size
 

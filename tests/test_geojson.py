@@ -179,6 +179,9 @@ def test_multipolygons_are_reported_and_dropped(tmp_path):
         "The MultiPolygon report table is empty, so the UI has nothing to show the user."
     )
     assert "MultiPolygon" not in set(gdf.geometry.geom_type)
+    assert set(report.multipolygons.geom_type) == {"MultiPolygon"}, (
+        "An outline merged from two tissue pieces in QuPath would have no geometry to group shapes with."
+    )
 
 
 def test_unused_columns_are_dropped_to_keep_large_files_affordable(cells_gdf):

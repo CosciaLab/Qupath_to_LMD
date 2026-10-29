@@ -31,7 +31,7 @@ from qupath_to_lmd import (
     ui_summary,
 )
 from qupath_to_lmd.model import CLASS_NAME
-from tests.conftest import MULTICLASS_FILE
+from tests.conftest import ANNOTATIONS_FILE, MULTICLASS_FILE
 
 
 class Stopped(Exception):
@@ -838,3 +838,161 @@ def test_the_summary_forgets_a_stage_that_will_report_again():
     )
     assert "plates" not in summary.figures, "The sidebar headline would still count plates."
 
+
+
+# Outlines (`decisions.md` 091): the step at the top of Stage 2 that names shapes after the outline
+# they sit in. What it must never do is stop the app or let leftovers pass unmentioned.
+
+def _outlined_slide(fake_streamlit, tmp_path, stem, squares):
+    """A slide read from a file: three calibration points plus `(class, x, y, size)` squares."""
+    features = [
+        {"type": "Feature", "geometry": {"type": "Point", "coordinates": xy},
+         "properties": {"objectType": "annotation", "name": name}}
+        for name, xy in (("A", [0, 0]), ("B", [1000, 0]), ("C", [0, 1000]))
+    ]
+    for class_name, x, y, size in squares:
+        ring = [[x, y], [x + size, y], [x + size, y + size], [x, y + size], [x, y]]
+        features.append({
+            "type": "Feature", "geometry": {"type": "Polygon", "coordinates": [ring]},
+            "properties": {"objectType": "annotation", "classification": {"name": class_name, "color": [255, 0, 0]}},
+        })
+    path = tmp_path / f"{stem}.geojson"
+    path.write_text(json.dumps({"type": "FeatureCollection", "features": features}))
+    (slide,) = slides.read_slides([str(path)])
+    fake_streamlit.state.update(pixel_size_by_slide={})
+    return slide
+
+
+def _tick(monkeypatch, chosen):
+    monkeypatch.setattr(streamlit, "multiselect", lambda label, options, default=None, **k: list(chosen))
+
+
+def test_no_outline_classes_leaves_the_context_alone(fake_streamlit, monkeypatch):
+    context = _context(_load(fake_streamlit, ANNOTATIONS_FILE))
+    _tick(monkeypatch, [])
+    assert ui_samples.outline_step(context) is context, (
+        "With nothing ticked Stage 2 got a different context, so the frozen whole-shapes output could change."
+    )
+
+
+def test_grouped_context_carries_grouped_classes(fake_streamlit, monkeypatch, tmp_path):
+    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
+    _tick(monkeypatch, ["P1"])
+    grouped = ui_samples.outline_step(_context(slide))
+    assert set(grouped.frames["S1"][CLASS_NAME]) == {"P1_gf"}, (
+        "The collection methods still see plain classes, so patients would pool into one well."
+    )
+    assert set(grouped.outlines) == {"S1"}, "The picture and provenance have no outline report for the slide."
+
+
+def test_left_out_shapes_warn_and_do_not_stop(fake_streamlit, monkeypatch, tmp_path):
+    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10), ("gf", 500, 500, 10)])
+    _tick(monkeypatch, ["P1"])
+    ui_samples.outline_step(_context(slide))
+    assert "will not be collected" in fake_streamlit.shown("warnings"), (
+        "A shape outside every outline was dropped without a word on screen."
+    )
+    assert not fake_streamlit.errors, "Left-out shapes are a warning, not an error: the rest can still be cut."
+
+
+def test_slide_without_outlines_is_named(fake_streamlit, monkeypatch, tmp_path):
+    with_outline = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
+    without = _outlined_slide(fake_streamlit, tmp_path, "S2", [("gf", 10, 10, 10)])
+    _tick(monkeypatch, ["P1"])
+    ui_samples.outline_step(_context(with_outline, without))
+    assert "No outline on S2" in fake_streamlit.shown("warnings"), (
+        "A slide with no outline loses all its shapes, and the user is not told which slide it is."
+    )
+
+
+def test_empty_outline_is_mentioned(fake_streamlit, monkeypatch, tmp_path):
+    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("P2", 200, 0, 100), ("gf", 10, 10, 10)])
+    _tick(monkeypatch, ["P1", "P2"])
+    ui_samples.outline_step(_context(slide))
+    assert "hold no shapes" in fake_streamlit.shown("infos"), (
+        "An outline holding nothing went unmentioned; a misplaced outline would show only as a missing sample."
+    )
+
+
+def test_a_new_upload_clears_the_outline_ticks(fake_streamlit, monkeypatch):
+    """A new upload resets derived keys to None; the outline step must start empty, not fail."""
+    context = _context(_load(fake_streamlit, ANNOTATIONS_FILE))
+    assert ui_samples.OUTLINE_WIDGET in ui_slides.DERIVED_KEYS, (
+        "The outline ticks would carry over from the previous experiment into a new upload."
+    )
+    fake_streamlit.state.update(dict.fromkeys(ui_slides.DERIVED_KEYS))
+    _tick(monkeypatch, [])
+    assert ui_samples.outline_step(context) is context, "After a new upload the outline step failed or grouped."
+
+
+class _Form:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+
+def _every_class(monkeypatch, typed: dict, submitted: bool, **call):
+    """Run the every-class step with `typed` in its inputs and the Apply button pressed or not."""
+    offered = []
+
+    def number_input(label, value=None, **k):
+        offered.append(label)
+        return typed.get(label.split(" (")[0], value)
+
+    monkeypatch.setattr(streamlit, "form", lambda *a, **k: _Form())
+    monkeypatch.setattr(streamlit, "number_input", number_input)
+    monkeypatch.setattr(streamlit, "form_submit_button", lambda *a, **k: submitted)
+    arguments = {"method": "select", "default_replicates": 3, "unit": "shapes", "default_amount": 150.0, "amount_step": 10.0}
+    return ui_shared.every_class_step(**(arguments | call)), offered
+
+
+def test_every_class_values_reach_the_table_only_on_apply(fake_streamlit, monkeypatch):
+    """With 200 classes, one Apply sets them all; typing alone must not wipe per-class edits."""
+    fake_streamlit.state.update(every_class_select=None)
+    typed = {"Replicates": 5, "Per replicate": 40.0}
+    (replicates, amount, before), _ = _every_class(monkeypatch, typed, submitted=False)
+    assert (replicates, amount) == (3, 150.0), (
+        "Values reached the table before Apply was pressed, so a stray edit would overwrite every class."
+    )
+    (replicates, amount, applied), _ = _every_class(monkeypatch, typed, submitted=True)
+    assert (replicates, amount) == (5, 40.0), "Apply did not set every class to the values typed."
+    assert applied != before, "The table keeps its old key after Apply, so it would keep showing the old values."
+    (_, _, after), _ = _every_class(monkeypatch, {}, submitted=False)
+    assert after == applied, (
+        "The table's key changed on a rerun without Apply, which throws away every per-class edit."
+    )
+
+
+def test_an_applied_amount_is_not_read_in_another_unit(fake_streamlit, monkeypatch):
+    """150 shapes per replicate must not become 150 µm² when the user switches to area."""
+    fake_streamlit.state.update(every_class_select=None)
+    _every_class(monkeypatch, {"Replicates": 5, "Per replicate": 150.0}, submitted=True)
+    (replicates, amount, _), _ = _every_class(
+        monkeypatch, {}, submitted=False, unit="µm²", default_amount=25_000.0, amount_step=1_000.0
+    )
+    assert amount == 25_000.0, f"An amount set in shapes was applied as {amount} µm²."
+    assert replicates == 5, "Switching count to area lost the replicates set for every class."
+
+
+def test_whole_regions_are_offered_replicates_only(fake_streamlit, monkeypatch):
+    """Without circles a region is cut whole, so there is no amount to set."""
+    fake_streamlit.state.update(every_class_regions=None)
+    (replicates, amount, _), offered = _every_class(
+        monkeypatch, {"Replicates": 2}, submitted=True, method="regions", unit=None, default_amount=None
+    )
+    assert amount is None and replicates == 2
+    assert offered == ["Replicates"], f"Whole regions were offered {offered}; an amount there does nothing."
+
+
+def test_a_new_upload_clears_the_every_class_values(fake_streamlit):
+    assert {"every_class_select", "every_class_regions"} <= set(ui_slides.DERIVED_KEYS), (
+        "Replicates applied to every class would carry over from the previous experiment into a new upload."
+    )
+
+
+def test_a_new_upload_clears_the_classes_to_collect_ticks():
+    assert ui_samples.CLASS_WIDGET in ui_slides.DERIVED_KEYS, (
+        "Classes unticked for one experiment would stay unticked in the next upload with the same class names."
+    )
