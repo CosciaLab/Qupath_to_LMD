@@ -2108,3 +2108,40 @@ Jose's notes after clicking through 078.
   file to QuPath under the download button, where the user is when they need it, and only once
   there is something to download. The example image is redrawn from `extras.class_names`, so it
   shows the names the page actually makes.
+
+## 091 — outlines group shapes, so several patients can share an image
+**Date:** 2026-10-29 · **Status:** active
+- **The problem:** a lab annotating 13 patients × 19 categories by hand, with several patients on
+  one image. Slides pool by class name (075), so `gf` from every patient lands in one well unless
+  every patient × category (× replicate) is its own QuPath class — 200+ classes to pick from while
+  annotating, which is unworkable.
+- **Decision:** a class can be ticked as an **outline** at the top of Samples. Outlines are never
+  cut; every other shape takes the class of the outline it sits in as a prefix, `P1_gf`, before
+  any method sees it, so the methods, plate and export need no change. The label is the outline's
+  **class**, not its `name`: picked from a list, so it cannot be mistyped, and coloured in QuPath.
+  Opt-in and empty by default — nothing ticked hands Stage 2 the same context, so the frozen
+  output cannot move. `ui_samples.render` returns the grouped context, so the Cut stage's
+  pictures use the grouped classes too.
+- **Rejected:** a slide → patient table. Patients sharing one glass slide would have to be split
+  into duplicated images, giving two `.xml` files and two calibrations for one physical slide at
+  the LMD. A QuPath Groovy script that renames classes before export: the step that decides wells
+  would then sit outside the app and its tests.
+
+## 092 — a shape belongs to the outline holding its interior point; leftovers are left out
+**Date:** 2026-10-29 · **Status:** active
+- **Decision:** membership is the shape's `representative_point()` inside an outline, so a
+  structure drawn slightly over the outline's edge still counts and nobody has to redraw outlines
+  tightly. Outlines of **one** class may overlap — one patient, two pieces of tissue — and are not
+  ambiguous; a shape inside outlines of **two** classes is.
+- **Leftovers** — in no outline, or ambiguous — are **left out**, counted per slide and class in
+  a warning, and drawn grey in the classes picture. Not kept under their plain class, which would
+  quietly make a sample of several patients; not blocked, since one stray shape would halt a
+  13-patient experiment (003). Outline classes that hold nothing, appear more than once on a
+  slide, or combine into a name another pair also makes (`P1`+`a_b`, `P1_a`+`b`) are said too.
+
+## 093 — MultiPolygon geometry is kept when reading, for outlines
+**Date:** 2026-10-29 · **Status:** active
+- **Decision:** reading still drops MultiPolygons from the shapes — py-lmd cannot cut them — but
+  `GeojsonReport.multipolygons` now keeps their geometry. Merging two tissue pieces of one patient
+  in QuPath makes a MultiPolygon outline, which is useless as a cut and perfectly good as an
+  area that holds shapes. What is cut is unchanged; the golden harness confirms it.

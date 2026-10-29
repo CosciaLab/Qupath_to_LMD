@@ -1208,6 +1208,10 @@ golden gate for a fast loop. CI runs ruff, the suite and the harness on every pu
 - **No environment setup needed**: `conftest.py` forces `MPLBACKEND=Agg` before anything imports
   pyplot, because py-lmd's `Collection.plot` calls `plt.show()` and hangs under a GUI backend.
   It also silences loguru so assertions are not buried in log lines.
+- **`OUTLINES_FILE`**, `demo_Qupath_project/outlines_two_patients.geojson`, is in-silico
+  (`tools/make_outlines_demo.py`, seeded): two patients outlined `P1`/`P2`, three each of
+  `Gland`, `Stroma`, `Vessel` inside, one `Gland` between them. README vignette 6 draws it and
+  `test_demo_file_groups_as_the_readme_says` keeps the README's numbers true.
 - **Only committed files and generated fixtures.** The real 83.7 MB export is deliberately not a
   dependency, so CI runs from the repo alone. `synthetic_cells` builds QuPath-shaped exports of
   any size on demand.
