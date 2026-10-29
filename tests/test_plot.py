@@ -299,3 +299,19 @@ def test_the_expansion_picture_draws_the_shape_its_cut_and_its_neighbours():
     labels = [text.get_text() for legend in figure.legends for text in legend.get_texts()]
     assert labels == ["as drawn in QuPath", "what the laser cuts", "shapes around it"], f"Legend reads {labels}."
     assert any("µm" in text.get_text() for text in figure.axes[0].texts), "No scale bar, so the reach cannot be judged."
+
+
+def test_outlines_are_labelled_and_leftovers_in_the_legend():
+    """Outlines decide whose tissue a shape is, so the picture must show them and what they missed."""
+    from qupath_to_lmd import outlines
+
+    frame = geopandas.GeoDataFrame(
+        {CLASS_NAME: ["P1", "gf", "gf"], "classification": [str({"name": n}) for n in ("P1", "gf", "gf")]},
+        geometry=[box(0, 0, 100, 100), box(10, 10, 20, 20), box(500, 500, 510, 510)],
+    )
+    grouped, report = outlines.group_by_outlines(frame, ["P1"])
+    figure = plot.plot_shapes(grouped, outlines=report.outlines, left_out=report.left_out)
+    axes = figure.axes[0]
+    assert "P1" in {text.get_text() for text in axes.texts}, "The user cannot see which outline is which patient."
+    legend = " ".join(text.get_text() for text in figure.legends[0].get_texts())
+    assert "left out (1)" in legend, "Shapes that will not be collected are invisible in the picture."

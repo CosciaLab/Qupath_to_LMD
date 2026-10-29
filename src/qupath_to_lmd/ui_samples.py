@@ -138,10 +138,16 @@ def class_step(context: SlidesContext) -> list[str]:
             tabs = st.tabs(context.names)
             for tab, slide in zip(tabs, context.slides, strict=True):
                 with tab:
-                    _draw_input(slide, context.calibration[slide.name][1], selected, palette, context.fingerprint(slide.name))
+                    _draw_input(
+                        slide, context.calibration[slide.name][1], selected, palette,
+                        context.fingerprint(slide.name), context.outlines.get(slide.name),
+                    )
         else:
             slide = context.slides[0]
-            _draw_input(slide, context.calibration[slide.name][1], selected, palette, context.fingerprint(slide.name))
+            _draw_input(
+                slide, context.calibration[slide.name][1], selected, palette,
+                context.fingerprint(slide.name), context.outlines.get(slide.name),
+            )
     return selected
 
 
@@ -222,16 +228,23 @@ def _name_partial_classes(per_slide: dict[str, pandas.DataFrame], selected: list
         )
 
 
-def _draw_input(slide: slides.Slide, calibration_array, selected: list[str], palette: dict, fingerprint: tuple) -> None:
-    """Everything on a slide, coloured where kept and grey where left out."""
+def _draw_input(
+    slide: slides.Slide, calibration_array, selected: list[str], palette: dict, fingerprint: tuple,
+    report: outlines.OutlineReport | None = None,
+) -> None:
+    """Everything on a slide, coloured where kept and grey where left out, with any outlines."""
     gdf = slide.gdf
+    drawn_outlines = report.outlines if report else None
+    left_out = report.left_out if report else None
+    outline_key = (sorted(report.outlines["label"]), len(report.left_out)) if report else None
     with st.spinner("Drawing shapes..."):
         ui_shared.show_picture(
             lambda: plot.plot_shapes(
                 gdf, included=selected, calibration_array=calibration_array,
                 title=f"{len(gdf):,} shapes on {slide.name}", colors=palette,
+                outlines=drawn_outlines, left_out=left_out,
             ),
-            ui_shared.picture_key("classes", fingerprint, selected, calibration_array, palette),
+            ui_shared.picture_key("classes", fingerprint, selected, calibration_array, palette, outline_key),
         )
     if len(gdf) > plot.SHAPE_LIMIT:
         st.caption(
@@ -241,6 +254,10 @@ def _draw_input(slide: slides.Slide, calibration_array, selected: list[str], pal
     st.caption(
         "Greyed-out shapes are the classes you left out. Dashed triangle and crosses are the "
         "calibration points; shapes far outside it are the ones at risk of distortion."
+        + (
+            " Outlines are drawn as dark borders with their class; grey shapes outside them will "
+            "not be collected." if report else ""
+        )
     )
 
 

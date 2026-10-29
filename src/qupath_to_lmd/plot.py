@@ -33,6 +33,7 @@ PALETTE = [
 ]
 MUTED = "#dcdcdc"
 MUTED_EDGE = "#b4b4b4"
+OUTLINE_EDGE = "#444444"
 
 # Above this many shapes, draw one dot per shape instead of its outline. Drawing outlines is
 # ~2s at 50k shapes and ~8s at 200k; centroids are 0.14s at 200k.
@@ -115,6 +116,8 @@ def plot_shapes(
     title: str | None = None,
     figsize: tuple[float, float] = (10.0, 7.5),
     colors: dict[str, str] | None = None,
+    outlines: geopandas.GeoDataFrame | None = None,
+    left_out: geopandas.GeoDataFrame | None = None,
 ) -> Figure:
     """Draw shapes coloured by a label, with everything else grey.
 
@@ -132,6 +135,8 @@ def plot_shapes(
         figsize: inches.
         colors: colour per label, from `class_colors` over the whole experiment, so a class looks
             the same in every picture. Defaults to the labels in this plot.
+        outlines: outlines with a `label` column, drawn as dark borders named by their class.
+        left_out: shapes no outline could claim, drawn grey: they will not be collected.
     """
     figure = Figure(figsize=figsize, layout="constrained")
     axes = figure.add_subplot()
@@ -149,6 +154,8 @@ def plot_shapes(
     unlabelled = gdf[labels.isna()]
     if not unlabelled.empty:
         _draw(axes, unlabelled, MUTED, as_dots, False)
+    if left_out is not None and not left_out.empty:
+        _draw(axes, left_out, MUTED, as_dots, False)
 
     # Excluded first, so included labels are drawn over them.
     for class_name in sorted(classes, key=lambda name: name in included):
@@ -157,6 +164,9 @@ def plot_shapes(
             continue
         is_in = class_name in included
         _draw(axes, subset, colors[class_name] if is_in else MUTED, as_dots, is_in)
+
+    if outlines is not None and not outlines.empty:
+        _draw_outlines(axes, outlines)
 
     if calibration_array is not None and len(calibration_array) == 3:
         triangle = numpy.vstack([calibration_array, calibration_array[:1]])
@@ -179,6 +189,11 @@ def plot_shapes(
             Line2D([], [], marker="o", linestyle="", markersize=7, markerfacecolor=MUTED,
                    markeredgecolor="none", label=f"not selected ({len(unlabelled)})")
         )
+    if left_out is not None and not left_out.empty:
+        handles.append(
+            Line2D([], [], marker="o", linestyle="", markersize=7, markerfacecolor=MUTED,
+                   markeredgecolor="none", label=f"left out ({len(left_out)})")
+        )
     if handles:
         # Placed outside the axes: a legend inside covers tissue, and tissue is the point.
         # "outside ..." locations need constrained layout, which the figure above uses.
@@ -193,6 +208,23 @@ def plot_shapes(
         axes.set_title(title, fontsize=10)
 
     return figure
+
+
+def _draw_outlines(axes, outlines: geopandas.GeoDataFrame) -> None:
+    """Outlines as dark borders with their class at an interior point, so patients can be told apart."""
+    rings = [
+        numpy.asarray(part.exterior.coords)
+        for geometry in outlines.geometry
+        for part in getattr(geometry, "geoms", [geometry])
+        if part.geom_type == "Polygon"
+    ]
+    axes.add_collection(
+        PolyCollection(rings, facecolors="none", edgecolors=OUTLINE_EDGE, linewidths=1, zorder=4)
+    )
+    for label, point in zip(outlines["label"], outlines.geometry.representative_point(), strict=True):
+        axes.annotate(str(label), (point.x, point.y), ha="center", va="center", fontsize=9,
+                      color=OUTLINE_EDGE, zorder=5)
+    axes.autoscale_view()
 
 
 def _draw(axes, subset: geopandas.GeoDataFrame, color: str, as_dots: bool, emphasised: bool) -> None:
