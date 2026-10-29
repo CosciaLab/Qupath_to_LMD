@@ -128,7 +128,7 @@ def test_empty_frame_gives_an_empty_table(cells_gdf):
     table = stats.class_statistics(cells_gdf.iloc[:0], pixel_size_um=1.0)
     assert table.empty
     assert {"shapes", "area_total_um2"} <= set(table.columns), (
-        "A slide emptied by outlines has no columns, and the class table across slides crashes on it."
+        "A slide emptied by parent annotations has no columns, and the class table across slides crashes on it."
     )
 
 

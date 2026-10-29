@@ -185,7 +185,7 @@ def read_and_qc(source) -> tuple[geopandas.GeoDataFrame, dict[str, list[float]],
     is_multi = gdf.geometry.geom_type == "MultiPolygon"
     if is_multi.any():
         columns = [c for c in ("name", CLASS_NAME) if c in gdf.columns]
-        # Geometry kept: uncuttable, but a merged outline is still an area that groups shapes.
+        # Geometry kept: uncuttable, but a merged parent annotation is still an area that groups shapes.
         report.multipolygons = geopandas.GeoDataFrame(gdf.loc[is_multi, [*columns, "geometry"]], geometry="geometry")
         logger.debug(f"Dropping {int(is_multi.sum())} MultiPolygons")
         gdf = gdf[~is_multi]

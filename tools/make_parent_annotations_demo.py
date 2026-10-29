@@ -1,18 +1,18 @@
 #!/usr/bin/env python
-"""Generate the outlines demo: two patients' tissue on one image, annotated with three classes.
+"""Generate the parent annotations demo: two patients' tissue on one image, annotated with three classes.
 
-    uv run python tools/make_outlines_demo.py
+    uv run python tools/make_parent_annotations_demo.py
 
-Writes `demo_Qupath_project/outlines_two_patients.geojson`. Seeded, so running it again gives
+Writes `demo_Qupath_project/parent_annotations_two_patients.geojson`. Seeded, so running it again gives
 the same file.
 
 What it holds, shaped like a QuPath annotation export:
-- two pieces of tissue, one per patient, each with an outline annotation of class `P1` or `P2`;
+- two pieces of tissue, one per patient, each with a parent annotation of class `P1` or `P2`;
 - inside each, three annotations of each of `Gland`, `Stroma` and `Vessel`, drawn as lumpy loops
   the way a hand-drawn annotation is — the same three classes for both patients, which is the
-  point: with `P1` and `P2` ticked as outline classes they become six samples, `P1_Gland` …
+  point: with `P1` and `P2` ticked as parent annotation classes they become six samples, `P1_Gland` …
   `P2_Vessel`;
-- one `Gland` annotation between the two pieces, inside neither outline, so the app's warning
+- one `Gland` annotation between the two pieces, inside neither parent annotation, so the app's warning
   about shapes it will not collect has something to show;
 - three named calibration points, `calib1` … `calib3`.
 """
@@ -23,12 +23,12 @@ import random
 import uuid
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent.parent / "demo_Qupath_project" / "outlines_two_patients.geojson"
+OUT = Path(__file__).resolve().parent.parent / "demo_Qupath_project" / "parent_annotations_two_patients.geojson"
 SEED = 7
 PATIENTS = {"P1": (800, 820), "P2": (2250, 780)}
 TISSUE_RADIUS = 560
 CLASSES = {"Gland": [230, 159, 0], "Stroma": [86, 180, 233], "Vessel": [204, 121, 167]}
-OUTLINE_COLOR = [96, 96, 96]
+PARENT_COLOR = [96, 96, 96]
 PER_CLASS = 3
 STRUCTURE_RADIUS = (55, 95)
 STRAY = ("Gland", (1520, 1380))
@@ -88,8 +88,8 @@ def main() -> None:
     random.seed(SEED)
     features = [_point(name, xy) for name, xy in CALIBRATION.items()]
     for patient, centre in PATIENTS.items():
-        # the outline is drawn a little outside the tissue, as one would by hand
-        features.append(_annotation(_loop(rng, *centre, TISSUE_RADIUS * 1.08, vertices=96), patient, OUTLINE_COLOR))
+        # the parent annotation is drawn a little outside the tissue, as one would by hand
+        features.append(_annotation(_loop(rng, *centre, TISSUE_RADIUS * 1.08, vertices=96), patient, PARENT_COLOR))
         features += _structures(rng, centre)
     stray_class, (x, y) = STRAY
     features.append(_annotation(_loop(rng, x, y, 70), stray_class, CLASSES[stray_class]))

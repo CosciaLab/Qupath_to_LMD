@@ -65,12 +65,12 @@ src/qupath_to_lmd/
                                   cutting_instructions, build_experiment_bundle,
                                   order_for_cutting, path_stats, ORIENTATION_TRANSFORM
   extras.py                       QuPath classes.json generation
-  outlines.py                     group_by_outlines, OutlineReport, left_out_table,
-                                  colliding_names, provenance — P1_gf from outlines
+  parent_annotations.py           group_by_parents, ParentReport, left_out_table,
+                                  colliding_names, provenance — P1_gf from parents
   === UI layer: Streamlit, owns session_state ===
   ui_slides.py                    Stage 1: upload (1..n files or a zip), QC, calibration
                                   per slide, scale_control; SlidesContext
-  ui_samples.py                   Stage 2: outline step, method choice, class table
+  ui_samples.py                   Stage 2: parent step, method choice, class table
                                   across slides, slide strategy; methods() registry
   ui_collect_whole.py             method: whole shapes (was the annotations workflow)
   ui_collect_select.py            method: selected shapes (was the cell workflow)
@@ -181,21 +181,25 @@ sidebar summary.
   `model.plan_from_groups`, which the old builders (`plan_from_class_wells`,
   `plan_from_selection`) now delegate to — so the golden harness covers the route the app uses.
 - **Stage 3 reads only `SampleSet.samples`**; Stage 4 reads the sample set and the layout.
-- **Outlines come first in Stage 2** (`decisions.md` 091), before the method choice:
-  `ui_samples.outline_step` offers every class (MultiPolygon ones included) as an outline class,
-  empty by default. With nothing ticked it returns the **same** `SlidesContext`, so nothing
-  downstream can move. Otherwise `outlines.group_by_outlines` runs per slide — **not cached**,
-  since it takes ~1.4 s at a million cells and a cached copy would be ~300 MB per tick set (094) —
-  and the step returns a copy whose frames hold `P1_gf` and whose `SlidesContext.outlines` holds
-  one `OutlineReport` per slide. A slide left with no shapes is dropped from that copy (its
-  warning names it), unless every slide is empty. The multiselect is keyed
-  (`ui_samples.OUTLINE_WIDGET`, also in `DERIVED_KEYS`) and seeded once from `outline_classes`. A shape belongs to the outline
-  containing its `representative_point()`; outlines of one class may overlap, outlines of two
-  classes make a shape ambiguous. Ambiguous shapes and shapes in no outline are left out and
-  warned about with a per-slide, per-class table; outlines are never cut. `ui_samples.render`
-  returns `(context, sample_set)` so Stages 3 and 4 see the grouped classes, and puts
-  `outlines.provenance` into `SampleSet.params["outlines"]`, which reaches `provenance.json` on
-  both the one-slide and the several-slide route.
+- **Parent annotations come first in Stage 2** (`decisions.md` 091, renamed from *outlines* in
+  097), before the method choice, behind the toggle *Parent annotations* — **off by default**
+  (`ui_samples.PARENT_TOGGLE`, `parent_annotations_on`, seeded False and in `DERIVED_KEYS`, so a
+  new upload turns it off). Off, the step shows one caption and returns the **same**
+  `SlidesContext` even if classes were ticked before, so nothing downstream can move. On, it
+  explains the idea (`PARENT_EXPLANATION`) and offers every class (MultiPolygon ones included) as
+  a parent class, empty by default. With nothing ticked it again returns the same context.
+  Otherwise `parent_annotations.group_by_parents` runs per slide — **not cached**, since it takes
+  ~1.4 s at a million cells and a cached copy would be ~300 MB per tick set (094) — and the step
+  returns a copy whose frames hold `P1_gf` and whose `SlidesContext.parents` holds one
+  `ParentReport` per slide. A slide left with no shapes is dropped from that copy (its warning
+  names it), unless every slide is empty. The multiselect is keyed (`ui_samples.PARENT_WIDGET`,
+  also in `DERIVED_KEYS`) and seeded once from `parent_classes`. A shape belongs to the parent
+  annotation containing its `representative_point()`; parents of one class may overlap, parents of
+  two classes make a shape ambiguous. Ambiguous shapes and shapes in no parent annotation are left
+  out and warned about with a per-slide, per-class table; parent annotations are never cut.
+  `ui_samples.render` returns `(context, sample_set)` so Stages 3 and 4 see the grouped classes,
+  and puts `parent_annotations.provenance` into `SampleSet.params["parent_annotations"]`, which
+  reaches `provenance.json` on both the one-slide and the several-slide route.
 - **Both per-class tables start from an "Every class" row** (`decisions.md` 095):
   `ui_shared.every_class_step` draws a form with replicates, the amount per replicate (shapes or
   µm², none for whole regions) and *Apply to every class*. Applied values sit in
@@ -239,8 +243,8 @@ The reading and QC below is unchanged; it now runs once per uploaded file.
      calibration Points, which have already left the frame — so both report 0 here.
    - `classification_name` column derived from `classification` (dict or its `str` repr).
    - `MultiPolygon`s are recorded in the report and dropped — py-lmd cuts one closed path
-     per shape, so they have no meaning. The report keeps their geometry, so one of an outline
-     class can still group shapes in Stage 2 (`decisions.md` 093).
+     per shape, so they have no meaning. The report keeps their geometry, so one of a parent
+     annotation class can still group shapes in Stage 2 (`decisions.md` 093).
    Returns `(gdf, calibration_points, GeojsonReport)`. The report is rendered by the app,
    not by the library.
    **The app shows it as one table**, not a stack of warnings: `GeojsonReport.summary()`
@@ -591,7 +595,7 @@ for that, so its picture goes directly below (`decisions.md` 071).
 `ui_samples.class_step` owns the classes picture, so every method gets it. Its *Classes to collect*
 multiselect is keyed (`ui_samples.CLASS_WIDGET`, also in `DERIVED_KEYS`) and seeded once from
 `selected_classes`, all classes the first time (`decisions.md` 096). When none of the remembered
-classes exist any more — outlines ticked, a new file — it starts from all of them again; an empty
+classes exist any more — parent annotations ticked, a new file — it starts from all of them again; an empty
 choice the user made stays empty.
 
 **Step 6 is one table, then the picture.** Every number the user sets is a property of one
@@ -922,7 +926,7 @@ offered are the real ones — a larger smallest circle, or a lower smoothing tol
 ## Several slides (round five)
 
 `slides.py`, used by every method. Shapes of the same class on different slides pool into the same samples
-(`decisions.md` 075). With outlines that class is the grouped one, `P1_gf`, so a patient pools
+(`decisions.md` 075). With parent annotations that class is the grouped one, `P1_gf`, so a patient pools
 across slides and patients stay apart (091).
 
 - `read_slides(sources)` reads paths or uploads, expanding a `.zip` in memory (skips non-GeoJSON
@@ -990,7 +994,8 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | `pixel_size_by_slide` | `{slide: µm/px}` typed scales; absent means the file's estimate, or none |
 | `workflow` | `'legacy'` \| `'cells'` \| `'regions'` — which collection method Stage 2 runs |
 | `selected_classes` | classes to collect; `None` means not chosen yet |
-| `outline_classes` | classes whose shapes are outlines (`decisions.md` 091); `None`/empty means none |
+| `parent_annotations_on` | the *Parent annotations* toggle (`decisions.md` 097); `None` until Stage 2 seeds it False |
+| `parent_classes` | classes whose shapes are parent annotations (`decisions.md` 091, 097); `None`/empty means none |
 | `budget_mode` | `'cells'` \| `'area'` — what the per-replicate amount counts (selected shapes) |
 | `budgets` | list of `ClassBudget` as dicts: class, replicates, per-replicate amount |
 | `minimum_area_um2` | per-class minimum collectable area in µm²; drives the pre-measurement filter |
@@ -1222,8 +1227,8 @@ golden gate for a fast loop. CI runs ruff, the suite and the harness on every pu
 - **No environment setup needed**: `conftest.py` forces `MPLBACKEND=Agg` before anything imports
   pyplot, because py-lmd's `Collection.plot` calls `plt.show()` and hangs under a GUI backend.
   It also silences loguru so assertions are not buried in log lines.
-- **`OUTLINES_FILE`**, `demo_Qupath_project/outlines_two_patients.geojson`, is in-silico
-  (`tools/make_outlines_demo.py`, seeded): two patients outlined `P1`/`P2`, three each of
+- **`PARENTS_FILE`**, `demo_Qupath_project/parent_annotations_two_patients.geojson`, is in-silico
+  (`tools/make_parent_annotations_demo.py`, seeded): two patients, parent annotations `P1`/`P2`, three each of
   `Gland`, `Stroma`, `Vessel` inside, one `Gland` between them. README vignette 6 draws it and
   `test_demo_file_groups_as_the_readme_says` keeps the README's numbers true.
 - **Only committed files and generated fixtures.** The real 83.7 MB export is deliberately not a
