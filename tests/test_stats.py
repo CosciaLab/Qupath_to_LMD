@@ -125,7 +125,11 @@ def test_reference_pixel_sizes_show_the_spread_rather_than_one_number(cells_gdf)
 
 
 def test_empty_frame_gives_an_empty_table(cells_gdf):
-    assert stats.class_statistics(cells_gdf.iloc[:0], pixel_size_um=1.0).empty
+    table = stats.class_statistics(cells_gdf.iloc[:0], pixel_size_um=1.0)
+    assert table.empty
+    assert {"shapes", "area_total_um2"} <= set(table.columns), (
+        "A slide emptied by outlines has no columns, and the class table across slides crashes on it."
+    )
 
 
 def test_a_negative_scale_is_rejected(cells_gdf):

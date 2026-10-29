@@ -8,18 +8,21 @@ Also holds what more than one method needs: the class table across slides, and t
 strategy control.
 """
 
+import dataclasses
+
 import pandas
 import streamlit as st
 from loguru import logger
 
-from qupath_to_lmd import plot, qc, slides, stats, ui_shared
+from qupath_to_lmd import outlines, plot, qc, slides, stats, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, SampleSet
 from qupath_to_lmd.ui_slides import SlidesContext, resolve_pixel_size
 
 POOLING_NOTE = (
     "Shapes of the same class from different slides are collected into the same well. Use this "
     "when your slides are sections of the same sample, classified with the same classes. To keep "
-    "slides apart, give their classes different names in QuPath (e.g. `P1_Tumor`, `P2_Tumor`)."
+    "slides apart, give their classes different names in QuPath (e.g. `P1_Tumor`, `P2_Tumor`), or "
+    "draw an outline around each patient and tick its class below."
 )
 
 
@@ -135,10 +138,16 @@ def class_step(context: SlidesContext) -> list[str]:
             tabs = st.tabs(context.names)
             for tab, slide in zip(tabs, context.slides, strict=True):
                 with tab:
-                    _draw_input(slide, context.calibration[slide.name][1], selected, palette, context.fingerprint(slide.name))
+                    _draw_input(
+                        slide, context.calibration[slide.name][1], selected, palette,
+                        context.fingerprint(slide.name), context.outlines.get(slide.name),
+                    )
         else:
             slide = context.slides[0]
-            _draw_input(slide, context.calibration[slide.name][1], selected, palette, context.fingerprint(slide.name))
+            _draw_input(
+                slide, context.calibration[slide.name][1], selected, palette,
+                context.fingerprint(slide.name), context.outlines.get(slide.name),
+            )
     return selected
 
 
@@ -219,16 +228,23 @@ def _name_partial_classes(per_slide: dict[str, pandas.DataFrame], selected: list
         )
 
 
-def _draw_input(slide: slides.Slide, calibration_array, selected: list[str], palette: dict, fingerprint: tuple) -> None:
-    """Everything on a slide, coloured where kept and grey where left out."""
+def _draw_input(
+    slide: slides.Slide, calibration_array, selected: list[str], palette: dict, fingerprint: tuple,
+    report: outlines.OutlineReport | None = None,
+) -> None:
+    """Everything on a slide, coloured where kept and grey where left out, with any outlines."""
     gdf = slide.gdf
+    drawn_outlines = report.outlines if report else None
+    left_out = report.left_out if report else None
+    outline_key = (sorted(report.outlines["label"]), len(report.left_out)) if report else None
     with st.spinner("Drawing shapes..."):
         ui_shared.show_picture(
             lambda: plot.plot_shapes(
                 gdf, included=selected, calibration_array=calibration_array,
                 title=f"{len(gdf):,} shapes on {slide.name}", colors=palette,
+                outlines=drawn_outlines, left_out=left_out,
             ),
-            ui_shared.picture_key("classes", fingerprint, selected, calibration_array, palette),
+            ui_shared.picture_key("classes", fingerprint, selected, calibration_array, palette, outline_key),
         )
     if len(gdf) > plot.SHAPE_LIMIT:
         st.caption(
@@ -238,6 +254,10 @@ def _draw_input(slide: slides.Slide, calibration_array, selected: list[str], pal
     st.caption(
         "Greyed-out shapes are the classes you left out. Dashed triangle and crosses are the "
         "calibration points; shapes far outside it are the ones at risk of distortion."
+        + (
+            " Outlines are drawn as dark borders with their class; grey shapes outside them will "
+            "not be collected." if report else ""
+        )
     )
 
 
@@ -278,10 +298,117 @@ def strategy_control(context: SlidesContext, key: str) -> tuple[slides.SlideStra
     return strategy, order
 
 
-def render(context: SlidesContext) -> SampleSet | None:
-    """Stage 2. Returns what the chosen method decided, or None while it cannot decide yet."""
+OUTLINE_WIDGET = "outline_classes_choice"
+
+
+def outline_step(context: SlidesContext) -> SlidesContext:
+    """Optionally name every shape after the outline it sits in, before any method sees it.
+
+    Returns `context` itself when no outline class is ticked, so nothing downstream can change;
+    otherwise a copy whose frames hold `P1_gf` classes and whose `outlines` say what happened.
+    """
+    options = sorted(
+        set().union(*(set(frame[CLASS_NAME].dropna()) for frame in context.frames.values()))
+        | {
+            name
+            for slide in context.slides
+            if slide.report.multipolygons is not None
+            for name in slide.report.multipolygons[CLASS_NAME].dropna()
+        }
+    )
+    # Keyed and seeded once: a `default` recomputed from state on every run changes the widget's
+    # identity after each click, and Streamlit then throws the next click away. Seeded from
+    # `outline_classes` when absent (another page clears widget state) and trimmed to what this
+    # upload holds, since a stale value would make the widget raise.
+    remembered = st.session_state.get(OUTLINE_WIDGET)
+    if remembered is None:
+        remembered = st.session_state.get("outline_classes") or []
+    st.session_state[OUTLINE_WIDGET] = [name for name in remembered if name in options]
+    chosen = st.multiselect(
+        "Classes that outline a group of shapes",
+        options=options,
+        key=OUTLINE_WIDGET,
+        help=(
+            "Optional. Shapes of these classes are never cut. Every other shape takes the name of "
+            "the outline it sits in — gf inside a P1 outline becomes P1_gf — so samples keep "
+            "patients, or any other group, apart, also across slides."
+        ),
+    )
+    if chosen != (st.session_state.get("outline_classes") or []):
+        st.session_state.outline_classes = chosen
+        logger.info(f"Outline classes: {chosen}")
+    if not chosen:
+        return context
+
+    # Not cached: grouping a million cells takes about a second, while a cached copy is ~300 MB
+    # per tick set and costs half that again to unpickle on every rerun.
+    classes = sorted(chosen)
+    results = {
+        slide.name: outlines.group_by_outlines(slide.gdf, classes, slide.report.multipolygons)
+        for slide in context.slides
+    }
+    reports = {name: report for name, (_grouped_frame, report) in results.items()}
+    grouped_slides = [dataclasses.replace(slide, gdf=results[slide.name][0]) for slide in context.slides]
+    # A slide the outlines left empty goes no further — every method would otherwise have to cope
+    # with a slide holding nothing, and Regions cannot — and its own warning says why. When every
+    # slide is empty they all stay, so the page can still show what was left out.
+    kept = [slide for slide in grouped_slides if not slide.gdf.empty] or grouped_slides
+    grouped = dataclasses.replace(
+        context, slides=kept, outlines={slide.name: reports[slide.name] for slide in kept},
+    )
+    _report_outlines(grouped, reports)
+    return grouped
+
+
+def _report_outlines(context: SlidesContext, reports: dict[str, outlines.OutlineReport]) -> None:
+    """What grouping did, before anything is collected: counts, leftovers and anything odd."""
+    n_classes = len(set().union(*(set(frame[CLASS_NAME]) for frame in context.frames.values())))
+    st.success(
+        f"{sum(r.n_outlines for r in reports.values())} outlines grouped "
+        f"{sum(r.n_grouped for r in reports.values()):,} shapes into {n_classes} classes."
+    )
+    table = outlines.left_out_table(reports)
+    if not table.empty:
+        n = int(table[[outlines.NO_OUTLINE, outlines.SEVERAL_OUTLINES]].to_numpy().sum())
+        st.warning(
+            f"{n:,} shapes will not be collected: they sit in no outline, or inside outlines of two "
+            "different classes at once. Extend or redraw the outline in QuPath, or remove the "
+            "overlap, and export again."
+        )
+        ui_shared.show_amounts(table if len(reports) > 1 else table.drop(columns=["slide"]), hide_index=True)
+    for slide, report in reports.items():
+        if report.n_outlines == 0:
+            st.warning(f"No outline on {slide}: none of its shapes can be collected.")
+        for label, count in report.repeated_outlines.items():
+            st.info(f"{count} separate {label} outlines on {slide}: shapes in all of them go to {label}_….")
+        for label, count in report.empty_outlines.items():
+            st.info(f"{count} {label} outline(s) on {slide} hold no shapes.")
+    for name, pairs in outlines.colliding_names(reports).items():
+        st.warning(
+            f"{name} is made by both " + " and ".join(f"{c} inside {o}" for o, c in pairs)
+            + ": they would share a well. Rename one class in QuPath."
+        )
+    n_merged = sum(r.n_multipolygon_outlines for r in reports.values())
+    if n_merged:
+        st.caption(
+            f"{n_merged} outline(s) made of several pieces are used here although step 1 listed them "
+            "as ignored: they cannot be cut, but they can hold shapes."
+        )
+
+
+def render(context: SlidesContext) -> tuple[SlidesContext, SampleSet | None]:
+    """Stage 2. Returns the context later stages see, and what the chosen method decided.
+
+    The context is grouped by outlines when any are ticked, so the plate and cut stages see the
+    same classes. The sample set is None while the method cannot decide yet.
+    """
     st.markdown("## 2 · Samples")
     if context.several:
         st.info(POOLING_NOTE)
+    context = outline_step(context)
     workflow = method_step(context)
-    return methods()[workflow].render(context)
+    sample_set = methods()[workflow].render(context)
+    if sample_set is not None and context.outlines:
+        recorded = outlines.provenance(st.session_state.outline_classes, context.outlines)
+        sample_set = dataclasses.replace(sample_set, params={**sample_set.params, "outlines": recorded})
+    return context, sample_set

@@ -49,6 +49,14 @@ the seam the two workflows share:
 | annotations, with a class exploded | one shape |
 | cell segmentation | one class and replicate, e.g. `Tumor_r2` |
 | cellular neighbourhoods | one class and replicate, e.g. `Tumor_r2` |
+| any of the above, with outlines | the outline's class joined to the class, e.g. `P1_Tumor_r2` |
+
+**outline** — a shape whose class names a group of other shapes: a patient, a core, a region of
+the slide. An outline is **never cut**. Every shape inside one takes the outline's class as a
+prefix, so `Gland` inside a `P1` outline becomes `P1_Gland`, and two patients on one image never
+share a well. Outlines are opt-in: the user ticks which classes are outlines at the top of
+Samples. A shape inside no outline, or inside outlines of two different classes, is left out
+and counted on screen.
 
 **region** — one contiguous area of tissue belonging to a single class, built by giving each
 cell the space closest to it and merging touching cells of the same class. A region is a
@@ -73,7 +81,8 @@ repeats rather than samples of different regions.
 
 **sample** — what one well receives: one group as the experiment sees it, e.g. `Tumor_r2`.
 With several slides a sample is filled from all of them — shapes of the same class are pooled by
-class name, which assumes the slides are the same biological sample. *Group* stays the word in
+class name, which assumes the slides are the same biological sample. With outlines that class is
+the grouped one, `P1_Tumor`, so a patient pools across slides and patients stay apart. *Group* stays the word in
 code; *sample* is the word in the interface and in the samples-and-wells scheme.
 
 **collector** — what the LMD collects into: a plate, a tube holder or a strip holder. Leica's own
