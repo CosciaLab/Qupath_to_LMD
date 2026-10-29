@@ -31,7 +31,7 @@ from qupath_to_lmd import (
     ui_summary,
 )
 from qupath_to_lmd.model import CLASS_NAME
-from tests.conftest import MULTICLASS_FILE
+from tests.conftest import ANNOTATIONS_FILE, MULTICLASS_FILE
 
 
 class Stopped(Exception):
@@ -838,3 +838,77 @@ def test_the_summary_forgets_a_stage_that_will_report_again():
     )
     assert "plates" not in summary.figures, "The sidebar headline would still count plates."
 
+
+
+# Outlines (`decisions.md` 091): the step at the top of Stage 2 that names shapes after the outline
+# they sit in. What it must never do is stop the app or let leftovers pass unmentioned.
+
+def _outlined_slide(fake_streamlit, tmp_path, stem, squares):
+    """A slide read from a file: three calibration points plus `(class, x, y, size)` squares."""
+    features = [
+        {"type": "Feature", "geometry": {"type": "Point", "coordinates": xy},
+         "properties": {"objectType": "annotation", "name": name}}
+        for name, xy in (("A", [0, 0]), ("B", [1000, 0]), ("C", [0, 1000]))
+    ]
+    for class_name, x, y, size in squares:
+        ring = [[x, y], [x + size, y], [x + size, y + size], [x, y + size], [x, y]]
+        features.append({
+            "type": "Feature", "geometry": {"type": "Polygon", "coordinates": [ring]},
+            "properties": {"objectType": "annotation", "classification": {"name": class_name, "color": [255, 0, 0]}},
+        })
+    path = tmp_path / f"{stem}.geojson"
+    path.write_text(json.dumps({"type": "FeatureCollection", "features": features}))
+    (slide,) = slides.read_slides([str(path)])
+    fake_streamlit.state.update(pixel_size_by_slide={})
+    return slide
+
+
+def _tick(monkeypatch, chosen):
+    monkeypatch.setattr(streamlit, "multiselect", lambda label, options, default=None, **k: list(chosen))
+
+
+def test_no_outline_classes_leaves_the_context_alone(fake_streamlit, monkeypatch):
+    context = _context(_load(fake_streamlit, ANNOTATIONS_FILE))
+    _tick(monkeypatch, [])
+    assert ui_samples.outline_step(context) is context, (
+        "With nothing ticked Stage 2 got a different context, so the frozen whole-shapes output could change."
+    )
+
+
+def test_grouped_context_carries_grouped_classes(fake_streamlit, monkeypatch, tmp_path):
+    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
+    _tick(monkeypatch, ["P1"])
+    grouped = ui_samples.outline_step(_context(slide))
+    assert set(grouped.frames["S1"][CLASS_NAME]) == {"P1_gf"}, (
+        "The collection methods still see plain classes, so patients would pool into one well."
+    )
+    assert set(grouped.outlines) == {"S1"}, "The picture and provenance have no outline report for the slide."
+
+
+def test_left_out_shapes_warn_and_do_not_stop(fake_streamlit, monkeypatch, tmp_path):
+    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10), ("gf", 500, 500, 10)])
+    _tick(monkeypatch, ["P1"])
+    ui_samples.outline_step(_context(slide))
+    assert "will not be collected" in fake_streamlit.shown("warnings"), (
+        "A shape outside every outline was dropped without a word on screen."
+    )
+    assert not fake_streamlit.errors, "Left-out shapes are a warning, not an error: the rest can still be cut."
+
+
+def test_slide_without_outlines_is_named(fake_streamlit, monkeypatch, tmp_path):
+    with_outline = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
+    without = _outlined_slide(fake_streamlit, tmp_path, "S2", [("gf", 10, 10, 10)])
+    _tick(monkeypatch, ["P1"])
+    ui_samples.outline_step(_context(with_outline, without))
+    assert "No outline on S2" in fake_streamlit.shown("warnings"), (
+        "A slide with no outline loses all its shapes, and the user is not told which slide it is."
+    )
+
+
+def test_empty_outline_is_mentioned(fake_streamlit, monkeypatch, tmp_path):
+    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("P2", 200, 0, 100), ("gf", 10, 10, 10)])
+    _tick(monkeypatch, ["P1", "P2"])
+    ui_samples.outline_step(_context(slide))
+    assert "hold no shapes" in fake_streamlit.shown("infos"), (
+        "An outline holding nothing went unmentioned; a misplaced outline would show only as a missing sample."
+    )

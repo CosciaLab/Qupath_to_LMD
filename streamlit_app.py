@@ -23,6 +23,7 @@ DEFAULTS = {
     # Stage 2, Samples
     "workflow": "legacy",
     "selected_classes": None,
+    "outline_classes": None,
     "budget_mode": None,
     "budgets": None,
     "minimum_area_um2": None,
@@ -91,7 +92,8 @@ def collect() -> None:
     if context is None:
         return
     summary.slides(context)
-    sample_set = ui_samples.render(context)
+    # Stage 2 may group shapes by outline; the later stages must see the grouped classes too.
+    context, sample_set = ui_samples.render(context)
     st.divider()
     if sample_set is None:
         return
