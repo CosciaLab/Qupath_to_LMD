@@ -2074,3 +2074,26 @@ Jose's notes after clicking through 078.
   aware dilation that stops at the next cell (py-lmd's note says that belongs in segmentation) —
   the app does not have the space between cells to share out, only outlines; expanding lines.
 - **Golden:** new case `cells_expanded` (3 px). The other 27 artefacts are unchanged.
+
+## 089 — QuPath classes from any number of categoricals, replicates per combination
+**Date:** 2026-10-29 · **Status:** active · **supersedes the two-list generator of Extra #1**
+- **The problem:** the classes generator took exactly two categoricals and one replicate count
+  for every combination. Designs with a third factor (time point, patient), or with one only,
+  had to be edited by hand, and so did unbalanced designs where a combination does not exist.
+- **Decision:** one row per categorical with one empty row always waiting at the end, so the page
+  shows only what is in use and there is no "add" button to find. Replicates are one number
+  for everything, plus an optional table, collapsed by default, with one row per combination:
+  a different count there overrides the default, 0 leaves the combination out. Only the
+  exceptions are stored, so changing the default moves every combination not edited by hand.
+  Names stay `value_value_replicate` in row order (Jose: keep the order typed, keep `_1…_n`), so
+  two categoricals give the file they gave before.
+- **Warn, not block:** a value typed twice in one categorical is merged and said; two
+  combinations that join to the same name (`a_b`+`c`, `a`+`b_c`) are said, since QuPath would
+  hold one class for both; more than 500 classes is said, as a long list to pick from.
+- **The table keeps its edits** when a value is added or the default changes: `st.data_editor`
+  holds edits relative to the table it was given, so the table is frozen per combinations and
+  default and a new one is seeded with every exception so far.
+- **Rejected:** dragging rows to reorder the categoricals (Streamlit has no good drag for rows,
+  and deleting and retyping a row does it); a class-name preview column in the table (it would
+  go stale under the editor's frozen input, and the full list is shown beneath); a separator or
+  colour choice, which nobody has asked for.
