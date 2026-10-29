@@ -2174,3 +2174,13 @@ Jose's notes after clicking through 078.
 - An applied amount remembers its unit, so 150 shapes per replicate never becomes 150 µm² when
   Selected shapes switches from count to area. Applied values are cleared on a new upload, like
   every other derived key.
+
+## 096 — *Classes to collect* is keyed and seeded once, like the outline box
+**Date:** 2026-10-29 · **Status:** active · **completes 094**
+- 094 left `ui_samples.class_step` with the pattern it fixed for the outline box: `default`
+  recomputed from `selected_classes` every run changed the widget's identity after each click,
+  so Streamlit dropped the next one. Unticking Gland then P1 kept P1 — a class the user dropped
+  would have been cut. The multiselect now has a key, seeded once.
+- When none of the remembered classes are offered any more, it starts from all classes, as the
+  old `remembered or all_classes` did when outlines renamed every class. Unlike before, a user who
+  unticks every class keeps an empty choice rather than having all of them ticked again.

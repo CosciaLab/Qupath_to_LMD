@@ -990,3 +990,9 @@ def test_a_new_upload_clears_the_every_class_values(fake_streamlit):
     assert {"every_class_select", "every_class_regions"} <= set(ui_slides.DERIVED_KEYS), (
         "Replicates applied to every class would carry over from the previous experiment into a new upload."
     )
+
+
+def test_a_new_upload_clears_the_classes_to_collect_ticks():
+    assert ui_samples.CLASS_WIDGET in ui_slides.DERIVED_KEYS, (
+        "Classes unticked for one experiment would stay unticked in the next upload with the same class names."
+    )

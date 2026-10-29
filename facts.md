@@ -588,7 +588,11 @@ it is not, which is the only place the app shows a user what they actually uploa
 step keeps `st.columns([1, 2])`, numbers beside the picture; the what-to-collect table is too wide
 for that, so its picture goes directly below (`decisions.md` 071).
 
-`ui_samples.class_step` owns the classes picture, so every method gets it.
+`ui_samples.class_step` owns the classes picture, so every method gets it. Its *Classes to collect*
+multiselect is keyed (`ui_samples.CLASS_WIDGET`, also in `DERIVED_KEYS`) and seeded once from
+`selected_classes`, all classes the first time (`decisions.md` 096). When none of the remembered
+classes exist any more — outlines ticked, a new file — it starts from all of them again; an empty
+choice the user made stays empty.
 
 **Step 6 is one table, then the picture.** Every number the user sets is a property of one
 class, so they live in one `st.data_editor` row per class — replicates, µm² per replicate,

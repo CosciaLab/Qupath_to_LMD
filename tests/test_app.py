@@ -360,3 +360,21 @@ def test_replicates_and_area_set_once_reach_every_region_class(monkeypatch):
     app = _run(monkeypatch, ["TD_01_verysmall_mIF.geojson"], "regions", [scale, circles, _apply_to_every_class(2, 10_000.0)])
     requests = {item["class_name"]: (item["replicates"], item["area_per_replicate_um2"]) for item in app.session_state.region_budgets}
     assert set(requests.values()) == {(2, 10_000.0)}, f"Not every class got the values applied to all: {requests}"
+
+
+def test_classes_to_collect_ticked_one_at_a_time_are_all_kept(monkeypatch):
+    """Untick one class, then another: both clicks must hold, or a class is cut that was dropped."""
+    app = _start(monkeypatch, ["outlines_two_patients.geojson"])
+    _confirm_calibration(app)
+    (control,) = [m for m in app.multiselect if m.label == "Classes to collect"]
+    every = list(control.value)
+    assert len(every) > 2, "The test needs a class left over after unticking two."
+    for chosen in (every[1:], every[2:]):
+        (control,) = [m for m in app.multiselect if m.label == "Classes to collect"]
+        control.set_value(chosen).run()
+    assert not app.exception, f"The app raised: {[e.value for e in app.exception]}"
+    assert app.session_state.selected_classes == every[2:], (
+        f"After unticking {every[0]} then {every[1]} the classes to collect are "
+        f"{app.session_state.selected_classes}: a click was silently undone, and a class the user "
+        "dropped would be cut."
+    )

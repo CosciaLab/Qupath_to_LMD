@@ -116,11 +116,19 @@ def class_step(context: SlidesContext) -> list[str]:
     _similar_names(per_slide, several=context.several)
 
     all_classes = sorted(set().union(*(set(t.index) for t in per_slide.values())))
-    remembered = [name for name in (st.session_state.selected_classes or []) if name in all_classes]
+    # Keyed and seeded once, as the outline box (`decisions.md` 094): a `default` recomputed each
+    # run changed the widget's identity after every click, and Streamlit threw the next one away.
+    remembered = st.session_state.get(CLASS_WIDGET)
+    if remembered is None:
+        remembered = st.session_state.get("selected_classes") or all_classes
+    kept = [name for name in remembered if name in all_classes]
+    # None kept means the classes themselves changed — outlines ticked or a new file — so start
+    # from all of them; an empty choice the user made stays empty.
+    st.session_state[CLASS_WIDGET] = kept if kept or not remembered else all_classes
     selected = st.multiselect(
         "Classes to collect",
         options=all_classes,
-        default=remembered or all_classes,
+        key=CLASS_WIDGET,
         help="Everything after this step works only on the classes you keep here.",
     )
     if selected != st.session_state.selected_classes:
@@ -299,6 +307,7 @@ def strategy_control(context: SlidesContext, key: str) -> tuple[slides.SlideStra
 
 
 OUTLINE_WIDGET = "outline_classes_choice"
+CLASS_WIDGET = "selected_classes_choice"
 
 
 def outline_step(context: SlidesContext) -> SlidesContext:
