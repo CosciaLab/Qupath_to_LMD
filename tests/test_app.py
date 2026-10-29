@@ -151,6 +151,40 @@ def test_extras_are_a_page_of_their_own_not_the_sidebar(monkeypatch):
     assert any("categoricals" in block.value for block in app.markdown), "The Extras page shows no classes generator."
 
 
+def test_extras_take_as_many_categoricals_as_typed_with_one_empty_row_waiting():
+    app = AppTest.from_file(str(REPO / "streamlit_app.py"), default_timeout=60)
+    app.run()
+    app.switch_page("app_pages/extras.py").run()
+    assert [box.key for box in app.text_input if box.key.startswith("extras_values_")] == ["extras_values_0"], (
+        "The page does not open on a single empty categorical."
+    )
+
+    app.text_input(key="extras_values_0").set_value("tumour, stroma").run()
+    app.text_input(key="extras_values_1").set_value("control, drug, control").run()
+    app.text_input(key="extras_values_2").set_value("day1, day2, day3").run()
+    assert not app.exception, f"The Extras page raised: {[e.value for e in app.exception]}"
+    assert "extras_values_3" in [box.key for box in app.text_input], (
+        "Filling the third categorical did not offer an empty fourth, so users are capped at three."
+    )
+    assert any("2 × 2 × 3 = 12 combinations × 2 replicates = **24 classes**" in block.value for block in app.markdown), (
+        "The class count shown before download does not match three categoricals with a repeated value merged."
+    )
+    assert any("`control` more than once" in warning.value for warning in app.warning), (
+        "A value typed twice was merged without telling the user."
+    )
+    assert app.get("download_button"), "There is no download for the generated classes."
+
+    app.button(key="extras_remove_1").click().run()
+    assert any("2 × 3 = 6 combinations" in block.value for block in app.markdown), (
+        "Removing the middle categorical did not take its values out of the class names."
+    )
+    app.switch_page("streamlit_app.py").run()
+    app.switch_page("app_pages/extras.py").run()
+    assert any("2 × 3 = 6 combinations" in block.value for block in app.markdown), (
+        "Going to Collect and back emptied the classes generator; the user would retype every categorical."
+    )
+
+
 def test_a_look_at_the_tube_holder_does_not_reset_the_plate_margin(monkeypatch):
     """Margin and spacing are hidden for holders, and Streamlit forgets a hidden widget's value."""
     app = _start(monkeypatch, ["TD_01_verysmall_mIF.geojson"])

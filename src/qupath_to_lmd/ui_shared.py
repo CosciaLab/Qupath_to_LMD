@@ -399,39 +399,168 @@ def report_path(result, pixel_size_um: float | None, label: str | None = None) -
     st.write(line)
 
 
+EXTRAS_REPLICATES_COLUMN = "Replicates"
+
+
 def extras_step() -> None:
-    """Extra #1: generate QuPath classes from two categoricals. Its own page, Extras."""
+    """Extra #1: generate QuPath classes from categoricals. Its own page, Extras."""
     st.markdown("""
                 ## Create QuPath classes from categoricals
-                Creating many QuPath classes can be tedious, and is very error prone, especially for large projects.
-                This tool takes in two lists of categoricals, and a number for replicates, and create a class for every permutation.
-
-                Afterwards you must:
-                1. Create a new QuPath project
-                2. Close QuPath window
-                3. Delete `<QuPath project>/classifiers/annotations/classes.json`
-                4. Replace with newly created file
-                5. Rename it as `classes.json`
-                6. Reopen QuPath with project, and you should see classes
+                Creating many QuPath classes by hand is tedious and error prone. Here a class is made for every
+                combination of your categoricals, once per replicate.
+                1. Type one categorical per row, its values separated by commas: cell types in one row, treatments
+                   in the next, and so on. A new empty row appears as soon as you fill the last one.
+                2. Set how many replicates each combination needs. To give one combination more, fewer or none,
+                   open the table under the replicates.
+                3. Download `classes.json` and add it to your QuPath project, as described under the download button.
                 """)
+    st.image(image="./assets/sample_names_example.png", width=360)
 
-    input1 = st.text_area("Enter first categorical (comma-separated)", placeholder="example: celltype_A, celltype_B")
-    input2 = st.text_area("Enter second categorical (comma-separated)", placeholder="example: control, drug_treated")
-    replicates = st.number_input("Enter number of replicates", min_value=1, step=1, value=2)
-    list1 = [i.strip() for i in input1.split(",") if i.strip()]
-    list2 = [i.strip() for i in input2.split(",") if i.strip()]
+    categoricals = _categorical_rows()
+    st.session_state.extras_default = int(st.number_input(
+        "Replicates per combination", min_value=1, step=1, value=st.session_state.extras_default,
+        key="extras_default_input",
+    ))
+    if categoricals:
+        _classes_from(categoricals, st.session_state.extras_default)
 
-    if st.button("Create class names for QuPath"):
-        if not list1 or not list2:
-            st.warning("Please enter at least one value in each categorical.")
-        else:
-            names = extras.generate_combinations(list1, list2, int(replicates))
-            st.write(f"{len(names)} class names created.")
-            st.download_button(
-                "Download classes.json for QuPath",
-                data=json.dumps(extras.build_classes_json(names), indent=2),
-                file_name="classes.json",
-                mime="application/json",
+
+def _categorical_rows() -> list[tuple[str, list[str]]]:
+    """One row per categorical, always one empty row waiting at the end. Returns (label, values)."""
+    rows = st.session_state.extras_rows
+    # Read what was just typed before deciding which rows to show, so the empty row appears on the
+    # same rerun that filled the last one.
+    for row in rows:
+        row["name"] = st.session_state.get(f"extras_name_{row['id']}", row["name"])
+        row["values"] = st.session_state.get(f"extras_values_{row['id']}", row["values"])
+    rows[:] = [row for row in rows[:-1] if row["name"].strip() or row["values"].strip()] + rows[-1:]
+    if not rows or rows[-1]["values"].strip():
+        rows.append({"id": max((row["id"] for row in rows), default=-1) + 1, "name": "", "values": ""})
+
+    categoricals = []
+    labels = {EXTRAS_REPLICATES_COLUMN}
+    for position, row in enumerate(rows, start=1):
+        name_column, values_column, remove_column = st.columns([2, 5, 1], vertical_alignment="bottom")
+        row["name"] = name_column.text_input(
+            f"Categorical {position}", value=row["name"], key=f"extras_name_{row['id']}",
+            placeholder="name, optional — e.g. cell type",
+        )
+        row["values"] = values_column.text_input(
+            "Values, comma-separated", value=row["values"], key=f"extras_values_{row['id']}",
+            placeholder="e.g. tumour, stroma, immune" if position == 1 else "another categorical, e.g. control, drug",
+        )
+        if row is not rows[-1]:
+            remove_column.button(
+                "✕", key=f"extras_remove_{row['id']}", on_click=_remove_row, args=(row["id"],),
+                help="Remove this categorical",
             )
+        values, repeated = extras.parse_values(row["values"])
+        if repeated:
+            st.warning(
+                f"Categorical {position} has {', '.join(f'`{v}`' for v in repeated)} more than once. "
+                "Each value is used once, so those classes are not made twice."
+            )
+        if values:
+            label = row["name"].strip() or f"Categorical {position}"
+            if label in labels:
+                label = f"{label} ({position})"
+            labels.add(label)
+            categoricals.append((label, values))
+    return categoricals
 
-    st.image(image="./assets/sample_names_example.png", caption="Example of class names for QuPath")
+
+def _remove_row(row_id: int) -> None:
+    st.session_state.extras_rows = [row for row in st.session_state.extras_rows if row["id"] != row_id]
+    for widget in ("name", "values"):
+        st.session_state.pop(f"extras_{widget}_{row_id}", None)
+
+
+def _classes_from(categoricals: list[tuple[str, list[str]]], default: int) -> None:
+    """The counts, the optional per-combination replicates, the names and the download."""
+    labels = [label for label, _ in categoricals]
+    combos = extras.combinations([values for _, values in categoricals])
+    replicates = _replicate_exceptions(labels, combos, default)
+    names = extras.class_names(combos, replicates, default)
+
+    line = (
+        f"{len(combos)} values" if len(categoricals) == 1
+        else f"{' × '.join(str(len(values)) for _, values in categoricals)} = {len(combos)} combinations"
+    )
+    replicate_word = "replicate" if default == 1 else "replicates"
+    if replicates:
+        left_out = sum(1 for count in replicates.values() if count == 0)
+        line += (
+            f", {default} {replicate_word} each except {len(replicates)} changed"
+            f"{f' ({left_out} left out)' if left_out else ''} = **{len(names)} classes**"
+        )
+    else:
+        line += f" × {default} {replicate_word} = **{len(names)} classes**"
+    st.markdown(line)
+
+    repeated = extras.repeated_names(names)
+    if repeated:
+        st.warning(
+            f"{len(repeated)} class name(s) come out the same from different combinations, "
+            f"e.g. `{repeated[0]}`. QuPath keeps one class per name, so those shapes could not be told "
+            "apart later. Rename a value so no two combinations join to the same text."
+        )
+    if len(names) > extras.MANY_CLASSES:
+        st.warning(
+            f"{len(names)} classes is a long list to pick from in QuPath. That works, but check the "
+            "categoricals and replicates are what you meant before importing."
+        )
+    if not names:
+        st.warning("Every combination is set to 0 replicates, so there are no classes to download.")
+        return
+
+    st.download_button(
+        "Download classes.json for QuPath",
+        data=json.dumps(extras.build_classes_json(names), indent=2),
+        file_name="classes.json",
+        mime="application/json",
+    )
+    st.markdown("""
+                **Add the classes to QuPath**
+                1. Create a new QuPath project, then close QuPath.
+                2. In the project folder, open `classifiers/annotations/` and delete `classes.json`.
+                3. Put the downloaded file there. If your browser saved it as `classes (1).json` or similar,
+                   rename it to `classes.json`.
+                4. Reopen the project in QuPath; the classes are listed in the *Annotations* tab.
+                """)
+    st.dataframe(pandas.DataFrame({"Class": names}), hide_index=True, height=250)
+
+
+def _replicate_exceptions(labels: list[str], combos: list[tuple[str, ...]], default: int) -> dict:
+    """Combinations whose replicate count differs from the default, edited in a collapsed table."""
+    exceptions = st.session_state.extras_replicates
+    # The editor keeps its edits relative to the table it was given, so that table must not change
+    # under it. A new one is started only when the combinations or the default change, seeded with
+    # every exception so far, so adding a value does not forget the counts already typed.
+    basis = hashlib.md5(repr((combos, default)).encode()).hexdigest()[:8]
+    if st.session_state.extras_editor is None or st.session_state.extras_editor[0] != basis:
+        st.session_state.extras_editor = (basis, dict(exceptions))
+    seed = st.session_state.extras_editor[1]
+
+    table = pandas.DataFrame(combos, columns=labels)
+    table[EXTRAS_REPLICATES_COLUMN] = [seed.get(combo, default) for combo in combos]
+    with st.expander("Different replicates for some combinations? (optional)"):
+        st.caption("Change a number to give that combination more or fewer replicates. 0 leaves it out.")
+        edited = st.data_editor(
+            table,
+            key=f"extras_editor_{basis}",
+            hide_index=True,
+            disabled=labels,
+            width="stretch",
+            column_config={
+                EXTRAS_REPLICATES_COLUMN: st.column_config.NumberColumn(
+                    EXTRAS_REPLICATES_COLUMN, min_value=0, step=1, format="%d",
+                ),
+            },
+        )
+    for combo, count in zip(combos, edited[EXTRAS_REPLICATES_COLUMN], strict=True):
+        count = default if pandas.isna(count) else int(count)
+        if count == default:
+            exceptions.pop(combo, None)
+        else:
+            exceptions[combo] = count
+    return {combo: exceptions[combo] for combo in combos if combo in exceptions}
