@@ -275,22 +275,53 @@ def test_shapes_are_not_expanded_unless_asked(monkeypatch):
     assert "expand" not in _contents(app)["provenance.json"].decode(), "An unexpanded collection records an expansion."
 
 
-def test_outlines_name_the_samples_and_reach_the_download(monkeypatch):
-    """Two patients on one image, kept apart by outlines (`decisions.md` 091), all the way to the zip."""
+def _parents_on(app: AppTest) -> None:
+    """Switch on parent annotations; their class picker appears only after this run."""
+    app.toggle(key="parent_annotations_on").set_value(True).run()
+
+
+def test_parent_annotations_are_off_until_switched_on(monkeypatch):
+    """Nine users in ten never need them: the classes must be collected as drawn, with no picker shown."""
+    app = _start(monkeypatch, ["parent_annotations_two_patients.geojson"])
+    _confirm_calibration(app)
+    assert app.toggle(key="parent_annotations_on").value is False, "Parent annotations start switched on."
+    assert not [m for m in app.multiselect if m.label == "Classes of the parent annotations"], (
+        "The parent annotation picker is shown although the feature is off."
+    )
+    assert "P1" in app.session_state.selected_classes, (
+        "With parent annotations off, the P1 class is not offered for collection as an ordinary class."
+    )
+
+
+def test_parents_name_the_samples_and_reach_the_download(monkeypatch):
+    """Two patients on one image, kept apart by parent annotations (`decisions.md` 091), all the way to the zip."""
     import json
 
-    def tick_outlines(app):
-        (control,) = [m for m in app.multiselect if m.label == "Classes that outline a group of shapes"]
+    def tick_parents(app):
+        _parents_on(app)
+        (control,) = [m for m in app.multiselect if m.label == "Classes of the parent annotations"]
         control.set_value(["P1", "P2"])
 
-    app = _run(monkeypatch, ["outlines_two_patients.geojson"], actions=[tick_outlines])
+    app = _run(monkeypatch, ["parent_annotations_two_patients.geojson"], actions=[tick_parents])
     assert any("will not be collected" in w.value for w in app.warning), (
         "The stray shape between the two patients was left out without a word on screen."
     )
+    # "Outline" was this feature's old name (`decisions.md` 097); on screen it now means only a
+    # shape's boundary, in the two cutting settings that move it.
+    boundary = ("Smoothing tolerance", "Expand shapes")
+    shown = [e.value for kind in ("markdown", "caption", "warning", "info", "success", "error") for e in getattr(app, kind)]
+    shown += [
+        f"{w.label} {getattr(w, 'help', '') or ''}"
+        for kind in ("multiselect", "toggle", "radio", "number_input", "checkbox", "button", "selectbox")
+        for w in getattr(app, kind)
+        if not str(w.label).startswith(boundary)
+    ]
+    stale = [text[:80] for text in shown if "outline" in text.lower()]
+    assert not stale, f"The page still calls parent annotations outlines, so users meet two names for one thing: {stale}"
     files = _contents(app)
     provenance = json.loads(files["provenance.json"])
-    assert provenance["parameters"]["outlines"]["classes"] == ["P1", "P2"], (
-        "provenance.json does not record that outlines decided the samples."
+    assert provenance["parameters"]["parent_annotations"]["classes"] == ["P1", "P2"], (
+        "provenance.json does not record that parent annotations decided the samples."
     )
     scheme = json.loads(files["samples_and_wells.json"])
     assert sorted(scheme) == ["P1_Gland", "P1_Stroma", "P1_Vessel", "P2_Gland", "P2_Stroma", "P2_Vessel"], (
@@ -299,29 +330,31 @@ def test_outlines_name_the_samples_and_reach_the_download(monkeypatch):
 
 
 @pytest.mark.parametrize("method", ["legacy", "cells", "regions"])
-def test_a_slide_without_outlines_is_warned_about_not_fatal(monkeypatch, method):
-    """Ticking outlines empties a slide that has none; the others must still reach a download."""
+def test_a_slide_without_parents_is_warned_about_not_fatal(monkeypatch, method):
+    """Ticking parent annotations empties a slide that has none; the others must still reach a download."""
 
-    def tick_outlines(app):
-        (control,) = [m for m in app.multiselect if m.label == "Classes that outline a group of shapes"]
+    def tick_parents(app):
+        _parents_on(app)
+        (control,) = [m for m in app.multiselect if m.label == "Classes of the parent annotations"]
         control.set_value(["P1", "P2"])
 
-    app = _run(monkeypatch, ["outlines_two_patients.geojson", "TD_01_verysmall_mIF.geojson"], method, [tick_outlines])
-    assert any("No outline on TD_01_verysmall_mIF" in w.value for w in app.warning), (
+    app = _run(monkeypatch, ["parent_annotations_two_patients.geojson", "TD_01_verysmall_mIF.geojson"], method, [tick_parents])
+    assert any("No parent annotation on TD_01_verysmall_mIF" in w.value for w in app.warning), (
         "The slide that lost every shape is not named, so the user cannot tell why it contributes nothing."
     )
 
 
-def test_outline_classes_ticked_one_at_a_time_are_all_kept(monkeypatch):
+def test_parent_classes_ticked_one_at_a_time_are_all_kept(monkeypatch):
     """A lab ticks 13 patients one click at a time; no click may be thrown away."""
-    app = _start(monkeypatch, ["outlines_two_patients.geojson"])
+    app = _start(monkeypatch, ["parent_annotations_two_patients.geojson"])
     _confirm_calibration(app)
+    _parents_on(app)
     for chosen in (["P1"], ["P1", "P2"]):
-        (control,) = [m for m in app.multiselect if m.label == "Classes that outline a group of shapes"]
+        (control,) = [m for m in app.multiselect if m.label == "Classes of the parent annotations"]
         control.set_value(chosen).run()
     assert not app.exception, f"The app raised: {[e.value for e in app.exception]}"
-    assert app.session_state.outline_classes == ["P1", "P2"], (
-        f"After ticking P1 then P2 the outline classes are {app.session_state.outline_classes}: "
+    assert app.session_state.parent_classes == ["P1", "P2"], (
+        f"After ticking P1 then P2 the parent annotation classes are {app.session_state.parent_classes}: "
         "a click was silently undone, and that patient's shapes would be left out."
     )
 
@@ -340,7 +373,7 @@ def _apply_to_every_class(replicates: int, amount: float | None):
 
 def test_replicates_and_amount_set_once_reach_every_selected_class(monkeypatch):
     """Thirteen patients by nineteen classes: one Apply instead of hundreds of table edits."""
-    app = _run(monkeypatch, ["outlines_two_patients.geojson"], "cells", [_apply_to_every_class(2, 40.0)])
+    app = _run(monkeypatch, ["parent_annotations_two_patients.geojson"], "cells", [_apply_to_every_class(2, 40.0)])
     budgets = {item["class_name"]: (item["replicates"], item["per_replicate"]) for item in app.session_state.budgets}
     assert set(budgets.values()) == {(2, 40.0)}, f"Not every class got the values applied to all: {budgets}"
     scheme = json.loads(_contents(app)["samples_and_wells.json"])
@@ -364,7 +397,7 @@ def test_replicates_and_area_set_once_reach_every_region_class(monkeypatch):
 
 def test_classes_to_collect_ticked_one_at_a_time_are_all_kept(monkeypatch):
     """Untick one class, then another: both clicks must hold, or a class is cut that was dropped."""
-    app = _start(monkeypatch, ["outlines_two_patients.geojson"])
+    app = _start(monkeypatch, ["parent_annotations_two_patients.geojson"])
     _confirm_calibration(app)
     (control,) = [m for m in app.multiselect if m.label == "Classes to collect"]
     every = list(control.value)

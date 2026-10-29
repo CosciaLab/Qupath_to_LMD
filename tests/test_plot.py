@@ -76,7 +76,7 @@ def _every_replicate():
     return list(plot.replicate_colors(list(range(1, len(plot.REPLICATE_PALETTE) + 1))).values())
 
 
-def test_an_outline_is_always_visible_against_every_fill():
+def test_an_parent_is_always_visible_against_every_fill():
     """A white or yellow ring on a pale fill would vanish; the dark edge behind it carries it.
 
     Every ring is drawn over a dark edge, so what has to hold is that the edge stands out from
@@ -176,7 +176,7 @@ def _contrast(first, second):
     return (high + 0.05) / (low + 0.05)
 
 
-def test_fill_is_the_class_and_outline_is_the_replicate(two_regions, circles):
+def test_fill_is_the_class_and_parent_is_the_replicate(two_regions, circles):
     """The whole point of the picture: two variables, two channels.
 
     If both were on the fill, a user could not see which replicate a circle belongs to; if both
@@ -301,17 +301,17 @@ def test_the_expansion_picture_draws_the_shape_its_cut_and_its_neighbours():
     assert any("µm" in text.get_text() for text in figure.axes[0].texts), "No scale bar, so the reach cannot be judged."
 
 
-def test_outlines_are_labelled_and_leftovers_in_the_legend():
-    """Outlines decide whose tissue a shape is, so the picture must show them and what they missed."""
-    from qupath_to_lmd import outlines
+def test_parents_are_labelled_and_leftovers_in_the_legend():
+    """Parent annotations decide whose tissue a shape is, so the picture must show them and what they missed."""
+    from qupath_to_lmd import parent_annotations
 
     frame = geopandas.GeoDataFrame(
         {CLASS_NAME: ["P1", "gf", "gf"], "classification": [str({"name": n}) for n in ("P1", "gf", "gf")]},
         geometry=[box(0, 0, 100, 100), box(10, 10, 20, 20), box(500, 500, 510, 510)],
     )
-    grouped, report = outlines.group_by_outlines(frame, ["P1"])
-    figure = plot.plot_shapes(grouped, outlines=report.outlines, left_out=report.left_out)
+    grouped, report = parent_annotations.group_by_parents(frame, ["P1"])
+    figure = plot.plot_shapes(grouped, parents=report.parents, left_out=report.left_out)
     axes = figure.axes[0]
-    assert "P1" in {text.get_text() for text in axes.texts}, "The user cannot see which outline is which patient."
+    assert "P1" in {text.get_text() for text in axes.texts}, "The user cannot see which parent annotation is which patient."
     legend = " ".join(text.get_text() for text in figure.legends[0].get_texts())
     assert "left out (1)" in legend, "Shapes that will not be collected are invisible in the picture."

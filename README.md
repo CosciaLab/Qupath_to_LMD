@@ -33,13 +33,13 @@ Three ways to collect:
 
 <img src="vignettes/vignette5.svg" alt="Vignette5 Collect single cells" width="1000"/>
 
-### Vignette 6: Several patients on one image, kept apart by outlines
+### Vignette 6: Several patients on one image, kept apart by parent annotations
 
-<img src="vignettes/vignette6.svg" alt="Vignette6 Outlines keep patients apart" width="1000"/>
+<img src="vignettes/vignette6.svg" alt="Vignette6 Parent annotations keep patients apart" width="1000"/>
 
-Annotate with the same few classes for every patient, draw one outline around each patient's
-tissue, and the app names the samples for you: `Gland` inside the `P1` outline becomes
-`P1_Gland`. Try it with `demo_Qupath_project/outlines_two_patients.geojson` — see
+Annotate with the same few classes for every patient, draw one parent annotation around each
+patient's tissue, and the app names the samples for you: `Gland` inside the `P1` parent annotation
+becomes `P1_Gland`. Try it with `demo_Qupath_project/parent_annotations_two_patients.geojson` — see
 [Several patients or regions on one image](#several-patients-or-regions-on-one-image).
 
 ## Streamlit webapp summary
@@ -85,25 +85,27 @@ experiment in view (e.g. *2 slides → 27 samples → 1 plate*):
 
 ### Several patients or regions on one image
 
-When one image holds tissue from several patients (or cores, or regions you want kept apart),
-you do not need a QuPath class for every patient × category combination:
+Most experiments have one sample per image and can skip this. When one image holds tissue from
+several patients (or cores, or regions you want kept apart), you do not need a QuPath class for
+every patient × category combination. Use **parent annotations** instead:
 
-1. Make one class per patient (`P1`, `P2`, …) and draw **one outline** around each patient's
-   tissue with it. A patient in two pieces can have two outlines of the same class.
+1. Make one class per patient (`P1`, `P2`, …) and draw **one annotation around each patient's
+   tissue** with it. This is the patient's parent annotation. A patient in two pieces can have two
+   parent annotations of the same class.
 2. Annotate the structures with your categories only (`Gland`, `Stroma`, …), the same for every
    patient.
-3. In the app, at the top of **Samples**, tick `P1`, `P2`, … under *Classes that outline a group of
-   shapes*.
+3. In the app, at the top of **Samples**, switch on *Parent annotations* and tick `P1`, `P2`, …
+   under *Classes of the parent annotations*.
 
-Every shape is then named after the outline it sits in — `Gland` inside `P1` becomes `P1_Gland` —
-and outlines themselves are never cut. With several slides, `P1_Gland` from every slide goes into
-the same well, so a patient spread over several images pools together and patients never mix.
-Replicates are set later, in the collection method, as usual.
+Every annotation inside a parent then takes its name — `Gland` inside `P1` becomes `P1_Gland` —
+and parent annotations themselves are never cut. With several slides, `P1_Gland` from every slide
+goes into the same well, so a patient spread over several images pools together and patients never
+mix. Replicates are set later, in the collection method, as usual.
 
-A shape that sits in no outline, or inside outlines of two different patients, is **not
-collected**: the app says how many, per class, and draws them grey so you can fix the outline in
-QuPath. The demo file `demo_Qupath_project/outlines_two_patients.geojson` has two patients, three
-classes each, and one stray shape between them to show that warning.
+A shape that sits in no parent annotation, or inside parent annotations of two different patients,
+is **not collected**: the app says how many, per class, and draws them grey so you can fix the
+parent annotation in QuPath. The demo file `demo_Qupath_project/parent_annotations_two_patients.geojson`
+has two patients, three classes each, and one stray shape between them to show that warning.
 
 ## How to collect
 
