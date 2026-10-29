@@ -840,10 +840,10 @@ def test_the_summary_forgets_a_stage_that_will_report_again():
 
 
 
-# Outlines (`decisions.md` 091): the step at the top of Stage 2 that names shapes after the outline
+# Parent annotations (`decisions.md` 091): the step at the top of Stage 2 that names shapes after the parent annotation
 # they sit in. What it must never do is stop the app or let leftovers pass unmentioned.
 
-def _outlined_slide(fake_streamlit, tmp_path, stem, squares):
+def _parented_slide(fake_streamlit, tmp_path, stem, squares):
     """A slide read from a file: three calibration points plus `(class, x, y, size)` squares."""
     features = [
         {"type": "Feature", "geometry": {"type": "Point", "coordinates": xy},
@@ -863,66 +863,93 @@ def _outlined_slide(fake_streamlit, tmp_path, stem, squares):
     return slide
 
 
-def _tick(monkeypatch, chosen):
+def _tick(monkeypatch, chosen, on=True):
+    """Parent annotations switched on (or not) and `chosen` ticked."""
+    monkeypatch.setattr(streamlit, "toggle", lambda label, *a, **k: on)
     monkeypatch.setattr(streamlit, "multiselect", lambda label, options, default=None, **k: list(chosen))
 
 
-def test_no_outline_classes_leaves_the_context_alone(fake_streamlit, monkeypatch):
+def test_parent_annotations_are_off_by_default(fake_streamlit, monkeypatch, tmp_path):
+    """Nine users in ten never need them; until switched on they must change nothing and ask nothing."""
+    slide = _parented_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
+    context = _context(slide)
+    fake_streamlit.state.update(parent_classes=["P1"])
+
+    def toggle(label, *a, key=None, **k):
+        return fake_streamlit.state[key]
+
+    def no_picker(*a, **k):
+        raise AssertionError("The parent annotation classes were offered while the feature is off.")
+
+    monkeypatch.setattr(streamlit, "toggle", toggle)
+    monkeypatch.setattr(streamlit, "multiselect", no_picker)
+    assert ui_samples.parent_step(context) is context, (
+        "With parent annotations off, classes remembered from before still renamed the shapes."
+    )
+
+
+def test_a_new_upload_turns_parent_annotations_off():
+    assert ui_samples.PARENT_TOGGLE in ui_slides.DERIVED_KEYS, (
+        "Parent annotations switched on for one experiment would stay on for the next upload."
+    )
+
+
+def test_no_parent_classes_leaves_the_context_alone(fake_streamlit, monkeypatch):
     context = _context(_load(fake_streamlit, ANNOTATIONS_FILE))
     _tick(monkeypatch, [])
-    assert ui_samples.outline_step(context) is context, (
+    assert ui_samples.parent_step(context) is context, (
         "With nothing ticked Stage 2 got a different context, so the frozen whole-shapes output could change."
     )
 
 
 def test_grouped_context_carries_grouped_classes(fake_streamlit, monkeypatch, tmp_path):
-    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
+    slide = _parented_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
     _tick(monkeypatch, ["P1"])
-    grouped = ui_samples.outline_step(_context(slide))
+    grouped = ui_samples.parent_step(_context(slide))
     assert set(grouped.frames["S1"][CLASS_NAME]) == {"P1_gf"}, (
         "The collection methods still see plain classes, so patients would pool into one well."
     )
-    assert set(grouped.outlines) == {"S1"}, "The picture and provenance have no outline report for the slide."
+    assert set(grouped.parents) == {"S1"}, "The picture and provenance have no parent annotation report for the slide."
 
 
 def test_left_out_shapes_warn_and_do_not_stop(fake_streamlit, monkeypatch, tmp_path):
-    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10), ("gf", 500, 500, 10)])
+    slide = _parented_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10), ("gf", 500, 500, 10)])
     _tick(monkeypatch, ["P1"])
-    ui_samples.outline_step(_context(slide))
+    ui_samples.parent_step(_context(slide))
     assert "will not be collected" in fake_streamlit.shown("warnings"), (
-        "A shape outside every outline was dropped without a word on screen."
+        "A shape outside every parent annotation was dropped without a word on screen."
     )
     assert not fake_streamlit.errors, "Left-out shapes are a warning, not an error: the rest can still be cut."
 
 
-def test_slide_without_outlines_is_named(fake_streamlit, monkeypatch, tmp_path):
-    with_outline = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
-    without = _outlined_slide(fake_streamlit, tmp_path, "S2", [("gf", 10, 10, 10)])
+def test_slide_without_parents_is_named(fake_streamlit, monkeypatch, tmp_path):
+    with_parent = _parented_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("gf", 10, 10, 10)])
+    without = _parented_slide(fake_streamlit, tmp_path, "S2", [("gf", 10, 10, 10)])
     _tick(monkeypatch, ["P1"])
-    ui_samples.outline_step(_context(with_outline, without))
-    assert "No outline on S2" in fake_streamlit.shown("warnings"), (
-        "A slide with no outline loses all its shapes, and the user is not told which slide it is."
+    ui_samples.parent_step(_context(with_parent, without))
+    assert "No parent annotation on S2" in fake_streamlit.shown("warnings"), (
+        "A slide with no parent annotation loses all its shapes, and the user is not told which slide it is."
     )
 
 
-def test_empty_outline_is_mentioned(fake_streamlit, monkeypatch, tmp_path):
-    slide = _outlined_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("P2", 200, 0, 100), ("gf", 10, 10, 10)])
+def test_empty_parent_is_mentioned(fake_streamlit, monkeypatch, tmp_path):
+    slide = _parented_slide(fake_streamlit, tmp_path, "S1", [("P1", 0, 0, 100), ("P2", 200, 0, 100), ("gf", 10, 10, 10)])
     _tick(monkeypatch, ["P1", "P2"])
-    ui_samples.outline_step(_context(slide))
+    ui_samples.parent_step(_context(slide))
     assert "hold no shapes" in fake_streamlit.shown("infos"), (
-        "An outline holding nothing went unmentioned; a misplaced outline would show only as a missing sample."
+        "A parent annotation holding nothing went unmentioned; a misplaced parent annotation would show only as a missing sample."
     )
 
 
-def test_a_new_upload_clears_the_outline_ticks(fake_streamlit, monkeypatch):
-    """A new upload resets derived keys to None; the outline step must start empty, not fail."""
+def test_a_new_upload_clears_the_parent_ticks(fake_streamlit, monkeypatch):
+    """A new upload resets derived keys to None; the parent annotation step must start empty, not fail."""
     context = _context(_load(fake_streamlit, ANNOTATIONS_FILE))
-    assert ui_samples.OUTLINE_WIDGET in ui_slides.DERIVED_KEYS, (
-        "The outline ticks would carry over from the previous experiment into a new upload."
+    assert ui_samples.PARENT_WIDGET in ui_slides.DERIVED_KEYS, (
+        "The parent annotation ticks would carry over from the previous experiment into a new upload."
     )
     fake_streamlit.state.update(dict.fromkeys(ui_slides.DERIVED_KEYS))
     _tick(monkeypatch, [])
-    assert ui_samples.outline_step(context) is context, "After a new upload the outline step failed or grouped."
+    assert ui_samples.parent_step(context) is context, "After a new upload the parent annotation step failed or grouped."
 
 
 class _Form:

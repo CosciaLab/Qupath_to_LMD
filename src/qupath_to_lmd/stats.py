@@ -26,7 +26,7 @@ def class_statistics(
     Returns:
         A numeric frame indexed by class name. Formatting is the caller's business.
     """
-    # An empty slide still gets the columns: outlines can leave a slide with no shapes, and the
+    # An empty slide still gets the columns: parent annotations can leave a slide with no shapes, and the
     # class table across slides reads `shapes` from every one.
     counts = gdf.groupby(CLASS_NAME).size().rename("shapes").to_frame()
     if not pixel_size_um:

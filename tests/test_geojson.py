@@ -180,7 +180,7 @@ def test_multipolygons_are_reported_and_dropped(tmp_path):
     )
     assert "MultiPolygon" not in set(gdf.geometry.geom_type)
     assert set(report.multipolygons.geom_type) == {"MultiPolygon"}, (
-        "An outline merged from two tissue pieces in QuPath would have no geometry to group shapes with."
+        "A parent annotation merged from two tissue pieces in QuPath would have no geometry to group shapes with."
     )
 
 

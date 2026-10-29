@@ -2184,3 +2184,21 @@ Jose's notes after clicking through 078.
 - When none of the remembered classes are offered any more, it starts from all classes, as the
   old `remembered or all_classes` did when outlines renamed every class. Unlike before, a user who
   unticks every class keeps an empty choice rather than having all of them ticked again.
+
+## 097 — "outlines" are now "parent annotations", behind a toggle that is off by default
+**Date:** 2026-10-29 · **Status:** active · **renames 091–094**
+- The feature 091–094 call *outlines* is now **parent annotations**, everywhere: on screen, in the
+  docs and in the code (`parent_annotations.py`, `ParentReport`, `group_by_parents`, session keys
+  `parent_classes` / `parent_classes_choice`, the demo file and its generator). *Outline* was
+  unclear — it already meant a shape's boundary in the cutting settings, and it said nothing about
+  what the annotation does. "Parent" says it: the annotations inside take its name. Entries 091–094
+  keep their wording; read *outline* there as *parent annotation*.
+- **`provenance.json` changes**: `parameters.outlines` is now `parameters.parent_annotations`, and
+  per slide `outlines` / `left_out_no_outline` / `left_out_several_outlines` are now
+  `parent_annotations` / `left_out_no_parent` / `left_out_several_parents`. The feature shipped the
+  same day, so no collection is known to carry the old keys.
+- **Off by default, behind a toggle.** About nine users in ten have one sample per image. A
+  picker at the top of Samples, explained in a help tooltip, made every one of them stop and
+  wonder whether it applied. Off, the step is one line saying when to turn it on; on, it explains
+  the idea in plain words before the picker. Off ignores classes ticked earlier but keeps them, so
+  switching back on restores them; a new upload turns it off.

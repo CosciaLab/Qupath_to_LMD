@@ -14,7 +14,7 @@ import pandas
 import streamlit as st
 from loguru import logger
 
-from qupath_to_lmd import outlines, plot, qc, slides, stats, ui_shared
+from qupath_to_lmd import parent_annotations, plot, qc, slides, stats, ui_shared
 from qupath_to_lmd.model import CLASS_NAME, SampleSet
 from qupath_to_lmd.ui_slides import SlidesContext, resolve_pixel_size
 
@@ -22,7 +22,7 @@ POOLING_NOTE = (
     "Shapes of the same class from different slides are collected into the same well. Use this "
     "when your slides are sections of the same sample, classified with the same classes. To keep "
     "slides apart, give their classes different names in QuPath (e.g. `P1_Tumor`, `P2_Tumor`), or "
-    "draw an outline around each patient and tick its class below."
+    "turn on *Parent annotations* below and draw one around each patient."
 )
 
 
@@ -116,13 +116,13 @@ def class_step(context: SlidesContext) -> list[str]:
     _similar_names(per_slide, several=context.several)
 
     all_classes = sorted(set().union(*(set(t.index) for t in per_slide.values())))
-    # Keyed and seeded once, as the outline box (`decisions.md` 094): a `default` recomputed each
+    # Keyed and seeded once, as the parent annotations box (`decisions.md` 094): a `default` recomputed each
     # run changed the widget's identity after every click, and Streamlit threw the next one away.
     remembered = st.session_state.get(CLASS_WIDGET)
     if remembered is None:
         remembered = st.session_state.get("selected_classes") or all_classes
     kept = [name for name in remembered if name in all_classes]
-    # None kept means the classes themselves changed — outlines ticked or a new file — so start
+    # None kept means the classes themselves changed — parents ticked or a new file — so start
     # from all of them; an empty choice the user made stays empty.
     st.session_state[CLASS_WIDGET] = kept if kept or not remembered else all_classes
     selected = st.multiselect(
@@ -148,13 +148,13 @@ def class_step(context: SlidesContext) -> list[str]:
                 with tab:
                     _draw_input(
                         slide, context.calibration[slide.name][1], selected, palette,
-                        context.fingerprint(slide.name), context.outlines.get(slide.name),
+                        context.fingerprint(slide.name), context.parents.get(slide.name),
                     )
         else:
             slide = context.slides[0]
             _draw_input(
                 slide, context.calibration[slide.name][1], selected, palette,
-                context.fingerprint(slide.name), context.outlines.get(slide.name),
+                context.fingerprint(slide.name), context.parents.get(slide.name),
             )
     return selected
 
@@ -238,21 +238,21 @@ def _name_partial_classes(per_slide: dict[str, pandas.DataFrame], selected: list
 
 def _draw_input(
     slide: slides.Slide, calibration_array, selected: list[str], palette: dict, fingerprint: tuple,
-    report: outlines.OutlineReport | None = None,
+    report: parent_annotations.ParentReport | None = None,
 ) -> None:
-    """Everything on a slide, coloured where kept and grey where left out, with any outlines."""
+    """Everything on a slide, coloured where kept and grey where left out, with any parent annotations."""
     gdf = slide.gdf
-    drawn_outlines = report.outlines if report else None
+    drawn_parents = report.parents if report else None
     left_out = report.left_out if report else None
-    outline_key = (sorted(report.outlines["label"]), len(report.left_out)) if report else None
+    parents_key = (sorted(report.parents["label"]), len(report.left_out)) if report else None
     with st.spinner("Drawing shapes..."):
         ui_shared.show_picture(
             lambda: plot.plot_shapes(
                 gdf, included=selected, calibration_array=calibration_array,
                 title=f"{len(gdf):,} shapes on {slide.name}", colors=palette,
-                outlines=drawn_outlines, left_out=left_out,
+                parents=drawn_parents, left_out=left_out,
             ),
-            ui_shared.picture_key("classes", fingerprint, selected, calibration_array, palette, outline_key),
+            ui_shared.picture_key("classes", fingerprint, selected, calibration_array, palette, parents_key),
         )
     if len(gdf) > plot.SHAPE_LIMIT:
         st.caption(
@@ -263,8 +263,8 @@ def _draw_input(
         "Greyed-out shapes are the classes you left out. Dashed triangle and crosses are the "
         "calibration points; shapes far outside it are the ones at risk of distortion."
         + (
-            " Outlines are drawn as dark borders with their class; grey shapes outside them will "
-            "not be collected." if report else ""
+            " Parent annotations are drawn as dark borders with their class; grey shapes outside "
+            "them will not be collected." if report else ""
         )
     )
 
@@ -306,16 +306,36 @@ def strategy_control(context: SlidesContext, key: str) -> tuple[slides.SlideStra
     return strategy, order
 
 
-OUTLINE_WIDGET = "outline_classes_choice"
+PARENT_TOGGLE = "parent_annotations_on"
+PARENT_WIDGET = "parent_classes_choice"
+PARENT_EXPLANATION = (
+    "Draw one annotation around each patient's tissue in QuPath and give it a class that names the "
+    "patient — `P1`, `P2`, … These are **parent annotations**. Tick their classes below. Every "
+    "annotation inside a parent takes its name: `Gland` inside `P1` becomes the sample `P1_Gland`. "
+    "Parent annotations themselves are never cut. With several slides, `P1_Gland` from every slide "
+    "shares one well. The same works for cores, regions, or any other group."
+)
 CLASS_WIDGET = "selected_classes_choice"
 
 
-def outline_step(context: SlidesContext) -> SlidesContext:
-    """Optionally name every shape after the outline it sits in, before any method sees it.
+def parent_step(context: SlidesContext) -> SlidesContext:
+    """Optionally name every shape after the parent annotation it sits in, before any method sees it.
 
-    Returns `context` itself when no outline class is ticked, so nothing downstream can change;
-    otherwise a copy whose frames hold `P1_gf` classes and whose `outlines` say what happened.
+    Off by default (`decisions.md` 097): most users have one sample per image and never need it.
+    Returns `context` itself when off or when no parent class is ticked, so nothing downstream can
+    change; otherwise a copy whose frames hold `P1_gf` classes and whose `parents` say what happened.
     """
+    # Seeded rather than given `value=`, so a new upload — which sets every derived key to None —
+    # turns it off without the widget raising over a None.
+    if st.session_state.get(PARENT_TOGGLE) is None:
+        st.session_state[PARENT_TOGGLE] = False
+    if not st.toggle("Parent annotations", key=PARENT_TOGGLE):
+        st.caption(
+            "Off: every class is collected as drawn. Turn on if one image holds several patients "
+            "(or cores, or regions) and you drew an annotation around each to keep them apart."
+        )
+        return context
+    st.markdown(PARENT_EXPLANATION)
     options = sorted(
         set().union(*(set(frame[CLASS_NAME].dropna()) for frame in context.frames.values()))
         | {
@@ -327,25 +347,25 @@ def outline_step(context: SlidesContext) -> SlidesContext:
     )
     # Keyed and seeded once: a `default` recomputed from state on every run changes the widget's
     # identity after each click, and Streamlit then throws the next click away. Seeded from
-    # `outline_classes` when absent (another page clears widget state) and trimmed to what this
+    # `parent_classes` when absent (another page clears widget state) and trimmed to what this
     # upload holds, since a stale value would make the widget raise.
-    remembered = st.session_state.get(OUTLINE_WIDGET)
+    remembered = st.session_state.get(PARENT_WIDGET)
     if remembered is None:
-        remembered = st.session_state.get("outline_classes") or []
-    st.session_state[OUTLINE_WIDGET] = [name for name in remembered if name in options]
+        remembered = st.session_state.get("parent_classes") or []
+    st.session_state[PARENT_WIDGET] = [name for name in remembered if name in options]
     chosen = st.multiselect(
-        "Classes that outline a group of shapes",
+        "Classes of the parent annotations",
         options=options,
-        key=OUTLINE_WIDGET,
+        key=PARENT_WIDGET,
         help=(
-            "Optional. Shapes of these classes are never cut. Every other shape takes the name of "
-            "the outline it sits in — gf inside a P1 outline becomes P1_gf — so samples keep "
+            "Annotations of these classes are never cut. Every other annotation takes the class of "
+            "the parent it sits in — Gland inside a P1 parent becomes P1_Gland — so samples keep "
             "patients, or any other group, apart, also across slides."
         ),
     )
-    if chosen != (st.session_state.get("outline_classes") or []):
-        st.session_state.outline_classes = chosen
-        logger.info(f"Outline classes: {chosen}")
+    if chosen != (st.session_state.get("parent_classes") or []):
+        st.session_state.parent_classes = chosen
+        logger.info(f"Parent annotation classes: {chosen}")
     if not chosen:
         return context
 
@@ -353,54 +373,54 @@ def outline_step(context: SlidesContext) -> SlidesContext:
     # per tick set and costs half that again to unpickle on every rerun.
     classes = sorted(chosen)
     results = {
-        slide.name: outlines.group_by_outlines(slide.gdf, classes, slide.report.multipolygons)
+        slide.name: parent_annotations.group_by_parents(slide.gdf, classes, slide.report.multipolygons)
         for slide in context.slides
     }
     reports = {name: report for name, (_grouped_frame, report) in results.items()}
     grouped_slides = [dataclasses.replace(slide, gdf=results[slide.name][0]) for slide in context.slides]
-    # A slide the outlines left empty goes no further — every method would otherwise have to cope
+    # A slide the parent annotations left empty goes no further — every method would otherwise have to cope
     # with a slide holding nothing, and Regions cannot — and its own warning says why. When every
     # slide is empty they all stay, so the page can still show what was left out.
     kept = [slide for slide in grouped_slides if not slide.gdf.empty] or grouped_slides
     grouped = dataclasses.replace(
-        context, slides=kept, outlines={slide.name: reports[slide.name] for slide in kept},
+        context, slides=kept, parents={slide.name: reports[slide.name] for slide in kept},
     )
-    _report_outlines(grouped, reports)
+    _report_parents(grouped, reports)
     return grouped
 
 
-def _report_outlines(context: SlidesContext, reports: dict[str, outlines.OutlineReport]) -> None:
+def _report_parents(context: SlidesContext, reports: dict[str, parent_annotations.ParentReport]) -> None:
     """What grouping did, before anything is collected: counts, leftovers and anything odd."""
     n_classes = len(set().union(*(set(frame[CLASS_NAME]) for frame in context.frames.values())))
     st.success(
-        f"{sum(r.n_outlines for r in reports.values())} outlines grouped "
+        f"{sum(r.n_parents for r in reports.values())} parent annotations grouped "
         f"{sum(r.n_grouped for r in reports.values()):,} shapes into {n_classes} classes."
     )
-    table = outlines.left_out_table(reports)
+    table = parent_annotations.left_out_table(reports)
     if not table.empty:
-        n = int(table[[outlines.NO_OUTLINE, outlines.SEVERAL_OUTLINES]].to_numpy().sum())
+        n = int(table[[parent_annotations.NO_PARENT, parent_annotations.SEVERAL_PARENTS]].to_numpy().sum())
         st.warning(
-            f"{n:,} shapes will not be collected: they sit in no outline, or inside outlines of two "
-            "different classes at once. Extend or redraw the outline in QuPath, or remove the "
-            "overlap, and export again."
+            f"{n:,} shapes will not be collected: they sit in no parent annotation, or inside parent "
+            "annotations of two different classes at once. Extend or redraw the parent annotation "
+            "in QuPath, or remove the overlap, and export again."
         )
         ui_shared.show_amounts(table if len(reports) > 1 else table.drop(columns=["slide"]), hide_index=True)
     for slide, report in reports.items():
-        if report.n_outlines == 0:
-            st.warning(f"No outline on {slide}: none of its shapes can be collected.")
-        for label, count in report.repeated_outlines.items():
-            st.info(f"{count} separate {label} outlines on {slide}: shapes in all of them go to {label}_….")
-        for label, count in report.empty_outlines.items():
-            st.info(f"{count} {label} outline(s) on {slide} hold no shapes.")
-    for name, pairs in outlines.colliding_names(reports).items():
+        if report.n_parents == 0:
+            st.warning(f"No parent annotation on {slide}: none of its shapes can be collected.")
+        for label, count in report.repeated_parents.items():
+            st.info(f"{count} separate {label} parent annotations on {slide}: shapes in all of them go to {label}_….")
+        for label, count in report.empty_parents.items():
+            st.info(f"{count} {label} parent annotation(s) on {slide} hold no shapes.")
+    for name, pairs in parent_annotations.colliding_names(reports).items():
         st.warning(
             f"{name} is made by both " + " and ".join(f"{c} inside {o}" for o, c in pairs)
             + ": they would share a well. Rename one class in QuPath."
         )
-    n_merged = sum(r.n_multipolygon_outlines for r in reports.values())
+    n_merged = sum(r.n_multipolygon_parents for r in reports.values())
     if n_merged:
         st.caption(
-            f"{n_merged} outline(s) made of several pieces are used here although step 1 listed them "
+            f"{n_merged} parent annotation(s) made of several pieces are used here although step 1 listed them "
             "as ignored: they cannot be cut, but they can hold shapes."
         )
 
@@ -408,16 +428,16 @@ def _report_outlines(context: SlidesContext, reports: dict[str, outlines.Outline
 def render(context: SlidesContext) -> tuple[SlidesContext, SampleSet | None]:
     """Stage 2. Returns the context later stages see, and what the chosen method decided.
 
-    The context is grouped by outlines when any are ticked, so the plate and cut stages see the
+    The context is grouped by parent annotations when any are ticked, so the plate and cut stages see the
     same classes. The sample set is None while the method cannot decide yet.
     """
     st.markdown("## 2 · Samples")
     if context.several:
         st.info(POOLING_NOTE)
-    context = outline_step(context)
+    context = parent_step(context)
     workflow = method_step(context)
     sample_set = methods()[workflow].render(context)
-    if sample_set is not None and context.outlines:
-        recorded = outlines.provenance(st.session_state.outline_classes, context.outlines)
-        sample_set = dataclasses.replace(sample_set, params={**sample_set.params, "outlines": recorded})
+    if sample_set is not None and context.parents:
+        recorded = parent_annotations.provenance(st.session_state.parent_classes, context.parents)
+        sample_set = dataclasses.replace(sample_set, params={**sample_set.params, "parent_annotations": recorded})
     return context, sample_set
