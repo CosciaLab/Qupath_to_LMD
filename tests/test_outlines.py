@@ -5,6 +5,7 @@ patients can share a well, or an outline itself gets cut.
 """
 
 import ast
+import json
 
 import geopandas
 import pandas
@@ -188,3 +189,38 @@ def test_slide_with_only_outlines_groups_nothing_without_failing():
     grouped, report = outlines.group_by_outlines(_frame([("P1", P1)]), ["P1"])
     assert grouped.empty and report.left_out.empty, "A slide holding only outlines should simply contribute nothing."
     assert report.empty_outlines == {"P1": 1}
+
+
+def _feature(geometry: dict, class_name: str | None = None, name: str | None = None) -> dict:
+    properties = {"objectType": "annotation"}
+    if class_name:
+        properties["classification"] = {"name": class_name, "color": [255, 0, 0]}
+    if name:
+        properties["name"] = name
+    return {"type": "Feature", "geometry": geometry, "properties": properties}
+
+
+def _square(x: float, y: float, size: float) -> list:
+    return [[[x, y], [x + size, y], [x + size, y + size], [x, y + size], [x, y]]]
+
+
+def test_multipolygon_outline_read_from_a_file_groups_shapes(tmp_path):
+    features = [
+        _feature({"type": "Point", "coordinates": xy}, name=name)
+        for name, xy in (("A", [0, 0]), ("B", [400, 0]), ("C", [0, 400]))
+    ]
+    features.append(
+        _feature({"type": "MultiPolygon", "coordinates": [_square(0, 0, 100), _square(200, 0, 100)]}, "P1")
+    )
+    features += [
+        _feature({"type": "Polygon", "coordinates": _square(10, 10, 10)}, "gf"),
+        _feature({"type": "Polygon", "coordinates": _square(210, 10, 10)}, "gf"),
+    ]
+    path = tmp_path / "merged_outline.geojson"
+    path.write_text(json.dumps({"type": "FeatureCollection", "features": features}))
+
+    gdf, _points, report = geojson.read_and_qc(str(path))
+    grouped, _report = outlines.group_by_outlines(gdf, ["P1"], report.multipolygons)
+    assert list(grouped[CLASS_NAME]) == ["P1_gf", "P1_gf"], (
+        "A patient outline merged in QuPath grouped nothing after reading; that patient could not be collected."
+    )

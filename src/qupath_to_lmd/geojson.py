@@ -43,7 +43,7 @@ class GeojsonReport:
     # that differed (`decisions.md` 087), and how many shapes carried them.
     tidied_class_names: dict[str, str] = field(default_factory=dict)
     n_tidied_shapes: int = 0
-    multipolygons: pandas.DataFrame | None = None
+    multipolygons: geopandas.GeoDataFrame | None = None
     n_shapes_kept: int = 0
     # Derived from QuPath's own area measurements while the file is open, so the measurement
     # strings can then be dropped — they are 22% of the frame at a million shapes.
@@ -185,7 +185,8 @@ def read_and_qc(source) -> tuple[geopandas.GeoDataFrame, dict[str, list[float]],
     is_multi = gdf.geometry.geom_type == "MultiPolygon"
     if is_multi.any():
         columns = [c for c in ("name", CLASS_NAME) if c in gdf.columns]
-        report.multipolygons = pandas.DataFrame(gdf.loc[is_multi, columns])
+        # Geometry kept: uncuttable, but a merged outline is still an area that groups shapes.
+        report.multipolygons = geopandas.GeoDataFrame(gdf.loc[is_multi, [*columns, "geometry"]], geometry="geometry")
         logger.debug(f"Dropping {int(is_multi.sum())} MultiPolygons")
         gdf = gdf[~is_multi]
 
