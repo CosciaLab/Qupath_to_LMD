@@ -202,9 +202,16 @@ def _seed() -> packing.PackingParams:
 
 def _request_table(classes: list[str], with_circles: bool) -> list[packing.ClassPacking]:
     """One row per class: replicates, amount, circle sizes and the gap."""
-    columns = {REPLICATES_COLUMN: packing.DEFAULT_REPLICATES}
+    replicates, amount, applied = ui_shared.every_class_step(
+        "regions",
+        packing.DEFAULT_REPLICATES,
+        "µm²" if with_circles else None,
+        packing.DEFAULT_AREA_PER_REPLICATE_UM2 if with_circles else None,
+        amount_step=1_000.0,
+    )
+    columns = {REPLICATES_COLUMN: replicates}
     if with_circles:
-        columns[AMOUNT_COLUMN] = int(packing.DEFAULT_AREA_PER_REPLICATE_UM2)
+        columns[AMOUNT_COLUMN] = int(amount)
         columns[MIN_CIRCLE_COLUMN] = int(packing.DEFAULT_MIN_CIRCLE_AREA_UM2)
         columns[MAX_CIRCLE_COLUMN] = int(packing.DEFAULT_MAX_CIRCLE_AREA_UM2)
         columns[GAP_COLUMN] = int(packing.DEFAULT_SPACING_UM)
@@ -223,7 +230,7 @@ def _request_table(classes: list[str], with_circles: bool) -> list[packing.Class
     edited = st.data_editor(
         pandas.DataFrame(columns, index=pandas.Index(classes)),
         width="stretch",
-        key=f"request_editor_{len(classes)}_{int(with_circles)}",
+        key=f"request_editor_{len(classes)}_{int(with_circles)}_{applied}",
         column_config=configuration,
     )
     requests = [

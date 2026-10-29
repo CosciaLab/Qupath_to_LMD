@@ -196,6 +196,12 @@ sidebar summary.
   returns `(context, sample_set)` so Stages 3 and 4 see the grouped classes, and puts
   `outlines.provenance` into `SampleSet.params["outlines"]`, which reaches `provenance.json` on
   both the one-slide and the several-slide route.
+- **Both per-class tables start from an "Every class" row** (`decisions.md` 095):
+  `ui_shared.every_class_step` draws a form with replicates, the amount per replicate (shapes or
+  µm², none for whole regions) and *Apply to every class*. Applied values sit in
+  `every_class_select` / `every_class_regions` with their unit and a random token; the token is
+  part of the table's `data_editor` key, so the key — and every per-class edit — changes only on
+  Apply. An amount applied in another unit (count ↔ area) is ignored for the table's default.
 - Slide-only and plate-only controls appear only when there are several (076): slide tabs, the
   pooling note, the class × slide table, the slide strategy, the scale table, plate tabs, the
   distribution choice, the all-plates download, the download organisation.
@@ -582,7 +588,11 @@ it is not, which is the only place the app shows a user what they actually uploa
 step keeps `st.columns([1, 2])`, numbers beside the picture; the what-to-collect table is too wide
 for that, so its picture goes directly below (`decisions.md` 071).
 
-`ui_samples.class_step` owns the classes picture, so every method gets it.
+`ui_samples.class_step` owns the classes picture, so every method gets it. Its *Classes to collect*
+multiselect is keyed (`ui_samples.CLASS_WIDGET`, also in `DERIVED_KEYS`) and seeded once from
+`selected_classes`, all classes the first time (`decisions.md` 096). When none of the remembered
+classes exist any more — outlines ticked, a new file — it starts from all of them again; an empty
+choice the user made stays empty.
 
 **Step 6 is one table, then the picture.** Every number the user sets is a property of one
 class, so they live in one `st.data_editor` row per class — replicates, µm² per replicate,
@@ -987,6 +997,7 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | `region_params` | `RegionParams` as a dict: the radius cap that produced the current regions |
 | `packing_params` | `PackingParams` as a dict: sizes, gap, effort and seed of the last packing |
 | `region_budgets` | list of `ClassPacking` as dicts: per class, replicates, µm² per replicate, circle size range, gap |
+| `every_class_select`, `every_class_regions` | values last applied to every class of that method's table: `{replicates, amount, unit, token}`; `None` means the defaults |
 | `slide_strategy`, `slide_order` | how amounts are split between slides, and the order for priority |
 | `n_plates`, `plate_distribution` | collectors in use and `'balanced'` \| `'sequential'` (the widget `plate_type` holds `'384'` \| `'96'` \| `'tubes'` \| `'strip'`) |
 | `cut_order` | `'slide'` \| `'plate'` — order of the cutting instructions and download folders |

@@ -121,12 +121,15 @@ You decide:
 - How many replicates
 - How much area or shapes per replicate
 
+Both can be set once for every class with *Apply to every class* above the table, then changed
+for single classes in the table.
+
 ### Regions and circles
 
 Merge neighboring cells of the same class. Neighbor distance criteria is set by you. Then pack the areas with your sampling strategy. You can decide:
 
-- How many replicates
-- How much area per replicate
+- How many replicates (once for every class, or per class)
+- How much area per replicate (once for every class, or per class)
 - Minimum circle size
 - Maximum circle size
 

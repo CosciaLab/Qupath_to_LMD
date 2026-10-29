@@ -30,6 +30,8 @@ DEFAULTS = {
     "region_params": None,
     "packing_params": None,
     "region_budgets": None,
+    "every_class_select": None,
+    "every_class_regions": None,
     "slide_strategy": None,
     "slide_order": None,
     # Stage 3, Collector

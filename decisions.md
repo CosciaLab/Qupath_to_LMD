@@ -2160,3 +2160,27 @@ Jose's notes after clicking through 078.
   27 s; it now takes 1.4 s. At that cost a `st.cache_data` entry — ~300 MB pickled per tick set,
   unbounded, unpickled again on every rerun — costs more than it saves and could run the
   deployed app out of memory.
+
+## 095 — replicates and amount are set for every class with a button, not as live defaults
+**Date:** 2026-10-29 · **Status:** active
+- With outlines (091) a lab of 13 patients × 19 categories has over 200 classes, and both
+  per-class tables made each row's replicates and amount an edit of its own. Above each table a
+  row now takes replicates and the amount per replicate, and *Apply to every class* sets those
+  two columns on every row. Minimum area, circle sizes and gap stay per class: nobody asked to
+  set them at once, and they differ by biology.
+- **A button, not live defaults.** Making the inputs the table's starting values would rebuild
+  the table on every change, wiping rows edited one by one after a stray keystroke. With a form
+  and a button nothing reaches the table until Apply; the table's key changes only then.
+- An applied amount remembers its unit, so 150 shapes per replicate never becomes 150 µm² when
+  Selected shapes switches from count to area. Applied values are cleared on a new upload, like
+  every other derived key.
+
+## 096 — *Classes to collect* is keyed and seeded once, like the outline box
+**Date:** 2026-10-29 · **Status:** active · **completes 094**
+- 094 left `ui_samples.class_step` with the pattern it fixed for the outline box: `default`
+  recomputed from `selected_classes` every run changed the widget's identity after each click,
+  so Streamlit dropped the next one. Unticking Gland then P1 kept P1 — a class the user dropped
+  would have been cut. The multiselect now has a key, seeded once.
+- When none of the remembered classes are offered any more, it starts from all classes, as the
+  old `remembered or all_classes` did when outlines renamed every class. Unlike before, a user who
+  unticks every class keeps an empty choice rather than having all of them ticked again.
