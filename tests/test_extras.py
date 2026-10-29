@@ -28,27 +28,27 @@ def test_any_number_of_categoricals_combine_in_the_order_given():
 def test_one_categorical_is_enough():
     combos = extras.combinations([["tumour", "stroma"]])
     names = extras.class_names(combos, {}, default=2)
-    assert names == ["tumour_1", "tumour_2", "stroma_1", "stroma_2"], (
+    assert names == ["tumour_r1", "tumour_r2", "stroma_r1", "stroma_r2"], (
         "A single categorical with replicates no longer produces classes."
     )
 
 
-def test_two_categoricals_name_classes_exactly_as_before():
-    """The page used to take exactly two categoricals; the same input must give the same file."""
+def test_the_replicate_number_is_marked_with_an_r():
+    """`_r1` rather than `_1`, so a replicate cannot be mistaken for a value that is itself a number."""
     combos = extras.combinations([["celltype_A", "celltype_B"], ["control", "drug_treated"]])
     names = extras.class_names(combos, {}, default=2)
     assert names[:4] == [
-        "celltype_A_control_1",
-        "celltype_A_control_2",
-        "celltype_A_drug_treated_1",
-        "celltype_A_drug_treated_2",
-    ], "Existing users would get differently named classes for the same input."
+        "celltype_A_control_r1",
+        "celltype_A_control_r2",
+        "celltype_A_drug_treated_r1",
+        "celltype_A_drug_treated_r2",
+    ], "Class names no longer read value_value_rN, so they would not match what the page shows."
 
 
 def test_a_combination_can_have_its_own_replicate_count_or_be_left_out():
     combos = extras.combinations([["tumour", "stroma"], ["control", "drug"]])
     names = extras.class_names(combos, {("tumour", "drug"): 4, ("stroma", "control"): 0}, default=2)
-    assert [n for n in names if n.startswith("tumour_drug")] == [f"tumour_drug_{i}" for i in range(1, 5)], (
+    assert [n for n in names if n.startswith("tumour_drug")] == [f"tumour_drug_r{i}" for i in range(1, 5)], (
         "A combination given 4 replicates did not get 4 classes numbered 1 to 4."
     )
     assert not any(n.startswith("stroma_control") for n in names), (
@@ -60,7 +60,7 @@ def test_a_combination_can_have_its_own_replicate_count_or_be_left_out():
 def test_names_that_come_out_the_same_are_reported():
     combos = extras.combinations([["a_b", "a"], ["c", "b_c"]])
     names = extras.class_names(combos, {}, default=1)
-    assert extras.repeated_names(names) == ["a_b_c_1"], (
+    assert extras.repeated_names(names) == ["a_b_c_r1"], (
         "Two combinations that give the same class name went unnoticed; QuPath would hold one class for both."
     )
 

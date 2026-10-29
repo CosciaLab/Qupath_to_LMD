@@ -44,11 +44,14 @@ def combinations(categoricals: list[list[str]]) -> list[tuple[str, ...]]:
 
 
 def class_names(combos: list[tuple[str, ...]], replicates: dict[tuple[str, ...], int], default: int) -> list[str]:
-    """`value_value_replicate` for each combination; `replicates` overrides `default`, 0 leaves one out."""
+    """`value_value_rN` for each combination; `replicates` overrides `default`, 0 leaves one out.
+
+    The `r` keeps the replicate apart from a value that is itself a number, such as a day or a dose.
+    """
     if not isinstance(default, int) or default < 1:
         raise ValueError("Replicates must be a positive integer")
     names = [
-        f"{'_'.join(combo)}_{i}"
+        f"{'_'.join(combo)}_r{i}"
         for combo in combos
         for i in range(1, replicates.get(combo, default) + 1)
     ]

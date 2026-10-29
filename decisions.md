@@ -2097,3 +2097,14 @@ Jose's notes after clicking through 078.
   and deleting and retyping a row does it); a class-name preview column in the table (it would
   go stale under the editor's frozen input, and the full list is shown beneath); a separator or
   colour choice, which nobody has asked for.
+
+## 090 — replicates in class names are `r1`, `r2`…, and the Extras page explains itself in order
+**Date:** 2026-10-29 · **Status:** active · **supersedes 089 on naming**
+- **Decision:** class names end in `_r1`, `_r2`… rather than `_1`, `_2` (Jose). A categorical's
+  value is often a number itself — a day, a dose, a patient — and `tumour_3_2` does not say which
+  number is the replicate; `tumour_3_r2` does. So two categoricals no longer give the file they
+  gave before 089; nothing in the app reads these names back, they only become QuPath classes.
+- **Page order:** how to use it and a small example image first, under the heading; how to add the
+  file to QuPath under the download button, where the user is when they need it, and only once
+  there is something to download. The example image is redrawn from `extras.class_names`, so it
+  shows the names the page actually makes.

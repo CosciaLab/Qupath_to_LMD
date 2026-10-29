@@ -406,18 +406,15 @@ def extras_step() -> None:
     """Extra #1: generate QuPath classes from categoricals. Its own page, Extras."""
     st.markdown("""
                 ## Create QuPath classes from categoricals
-                Creating many QuPath classes can be tedious, and is very error prone, especially for large projects.
-                Type as many categoricals as your design has, one per row, and a number of replicates;
-                a class is created for every combination. A new empty row appears as soon as you fill the last one.
-
-                Afterwards you must:
-                1. Create a new QuPath project
-                2. Close QuPath window
-                3. Delete `<QuPath project>/classifiers/annotations/classes.json`
-                4. Replace with newly created file
-                5. Rename it as `classes.json`
-                6. Reopen QuPath with project, and you should see classes
+                Creating many QuPath classes by hand is tedious and error prone. Here a class is made for every
+                combination of your categoricals, once per replicate.
+                1. Type one categorical per row, its values separated by commas: cell types in one row, treatments
+                   in the next, and so on. A new empty row appears as soon as you fill the last one.
+                2. Set how many replicates each combination needs. To give one combination more, fewer or none,
+                   open the table under the replicates.
+                3. Download `classes.json` and add it to your QuPath project, as described under the download button.
                 """)
+    st.image(image="./assets/sample_names_example.png", width=360)
 
     categoricals = _categorical_rows()
     st.session_state.extras_default = int(st.number_input(
@@ -426,7 +423,6 @@ def extras_step() -> None:
     ))
     if categoricals:
         _classes_from(categoricals, st.session_state.extras_default)
-    st.image(image="./assets/sample_names_example.png", caption="Example of class names for QuPath")
 
 
 def _categorical_rows() -> list[tuple[str, list[str]]]:
@@ -523,6 +519,14 @@ def _classes_from(categoricals: list[tuple[str, list[str]]], default: int) -> No
         file_name="classes.json",
         mime="application/json",
     )
+    st.markdown("""
+                **Add the classes to QuPath**
+                1. Create a new QuPath project, then close QuPath.
+                2. In the project folder, open `classifiers/annotations/` and delete `classes.json`.
+                3. Put the downloaded file there. If your browser saved it as `classes (1).json` or similar,
+                   rename it to `classes.json`.
+                4. Reopen the project in QuPath; the classes are listed in the *Annotations* tab.
+                """)
     st.dataframe(pandas.DataFrame({"Class": names}), hide_index=True, height=250)
 
 
