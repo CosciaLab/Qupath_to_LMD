@@ -40,6 +40,11 @@ DEFAULTS = {
     "bundle_name": None,
     "bundle_signature": None,
     "collection_image": None,
+    # Extras page, the QuPath classes generator
+    "extras_rows": [],
+    "extras_default": 2,
+    "extras_replicates": {},
+    "extras_editor": None,
 }
 for key, value in DEFAULTS.items():
     if key not in st.session_state:

@@ -282,8 +282,15 @@ The reading and QC below is unchanged; it now runs once per uploaded file.
    `samples_and_wells.json`, `provenance.json`, `<stem>_processed.geojson` (sanitised for
    QuPath re-import), `collection.png`, and the session log.
 
-**Extra #1** (the 🧰 Extras page): generates a QuPath `classes.json` from two lists of
-categoricals × replicate count, cycling 6 hard-coded colours as Java signed ints.
+**Extra #1** (the 🧰 Extras page): generates a QuPath `classes.json` from any number of
+categoricals × a replicate count, cycling 6 hard-coded colours as Java signed ints
+(`decisions.md` 089). One row per categorical, with one empty row always waiting at the end;
+one categorical is enough. Names are `value_value_rN` in row order (`decisions.md` 090). The
+page opens with how to use it and the example image (`assets/sample_names_example.png`, drawn
+from `extras.class_names`); how to add the file to QuPath sits under the download. A collapsed table sets replicates per combination, 0 leaves one
+out. Repeated values are merged and warned about, names two combinations share are warned
+about, and so is anything over `extras.MANY_CLASSES` (500). Its state lives in `extras_*` keys,
+not widgets, so visiting Collect and back keeps it.
 
 ## Workflow routing and image scale (Phase 1)
 
@@ -966,6 +973,10 @@ Initialised in the block at the top of `streamlit_app.py`. Any new key belongs h
 | `zip_buffer`, `bundle_name` | the download bundle and its filename |
 | `bundle_signature` | hash of what built the bundle; a mismatch withdraws the download |
 | `collection_image` | path to the QC image of the last processed collection |
+| `extras_rows` | Extras rows as `{id, name, values}`, the last always empty; widgets are `extras_name_<id>` / `extras_values_<id>` |
+| `extras_default` | replicates per combination on the Extras page (widget `extras_default_input`) |
+| `extras_replicates` | `{combination tuple: count}` for combinations whose count differs from the default; 0 leaves one out |
+| `extras_editor` | `(basis, seed)` of the replicates table: its key and the counts it was started with |
 
 ## Domain constants and conventions
 
