@@ -20,7 +20,7 @@ from qupath_to_lmd.outlines import OutlineReport
 # made for one experiment never leaks into the next.
 DERIVED_KEYS = (
     "selected_classes", "outline_classes", "outline_classes_choice", "budgets", "budget_mode", "minimum_area_um2", "region_params",
-    "packing_params", "region_budgets", "zip_buffer", "bundle_name", "bundle_signature",
+    "packing_params", "region_budgets", "every_class_select", "every_class_regions", "zip_buffer", "bundle_name", "bundle_signature",
     "collection_image",
 )
 

@@ -78,9 +78,16 @@ def budgets_step(context: SlidesContext, selected: list[str]):
     # Defaults come from a DVP experiment, not from the whole class: defaulting to everything a
     # class holds meant the feasibility check could never fire (`decisions.md` 073).
     default_floor = stats.DEFAULT_MINIMUM_AREA_UM2 if any_scale else 0.0
+    replicates, amount, applied = ui_shared.every_class_step(
+        "select",
+        budget.DEFAULT_REPLICATES,
+        mode.unit,
+        mode.default_per_replicate,
+        amount_step=1_000.0 if mode is budget.BudgetMode.AREA else 10.0,
+    )
     columns = {
-        budget.DISPLAY_COLUMNS[budget.REPLICATES]: budget.DEFAULT_REPLICATES,
-        budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: mode.default_per_replicate,
+        budget.DISPLAY_COLUMNS[budget.REPLICATES]: replicates,
+        budget.DISPLAY_COLUMNS[budget.PER_REPLICATE]: amount,
     }
     if any_scale:
         columns[MINIMUM_AREA_COLUMN] = default_floor
@@ -110,7 +117,7 @@ def budgets_step(context: SlidesContext, selected: list[str]):
                 "differ in size, so this is per class. Zero keeps everything."
             ),
         )
-    edited = st.data_editor(editable, width="stretch", key=f"budget_editor_{signature}", column_config=config)
+    edited = st.data_editor(editable, width="stretch", key=f"budget_editor_{signature}_{applied}", column_config=config)
 
     floors = (
         {str(name): float(row.get(MINIMUM_AREA_COLUMN) or 0.0) for name, row in edited.iterrows()}

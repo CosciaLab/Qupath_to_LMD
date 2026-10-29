@@ -923,3 +923,70 @@ def test_a_new_upload_clears_the_outline_ticks(fake_streamlit, monkeypatch):
     fake_streamlit.state.update(dict.fromkeys(ui_slides.DERIVED_KEYS))
     _tick(monkeypatch, [])
     assert ui_samples.outline_step(context) is context, "After a new upload the outline step failed or grouped."
+
+
+class _Form:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+
+def _every_class(monkeypatch, typed: dict, submitted: bool, **call):
+    """Run the every-class step with `typed` in its inputs and the Apply button pressed or not."""
+    offered = []
+
+    def number_input(label, value=None, **k):
+        offered.append(label)
+        return typed.get(label.split(" (")[0], value)
+
+    monkeypatch.setattr(streamlit, "form", lambda *a, **k: _Form())
+    monkeypatch.setattr(streamlit, "number_input", number_input)
+    monkeypatch.setattr(streamlit, "form_submit_button", lambda *a, **k: submitted)
+    arguments = {"method": "select", "default_replicates": 3, "unit": "shapes", "default_amount": 150.0, "amount_step": 10.0}
+    return ui_shared.every_class_step(**(arguments | call)), offered
+
+
+def test_every_class_values_reach_the_table_only_on_apply(fake_streamlit, monkeypatch):
+    """With 200 classes, one Apply sets them all; typing alone must not wipe per-class edits."""
+    fake_streamlit.state.update(every_class_select=None)
+    typed = {"Replicates": 5, "Per replicate": 40.0}
+    (replicates, amount, before), _ = _every_class(monkeypatch, typed, submitted=False)
+    assert (replicates, amount) == (3, 150.0), (
+        "Values reached the table before Apply was pressed, so a stray edit would overwrite every class."
+    )
+    (replicates, amount, applied), _ = _every_class(monkeypatch, typed, submitted=True)
+    assert (replicates, amount) == (5, 40.0), "Apply did not set every class to the values typed."
+    assert applied != before, "The table keeps its old key after Apply, so it would keep showing the old values."
+    (_, _, after), _ = _every_class(monkeypatch, {}, submitted=False)
+    assert after == applied, (
+        "The table's key changed on a rerun without Apply, which throws away every per-class edit."
+    )
+
+
+def test_an_applied_amount_is_not_read_in_another_unit(fake_streamlit, monkeypatch):
+    """150 shapes per replicate must not become 150 µm² when the user switches to area."""
+    fake_streamlit.state.update(every_class_select=None)
+    _every_class(monkeypatch, {"Replicates": 5, "Per replicate": 150.0}, submitted=True)
+    (replicates, amount, _), _ = _every_class(
+        monkeypatch, {}, submitted=False, unit="µm²", default_amount=25_000.0, amount_step=1_000.0
+    )
+    assert amount == 25_000.0, f"An amount set in shapes was applied as {amount} µm²."
+    assert replicates == 5, "Switching count to area lost the replicates set for every class."
+
+
+def test_whole_regions_are_offered_replicates_only(fake_streamlit, monkeypatch):
+    """Without circles a region is cut whole, so there is no amount to set."""
+    fake_streamlit.state.update(every_class_regions=None)
+    (replicates, amount, _), offered = _every_class(
+        monkeypatch, {"Replicates": 2}, submitted=True, method="regions", unit=None, default_amount=None
+    )
+    assert amount is None and replicates == 2
+    assert offered == ["Replicates"], f"Whole regions were offered {offered}; an amount there does nothing."
+
+
+def test_a_new_upload_clears_the_every_class_values(fake_streamlit):
+    assert {"every_class_select", "every_class_regions"} <= set(ui_slides.DERIVED_KEYS), (
+        "Replicates applied to every class would carry over from the previous experiment into a new upload."
+    )

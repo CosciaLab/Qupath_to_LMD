@@ -8,6 +8,7 @@ The stages themselves are `ui_slides`, `ui_samples` (with one `ui_collect_*` mod
 import hashlib
 import io
 import json
+import uuid
 
 import geopandas
 import numpy
@@ -209,6 +210,62 @@ def show_amounts(table, **kwargs) -> None:
     }
     config.update(kwargs.pop("column_config", {}) or {})
     st.dataframe(rounded, width="stretch", column_config=config, **kwargs)
+
+
+def every_class_step(
+    method: str, default_replicates: int, unit: str | None, default_amount: float | None, amount_step: float = 1.0
+) -> tuple[int, float | None, str]:
+    """Replicates and amount per replicate, set once for every class of a per-class table.
+
+    A lab with thirteen patients and nineteen categories has over two hundred classes, and
+    setting each row by hand does not scale. The values reach the table only when Apply is
+    pressed: the table keeps its key until then, so rows edited one by one survive a stray
+    change here (`decisions.md` 095).
+
+    Args:
+        method: which table, so the two methods keep their own values.
+        default_replicates: the table's replicates before anything is applied.
+        unit: what the amount counts, `"shapes"` or `"µm²"`; None when the table has no amount.
+        default_amount: the table's amount before anything is applied.
+        amount_step: the amount input's step.
+
+    Returns:
+        The replicates and amount every row starts from, and a token for the table's key that
+        changes only when Apply is pressed.
+    """
+    state_key = f"every_class_{method}"
+    applied = st.session_state.get(state_key) or {}
+    replicates = applied.get("replicates", default_replicates)
+    # An amount counts shapes or area; one set in the other unit is not this table's amount.
+    amount = applied["amount"] if unit is not None and applied.get("unit") == unit else default_amount
+
+    with st.form(f"{state_key}_form", border=False):
+        replicates_column, amount_column, button_column = st.columns([1, 1, 1], vertical_alignment="bottom")
+        with replicates_column:
+            typed_replicates = st.number_input("Replicates", min_value=1, value=int(replicates), step=1)
+        typed_amount = None
+        if unit is not None:
+            with amount_column:
+                typed_amount = st.number_input(
+                    f"Per replicate ({unit})", min_value=0.0, value=float(amount), step=float(amount_step)
+                )
+        with button_column:
+            pressed = st.form_submit_button("Apply to every class")
+    st.caption(
+        "Sets these for every class in the table below. Rows you edited one by one are "
+        "overwritten in those columns; edit them again afterwards to set a class apart."
+    )
+    if pressed:
+        applied = {
+            "replicates": int(typed_replicates),
+            "amount": None if typed_amount is None else float(typed_amount),
+            "unit": unit,
+            "token": uuid.uuid4().hex[:8],
+        }
+        st.session_state[state_key] = applied
+        replicates = applied["replicates"]
+        amount = default_amount if typed_amount is None else applied["amount"]
+    return int(replicates), amount, applied.get("token", "default")
 
 
 def plate_preview(

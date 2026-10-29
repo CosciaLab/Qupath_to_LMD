@@ -6,6 +6,7 @@ Slow-ish (seconds per run), so marked `slow` alongside the golden gate.
 """
 
 import io
+import json
 import pathlib
 import zipfile
 
@@ -323,3 +324,39 @@ def test_outline_classes_ticked_one_at_a_time_are_all_kept(monkeypatch):
         f"After ticking P1 then P2 the outline classes are {app.session_state.outline_classes}: "
         "a click was silently undone, and that patient's shapes would be left out."
     )
+
+
+def _apply_to_every_class(replicates: int, amount: float | None):
+    def apply(app):
+        inputs = {control.label.split(" (")[0]: control for control in app.number_input}
+        inputs["Replicates"].set_value(replicates)
+        if amount is not None:
+            inputs["Per replicate"].set_value(amount)
+        (button,) = [b for b in app.button if b.label == "Apply to every class"]
+        button.click()
+
+    return apply
+
+
+def test_replicates_and_amount_set_once_reach_every_selected_class(monkeypatch):
+    """Thirteen patients by nineteen classes: one Apply instead of hundreds of table edits."""
+    app = _run(monkeypatch, ["outlines_two_patients.geojson"], "cells", [_apply_to_every_class(2, 40.0)])
+    budgets = {item["class_name"]: (item["replicates"], item["per_replicate"]) for item in app.session_state.budgets}
+    assert set(budgets.values()) == {(2, 40.0)}, f"Not every class got the values applied to all: {budgets}"
+    scheme = json.loads(_contents(app)["samples_and_wells.json"])
+    assert len(scheme) == 2 * len(budgets), f"{len(scheme)} wells for {len(budgets)} classes at 2 replicates each."
+
+
+def test_replicates_and_area_set_once_reach_every_region_class(monkeypatch):
+    def scale(app):
+        app.number_input(key="pixel_size_input").set_value(0.5).run()  # the scale is read before the mode is offered
+
+    def circles(app):
+        from qupath_to_lmd.ui_collect_regions import CollectMode
+
+        (choice,) = [r for r in app.radio if r.label == "What to collect from each region"]
+        choice.set_value(CollectMode.CIRCLES)
+
+    app = _run(monkeypatch, ["TD_01_verysmall_mIF.geojson"], "regions", [scale, circles, _apply_to_every_class(2, 10_000.0)])
+    requests = {item["class_name"]: (item["replicates"], item["area_per_replicate_um2"]) for item in app.session_state.region_budgets}
+    assert set(requests.values()) == {(2, 10_000.0)}, f"Not every class got the values applied to all: {requests}"
