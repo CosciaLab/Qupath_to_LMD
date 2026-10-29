@@ -912,3 +912,14 @@ def test_empty_outline_is_mentioned(fake_streamlit, monkeypatch, tmp_path):
     assert "hold no shapes" in fake_streamlit.shown("infos"), (
         "An outline holding nothing went unmentioned; a misplaced outline would show only as a missing sample."
     )
+
+
+def test_a_new_upload_clears_the_outline_ticks(fake_streamlit, monkeypatch):
+    """A new upload resets derived keys to None; the outline step must start empty, not fail."""
+    context = _context(_load(fake_streamlit, ANNOTATIONS_FILE))
+    assert ui_samples.OUTLINE_WIDGET in ui_slides.DERIVED_KEYS, (
+        "The outline ticks would carry over from the previous experiment into a new upload."
+    )
+    fake_streamlit.state.update(dict.fromkeys(ui_slides.DERIVED_KEYS))
+    _tick(monkeypatch, [])
+    assert ui_samples.outline_step(context) is context, "After a new upload the outline step failed or grouped."

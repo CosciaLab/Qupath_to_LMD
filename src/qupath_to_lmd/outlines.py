@@ -11,6 +11,7 @@ from collections.abc import Collection
 from dataclasses import dataclass, field
 
 import geopandas
+import numpy
 import pandas
 from loguru import logger
 
@@ -105,22 +106,30 @@ def group_by_outlines(
     structures = gdf.loc[~is_outline]
     points = geopandas.GeoDataFrame(geometry=structures.geometry.representative_point(), index=structures.index)
     joined = geopandas.sjoin(points, outlines, predicate="within", how="left")
-    labels = joined.groupby(level=0)["label"].agg(lambda found: sorted(set(found.dropna())))
+    # Vectorised: at a million cells a per-shape Python step costs tens of seconds.
+    found = joined["label"].groupby(level=0)
+    n_labels, first_label = found.nunique(), found.first()
 
-    assigned = labels[labels.map(len) == 1].map(lambda found: found[0])
+    assigned = first_label[n_labels == 1]
     grouped = structures.loc[assigned.index].copy()
     original = grouped[CLASS_NAME]
-    grouped[CLASS_NAME] = [grouped_name(o, c) for o, c in zip(assigned, original, strict=True)]
+    grouped[CLASS_NAME] = assigned.astype(str) + OUTLINE_SEPARATOR + original.astype(str)
+    # One parse per distinct classification and name, not one per shape.
+    parsed: dict[tuple, str] = {}
     grouped["classification"] = [
-        _grouped_classification(value, name)
-        for value, name in zip(grouped["classification"], grouped[CLASS_NAME], strict=True)
+        parsed.get(key) or parsed.setdefault(key, _grouped_classification(*key))
+        for key in zip(grouped["classification"], grouped[CLASS_NAME], strict=True)
     ]
 
+    pairs = pandas.DataFrame({"outline": assigned, "class": original, "name": grouped[CLASS_NAME]}).drop_duplicates()
     combinations: dict[str, set[tuple[str, str]]] = {}
-    for outline, class_name, name in zip(assigned, original, grouped[CLASS_NAME], strict=True):
+    for outline, class_name, name in pairs.itertuples(index=False):
         combinations.setdefault(name, set()).add((outline, class_name))
 
-    reasons = labels[labels.map(len) != 1].map(lambda found: NO_OUTLINE if not found else SEVERAL_OUTLINES)
+    ambiguous = n_labels[n_labels != 1]
+    reasons = pandas.Series(
+        numpy.where(ambiguous == 0, NO_OUTLINE, SEVERAL_OUTLINES), index=ambiguous.index, dtype=object
+    )
     left_out = geopandas.GeoDataFrame(
         structures.loc[reasons.index, [CLASS_NAME, "geometry"]].assign(reason=reasons), geometry="geometry"
     )

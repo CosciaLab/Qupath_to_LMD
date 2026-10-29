@@ -298,9 +298,7 @@ def strategy_control(context: SlidesContext, key: str) -> tuple[slides.SlideStra
     return strategy, order
 
 
-@st.cache_data(show_spinner=False)
-def _grouped(_gdf, _multipolygons, cache_key: tuple, classes: tuple[str, ...]):
-    return outlines.group_by_outlines(_gdf, classes, _multipolygons)
+OUTLINE_WIDGET = "outline_classes_choice"
 
 
 def outline_step(context: SlidesContext) -> SlidesContext:
@@ -318,11 +316,18 @@ def outline_step(context: SlidesContext) -> SlidesContext:
             for name in slide.report.multipolygons[CLASS_NAME].dropna()
         }
     )
-    remembered = [name for name in (st.session_state.get("outline_classes") or []) if name in options]
+    # Keyed and seeded once: a `default` recomputed from state on every run changes the widget's
+    # identity after each click, and Streamlit then throws the next click away. Seeded from
+    # `outline_classes` when absent (another page clears widget state) and trimmed to what this
+    # upload holds, since a stale value would make the widget raise.
+    remembered = st.session_state.get(OUTLINE_WIDGET)
+    if remembered is None:
+        remembered = st.session_state.get("outline_classes") or []
+    st.session_state[OUTLINE_WIDGET] = [name for name in remembered if name in options]
     chosen = st.multiselect(
         "Classes that outline a group of shapes",
         options=options,
-        default=remembered,
+        key=OUTLINE_WIDGET,
         help=(
             "Optional. Shapes of these classes are never cut. Every other shape takes the name of "
             "the outline it sits in — gf inside a P1 outline becomes P1_gf — so samples keep "
@@ -335,16 +340,21 @@ def outline_step(context: SlidesContext) -> SlidesContext:
     if not chosen:
         return context
 
-    classes = tuple(sorted(chosen))
+    # Not cached: grouping a million cells takes about a second, while a cached copy is ~300 MB
+    # per tick set and costs half that again to unpickle on every rerun.
+    classes = sorted(chosen)
     results = {
-        slide.name: _grouped(slide.gdf, slide.report.multipolygons, context.fingerprint(slide.name), classes)
+        slide.name: outlines.group_by_outlines(slide.gdf, classes, slide.report.multipolygons)
         for slide in context.slides
     }
     reports = {name: report for name, (_grouped_frame, report) in results.items()}
+    grouped_slides = [dataclasses.replace(slide, gdf=results[slide.name][0]) for slide in context.slides]
+    # A slide the outlines left empty goes no further — every method would otherwise have to cope
+    # with a slide holding nothing, and Regions cannot — and its own warning says why. When every
+    # slide is empty they all stay, so the page can still show what was left out.
+    kept = [slide for slide in grouped_slides if not slide.gdf.empty] or grouped_slides
     grouped = dataclasses.replace(
-        context,
-        slides=[dataclasses.replace(slide, gdf=results[slide.name][0]) for slide in context.slides],
-        outlines=reports,
+        context, slides=kept, outlines={slide.name: reports[slide.name] for slide in kept},
     )
     _report_outlines(grouped, reports)
     return grouped
@@ -365,7 +375,7 @@ def _report_outlines(context: SlidesContext, reports: dict[str, outlines.Outline
             "different classes at once. Extend or redraw the outline in QuPath, or remove the "
             "overlap, and export again."
         )
-        ui_shared.show_amounts(table if context.several else table.drop(columns=["slide"]), hide_index=True)
+        ui_shared.show_amounts(table if len(reports) > 1 else table.drop(columns=["slide"]), hide_index=True)
     for slide, report in reports.items():
         if report.n_outlines == 0:
             st.warning(f"No outline on {slide}: none of its shapes can be collected.")

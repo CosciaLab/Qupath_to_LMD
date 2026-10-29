@@ -2145,3 +2145,18 @@ Jose's notes after clicking through 078.
   `GeojsonReport.multipolygons` now keeps their geometry. Merging two tissue pieces of one patient
   in QuPath makes a MultiPolygon outline, which is useless as a cut and perfectly good as an
   area that holds shapes. What is cut is unchanged; the golden harness confirms it.
+
+## 094 — outline review fixes: empty slides, the keyed widget, no cache
+**Date:** 2026-10-29 · **Status:** active · **refines 091**
+- **A slide the outlines leave empty is dropped from the grouped context**, with its warning
+  naming it, unless every slide is empty. Before, the class table across slides crashed on it
+  (`stats.class_statistics` returned a frame with no columns for an empty slide — it now keeps
+  them), and Regions stopped the whole experiment with an error for one slide holding nothing.
+- **The outline multiselect is keyed and seeded once.** With `default` recomputed from session
+  state each run, the widget's identity changed after every click and Streamlit threw the next
+  click away — ticking P1, P2, P3 one at a time kept P1 and P3. `class_step` has the same pattern;
+  left for its own fix.
+- **Grouping is vectorised and not cached.** A per-shape Python lambda made a million cells take
+  27 s; it now takes 1.4 s. At that cost a `st.cache_data` entry — ~300 MB pickled per tick set,
+  unbounded, unpickled again on every rerun — costs more than it saves and could run the
+  deployed app out of memory.

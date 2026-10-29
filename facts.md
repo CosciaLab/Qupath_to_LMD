@@ -184,9 +184,12 @@ sidebar summary.
 - **Outlines come first in Stage 2** (`decisions.md` 091), before the method choice:
   `ui_samples.outline_step` offers every class (MultiPolygon ones included) as an outline class,
   empty by default. With nothing ticked it returns the **same** `SlidesContext`, so nothing
-  downstream can move. Otherwise `outlines.group_by_outlines` runs per slide (cached on the slide
-  fingerprint and the classes) and the step returns a copy whose frames hold `P1_gf` and whose
-  `SlidesContext.outlines` holds one `OutlineReport` per slide. A shape belongs to the outline
+  downstream can move. Otherwise `outlines.group_by_outlines` runs per slide — **not cached**,
+  since it takes ~1.4 s at a million cells and a cached copy would be ~300 MB per tick set (094) —
+  and the step returns a copy whose frames hold `P1_gf` and whose `SlidesContext.outlines` holds
+  one `OutlineReport` per slide. A slide left with no shapes is dropped from that copy (its
+  warning names it), unless every slide is empty. The multiselect is keyed
+  (`ui_samples.OUTLINE_WIDGET`, also in `DERIVED_KEYS`) and seeded once from `outline_classes`. A shape belongs to the outline
   containing its `representative_point()`; outlines of one class may overlap, outlines of two
   classes make a shape ambiguous. Ambiguous shapes and shapes in no outline are left out and
   warned about with a per-slide, per-class table; outlines are never cut. `ui_samples.render`
