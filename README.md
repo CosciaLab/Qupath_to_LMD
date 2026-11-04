@@ -60,6 +60,10 @@ experiment in view (e.g. *2 slides → 27 samples → 1 plate*):
   <img src="assets/webapp_cells_workflow.gif" alt="Open WebApp" width="700"/>
 </a>
 
+## What happens when calibration points are referred incorrectly?
+
+<img width="1650" height="1155" alt="image" src="https://github.com/user-attachments/assets/3429f235-2f74-4899-ab29-199133fd143f" />
+
 ## How to annotate tissues in QuPath
 
 ### Option 1: Manually
